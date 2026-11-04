@@ -13,8 +13,8 @@ const PRODUTOS = [
 ];
 
 const ETAPAS: { Icone: Icone; titulo: string; texto: string }[] = [
-  { Icone: TreePine, titulo: "Floresta", texto: "Origem de cada colheita registrada: fazenda, talhão e período." },
-  { Icone: Truck, titulo: "Toras", texto: "Cargas conferidas por diâmetro e ligadas à colheita." },
+  { Icone: TreePine, titulo: "Floresta", texto: "Origem de cada carga registrada: floresta e fornecedor." },
+  { Icone: Truck, titulo: "Toras", texto: "Cargas conferidas por peso, diâmetro e comprimento." },
   { Icone: Factory, titulo: "Serraria", texto: "Desdobro nas bitolas do pedido, com controle diário." },
   { Icone: Flame, titulo: "Estufa", texto: "Ciclos com checklist e umidade de entrada e saída." },
   { Icone: Package, titulo: "Embalagem", texto: "Pacotes classificados e identificados com QR Code." },
@@ -262,7 +262,7 @@ export default function SitePage() {
             <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-stone-200 bg-white px-5 py-4">
               <div>
                 <div className="text-sm font-semibold">Área do colaborador</div>
-                <p className="text-sm text-stone-500">Acesse o sistema de produção com o seu login.</p>
+                <p className="text-sm text-stone-500">Acesse o sistema com o seu login.</p>
               </div>
               <Link href="/sistema" className="inline-flex items-center gap-2 rounded-md bg-marca-700 px-4 py-2 text-sm font-semibold text-white hover:bg-marca-900">
                 Acessar sistema <ArrowRight className="h-4 w-4" />
