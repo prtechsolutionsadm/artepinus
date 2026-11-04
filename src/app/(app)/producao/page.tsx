@@ -8,6 +8,7 @@ import {
   Flame,
   Info,
   Link2,
+  OctagonAlert,
   Package,
   QrCode,
   Truck,
@@ -51,6 +52,12 @@ const TAREFAS: {
     texto: "Lote com etiqueta",
     href: "/producao/boletins/novo",
     Icone: ClipboardPen,
+  },
+  {
+    titulo: "Máquina parou",
+    texto: "Cronômetro e aviso à manutenção",
+    href: "/producao/paradas",
+    Icone: OctagonAlert,
   },
   {
     etapa: 3,

@@ -1,4 +1,5 @@
 import {
+  OctagonAlert,
   BarChart3,
   Boxes,
   ClipboardPen,
@@ -52,4 +53,5 @@ export const ICONES: Record<IconeMenu, LucideIcon> = {
   pacotes: Package,
   escanear: QrCode,
   florestas: Trees,
+  paradas: OctagonAlert,
 };

@@ -11,6 +11,7 @@ import { exigirModulo } from "@/lib/session";
 import { PERFIS_RESPONSAVEIS, pode } from "@/lib/permissoes";
 import { PRIORIDADE, STATUS, STATUS_FINAIS, dataLocalParaDate, formatarData, formatarDuracao, numeroRequisicao } from "@/lib/constantes";
 import { idsPorPerfil, notificar } from "@/lib/notificacoes";
+import { refletirRequisicaoNaParada } from "@/lib/paradas";
 import type { EstadoForm } from "./auth";
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
@@ -43,6 +44,7 @@ const statusSchema = z.object({
   maquinaParada: z.preprocess((v) => v === "on", z.boolean()),
   paradaInicio: z.preprocess(vazioParaNull, z.string().nullable()),
   paradaFim: z.preprocess(vazioParaNull, z.string().nullable()),
+  centroParada: z.preprocess(vazioParaNull, z.enum(["MEC", "ELE"]).nullable()).default(null),
 });
 
 /** Atualiza status / agendamento / responsável. Gerente, supervisor e manutentor (e admin). */
@@ -92,7 +94,8 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
   // Máquina parada: início padrão = agora; ao concluir, considera que voltou a operar
   const maquinaParada = dados.data.maquinaParada;
   const paradaInicio = maquinaParada ? (dataLocalParaDate(dados.data.paradaInicio) ?? atual.paradaInicio ?? agora) : null;
-  let paradaFim = maquinaParada ? dataLocalParaDate(dados.data.paradaFim) : null;
+  // Campo vazio não reabre uma parada já liberada (ex.: liberada na serraria com esta tela aberta)
+  let paradaFim = maquinaParada ? (dataLocalParaDate(dados.data.paradaFim) ?? atual.paradaFim) : null;
   if (maquinaParada && !paradaFim && status === "CONCLUIDA") paradaFim = atual.paradaFim ?? agora;
   if (paradaInicio && paradaFim && paradaFim < paradaInicio) return { erro: "O fim da parada não pode ser antes do início" };
   if (paradaInicio && paradaInicio > agora) return { erro: "O início da parada não pode ser no futuro" };
@@ -124,6 +127,10 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
           : undefined,
     },
   });
+
+  // Máquina da linha da serraria: a parada (e o boletim) acompanha a requisição
+  const parada = await refletirRequisicaoNaParada(id, eu.id, dados.data.centroParada ?? "MEC");
+  if (parada) revalidatePath("/producao", "layout");
 
   const num = numeroRequisicao(id);
   const link = `/requisicoes/${id}`;

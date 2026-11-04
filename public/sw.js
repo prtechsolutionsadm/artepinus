@@ -4,7 +4,7 @@
 //   para abrir sem internet; as demais mostram a tela "sem conexão".
 // - Push: mostra a notificação e abre a página ao tocar.
 const ESTATICO = "artepinus-estatico-v6";
-const PAGINAS = "artepinus-paginas-v3";
+const PAGINAS = "artepinus-paginas-v4";
 const OFFLINE = "/offline.html";
 const PAGINAS_OFFLINE = [
   "/producao",
@@ -12,6 +12,7 @@ const PAGINAS_OFFLINE = [
   "/producao/boletins/novo",
   "/producao/estoque/novo",
   "/producao/escanear",
+  "/producao/paradas",
 ];
 
 self.addEventListener("install", (event) => {

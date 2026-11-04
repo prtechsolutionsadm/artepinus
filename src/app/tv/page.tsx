@@ -107,6 +107,19 @@ export default async function PainelTv() {
 
         {/* Paradas hoje */}
         <Cartao titulo="Paradas hoje" className="flex flex-col">
+          {d.paradasAgora.length > 0 && (
+            <ul className="mb-[1vw] space-y-[0.4vw] rounded-xl bg-rose-600/20 px-[0.9vw] py-[0.7vw] ring-1 ring-rose-500/50">
+              {d.paradasAgora.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 text-[1.25vw] font-semibold text-rose-100">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="h-[0.8vw] w-[0.8vw] shrink-0 animate-pulse rounded-full" style={{ background: CENTRO[p.centro].hex }} />
+                    <span className="truncate">⛔ {p.maquina}</span>
+                  </span>
+                  <span className="shrink-0 tabular-nums">{dur(p.minutos)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="text-[4.2vw] font-bold leading-none tabular-nums" style={{ color: d.dia.minutosParados ? "#fb8a9d" : "#45c534" }}>
             {d.dia.minutosParados ? dur(d.dia.minutosParados) : "0 min"}
           </div>

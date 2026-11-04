@@ -50,10 +50,18 @@ export const ROTEIROS: Roteiro[] = [
         ],
       },
       {
+        titulo: "Quando uma máquina parar",
+        itens: [
+          "Toque em Paradas de máquina → Máquina parou.",
+          "Escolha a máquina, o motivo e se a falha é mecânica, elétrica ou operacional → Marcar parada agora.",
+          "Mecânica/elétrica: a manutenção é avisada sozinha. Quando a máquina voltar, toque em Máquina liberada.",
+        ],
+      },
+      {
         titulo: "No fim do turno",
         itens: [
           "Abra Serraria → o boletim do dia → Paradas e toras.",
-          "Lance cada parada: motivo, quantas vezes e os minutos.",
+          "As paradas marcadas na hora já estão lá. Lance só as outras: motivo, quantas vezes e os minutos.",
           "Marque as cargas de toras que foram serradas no dia e salve.",
         ],
       },

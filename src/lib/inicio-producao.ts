@@ -44,7 +44,7 @@ export async function dadosInicio() {
     }),
     db.metaProducao.findUnique({ where: { mes: mesDe(hoje) } }),
     db.auditoria.findMany({
-      where: { OR: ["boletim.", "ciclo.", "toras.", "pacote.", "estoque.", "cadastro."].map((p) => ({ acao: { startsWith: p } })) },
+      where: { OR: ["boletim.", "parada.", "ciclo.", "toras.", "pacote.", "estoque.", "cadastro."].map((p) => ({ acao: { startsWith: p } })) },
       orderBy: { criadoEm: "desc" },
       take: 15,
       include: { usuario: { select: { nome: true } } },
@@ -84,6 +84,22 @@ export async function dadosInicio() {
   const boletimHoje = boletinsRecentes.find((b) => dateParaDia(b.data) === hoje) ?? null;
 
   const pendencias: Pendencia[] = [];
+  // Máquinas paradas agora vêm primeiro: a linha está perdendo tempo
+  const paradas = await db.paradaMaquina.findMany({
+    where: { fim: null },
+    orderBy: { inicio: "asc" },
+    select: { inicio: true, centro: true, requisicaoId: true, equipamento: { select: { nome: true } }, motivo: { select: { descricao: true } } },
+  });
+  for (const p of paradas) {
+    const min = Math.round((agora.getTime() - p.inicio.getTime()) / 6e4);
+    pendencias.push({
+      tipo: "atraso",
+      texto: `${p.equipamento.nome} parada há ${min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`}`,
+      detalhe: [p.motivo?.descricao, p.requisicaoId ? "manutenção avisada" : null].filter(Boolean).join(" · ") || undefined,
+      href: "/producao/paradas",
+      acao: "Liberar",
+    });
+  }
   for (const dia of uteis.filter((d) => !lancados.has(d)).reverse()) {
     pendencias.push({
       tipo: "atraso",

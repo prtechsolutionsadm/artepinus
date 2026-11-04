@@ -116,6 +116,7 @@ const equipamentoSchema = z.object({
   numeroSerie: z.preprocess(vazioParaNull, z.string().trim().max(80).nullable()),
   setorId: z.preprocess(vazioParaNull, z.string().nullable()),
   ativo: z.preprocess((v) => v === "on", z.boolean()),
+  linhaSerraria: z.preprocess((v) => v === "on", z.boolean()),
 });
 
 export async function salvarEquipamento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
@@ -128,7 +129,7 @@ export async function salvarEquipamento(_: EstadoForm, form: FormData): Promise<
     if (id) {
       const antes = await db.equipamento.findUniqueOrThrow({ where: { id } });
       await db.equipamento.update({ where: { id }, data: resto });
-      const mudou = diferencas(antes, resto, ["codigo", "nome", "descricao", "fabricante", "modelo", "numeroSerie", "setorId", "ativo"]);
+      const mudou = diferencas(antes, resto, ["codigo", "nome", "descricao", "fabricante", "modelo", "numeroSerie", "setorId", "ativo", "linhaSerraria"]);
       if (Object.keys(mudou).length) {
         await auditar({ usuarioId: eu.id, acao: "equipamento.editar", entidade: "Equipamento", entidadeId: id, resumo: `Editou o equipamento ${resto.codigo}`, detalhes: mudou });
       }

@@ -2,7 +2,7 @@
 // (manutenção) e os apontamentos da produção (carga de toras, lote da serraria, inventário).
 
 /** Lançamentos da produção que podem ser feitos sem internet (ver /api/offline). */
-export type TipoEnvio = "carga" | "lote" | "estoque";
+export type TipoEnvio = "carga" | "lote" | "estoque" | "parada";
 
 export type ItemFila = {
   chave: string; // uuid, também vira chaveOffline no servidor

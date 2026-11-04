@@ -25,7 +25,7 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
       lotes: { orderBy: { numero: "asc" }, include: { pedido: { select: { numero: true, cliente: true } }, itens: { select: { pecas: true, m3: true, comprimento: true, espessura: true, larguras: true, largura: true } } } },
       paradas: {
         orderBy: { minutos: "desc" },
-        include: { motivo: true, equipamento: { select: { nome: true } }, requisicao: { select: { id: true, status: true } } },
+        include: { motivo: true, equipamento: { select: { nome: true } }, requisicao: { select: { id: true, status: true } }, paradaMaquina: { select: { inicio: true, fim: true } } },
       },
       cargas: { orderBy: { data: "asc" }, include: { floresta: { select: { nome: true } } } },
       ciclos: { select: { id: true, numero: true, estufa: { select: { nome: true } } } },
@@ -147,6 +147,11 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
                     {p.equipamento && ` · ${p.equipamento.nome}`} · {p.ocorrencias}× · <b className="text-stone-700">{formatarDuracao(p.minutos)}</b>
                   </div>
                   {p.motivo && p.descricao && <div className="mt-0.5 text-sm text-stone-600">{p.descricao}</div>}
+                  {p.paradaMaquina && (
+                    <div className="mt-0.5 text-xs text-stone-500">
+                      Marcada na hora: {formatarData(p.paradaMaquina.inicio, true)} → {formatarData(p.paradaMaquina.fim, true)} (só o tempo dentro do turno conta)
+                    </div>
+                  )}
                 </div>
                 {p.requisicao ? (
                   temModulo(eu, "manutencao") ? (

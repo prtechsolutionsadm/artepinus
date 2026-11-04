@@ -176,7 +176,9 @@ const configSchema = z.object({
   metaDiariaM3: z.coerce.number().positive("Informe a meta diária em m³"),
   horasDia: z.coerce.number().positive("Informe as horas por dia").max(24),
   rendimentoMeta: opcional(z.coerce.number().min(1, "Rendimento em %, ex.: 45").max(100, "Rendimento em %, ex.: 45")),
-});
+  turnoInicio: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora de início do turno inválida"),
+  turnoFim: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora de fim do turno inválida"),
+}).refine((c) => c.turnoFim > c.turnoInicio, { message: "O turno precisa terminar depois de começar" });
 
 export async function salvarConfig(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { eu, ok } = await exigirGestao();
@@ -192,10 +194,29 @@ export async function salvarConfig(_: EstadoForm, form: FormData): Promise<Estad
     entidade: "ConfigSerraria",
     entidadeId: "padrao",
     resumo: `Alterou a configuração da serraria: ${dados.metaDiariaM3} m³/dia em ${dados.horasDia} h`,
-    detalhes: antes ? diferencas(antes, dados, ["metaDiariaM3", "horasDia", "rendimentoMeta"]) : undefined,
+    detalhes: antes ? diferencas(antes, dados, ["metaDiariaM3", "horasDia", "rendimentoMeta", "turnoInicio", "turnoFim"]) : undefined,
   });
   revalidatePath("/producao", "layout");
   return { ok: "Configuração salva" };
+}
+
+/** Liga/desliga uma máquina da linha da serraria (botão "Máquina parou" e boletim). */
+export async function marcarMaquinaLinha(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { eu, ok } = await exigirGestao();
+  if (!ok) return { erro: "Sem permissão" };
+  const id = String(form.get("id") ?? "");
+  const linhaSerraria = form.get("linhaSerraria") === "on";
+  const e = await db.equipamento.update({ where: { id }, data: { linhaSerraria } }).catch(() => null);
+  if (!e) return { erro: "Equipamento não encontrado" };
+  await auditar({
+    usuarioId: eu.id,
+    acao: "cadastro.maquina",
+    entidade: "Equipamento",
+    entidadeId: id,
+    resumo: `${e.codigo} – ${e.nome} ${linhaSerraria ? "entrou na" : "saiu da"} linha da serraria`,
+  });
+  revalidatePath("/producao", "layout");
+  return { ok: linhaSerraria ? "Máquina na linha" : "Máquina fora da linha" };
 }
 
 // ============================ Zerar movimento (só administrador) ============================
@@ -208,6 +229,7 @@ const MOVIMENTO = [
   "ItemProducao",
   "Lote",
   "ParadaProducao",
+  "ParadaMaquina",
   "_ConsumoToras",
   "_MadeiraCiclo",
   "BoletimProducao",

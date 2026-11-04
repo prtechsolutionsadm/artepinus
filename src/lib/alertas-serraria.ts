@@ -10,7 +10,7 @@ import type { PerfilProducao } from "@/generated/prisma/enums";
 // as marcações (alertaAtrasoEm, prontoAvisadoEm) evitam repetir.
 
 /** Quem recebe: Admin/Gerente e os perfis de serraria indicados. */
-async function idsSerraria(perfis: PerfilProducao[] = ["SUPERVISOR", "APONTADOR"]) {
+export async function idsSerraria(perfis: PerfilProducao[] = ["SUPERVISOR", "APONTADOR"]) {
   if (!MODULOS_ATIVOS.includes("producao")) return [];
   const u = await db.usuario.findMany({
     where: { ativo: true, OR: [{ perfil: { in: ["ADMIN", "GERENTE"] } }, { perfilProducao: { in: perfis } }] },

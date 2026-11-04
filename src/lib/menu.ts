@@ -24,7 +24,8 @@ export type IconeMenu =
   | "cadastrosProducao"
   | "pacotes"
   | "escanear"
-  | "florestas";
+  | "florestas"
+  | "paradas";
 
 /** `etapa`: posição no processo (1 = toras … 4 = pacote), mostrada no menu. */
 export type ItemNav = { href: string; label: string; icone: IconeMenu; etapa?: number };
@@ -85,6 +86,7 @@ function menuProducao(u: UsuarioComPerfis): GrupoNav[] {
       itens: [
         { href: "/producao/toras", label: "Recebimento de toras", icone: "toras", etapa: 1 },
         { href: "/producao/boletins", label: "Serraria", icone: "boletins", etapa: 2 },
+        { href: "/producao/paradas", label: "Paradas de máquina", icone: "paradas" },
         { href: "/producao/estufas", label: "Estufas", icone: "estufas", etapa: 3 },
         { href: "/producao/pacotes", label: "Pacotes e expedição", icone: "pacotes", etapa: 4 },
         { href: "/producao/romaneios", label: "Romaneios", icone: "relatorios" },

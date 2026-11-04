@@ -10,6 +10,7 @@ export type EquipEditavel = {
   numeroSerie: string | null;
   setorId: string | null;
   ativo: boolean;
+  linhaSerraria: boolean;
 };
 
 export function CamposEquipamento({ e, setores }: { e?: EquipEditavel; setores: { id: string; nome: string }[] }) {
@@ -54,9 +55,14 @@ export function CamposEquipamento({ e, setores }: { e?: EquipEditavel; setores: 
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between">
-        <label className="flex items-center gap-2 font-normal">
-          <input type="checkbox" name="ativo" defaultChecked={e?.ativo ?? true} /> Ativo
-        </label>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <label className="flex items-center gap-2 font-normal">
+            <input type="checkbox" name="ativo" defaultChecked={e?.ativo ?? true} /> Ativo
+          </label>
+          <label className="flex items-center gap-2 font-normal" title="Aparece no botão Máquina parou e as paradas entram no boletim da serraria">
+            <input type="checkbox" name="linhaSerraria" defaultChecked={e?.linhaSerraria ?? false} /> Máquina da linha da serraria
+          </label>
+        </div>
         <BotaoEnviar>{e ? "Salvar" : "Cadastrar"}</BotaoEnviar>
       </div>
     </>

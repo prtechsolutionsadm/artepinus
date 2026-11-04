@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Pencil, Plus } from "lucide-react";
 import {
+  marcarMaquinaLinha,
   salvarConfig,
   salvarFloresta,
   salvarFornecedor,
@@ -26,6 +27,7 @@ const ABAS = [
   { id: "fornecedores", rotulo: "Fornecedores" },
   { id: "motoristas", rotulo: "Motoristas" },
   { id: "motivos", rotulo: "Motivos de parada" },
+  { id: "maquinas", rotulo: "Máquinas da linha" },
   { id: "estufas", rotulo: "Estufas" },
   { id: "config", rotulo: "Configuração" },
 ] as const;
@@ -283,6 +285,7 @@ export default async function CadastrosPage({
       {aba === "fornecedores" && <Fornecedores />}
       {aba === "motoristas" && <Motoristas />}
       {aba === "motivos" && <Motivos />}
+      {aba === "maquinas" && <Maquinas />}
       {aba === "estufas" && <Estufas />}
       {aba === "config" && <Config admin={eu.perfil === "ADMIN"} />}
     </>
@@ -738,6 +741,46 @@ async function Estufas() {
   );
 }
 
+/** Máquinas que aparecem no botão "Máquina parou" (as paradas delas entram no boletim). */
+async function Maquinas() {
+  const equipamentos = await db.equipamento.findMany({
+    where: { ativo: true },
+    orderBy: [{ linhaSerraria: "desc" }, { codigo: "asc" }],
+    select: { id: true, codigo: true, nome: true, linhaSerraria: true, setor: { select: { nome: true } } },
+  });
+  return (
+    <section className="cartao max-w-3xl p-0">
+      <p className="border-b border-stone-100 px-4 py-3 text-sm text-stone-600">
+        Marque as máquinas da linha da serraria. Elas aparecem no botão <b>Máquina parou</b> e, quando a manutenção abre uma requisição com
+        máquina parada numa delas, a parada entra sozinha no boletim do dia. O cadastro completo das máquinas fica em Equipamentos (manutenção).
+      </p>
+      {equipamentos.length === 0 ? (
+        <div className="p-4">
+          <Vazio>Nenhum equipamento cadastrado.</Vazio>
+        </div>
+      ) : (
+        <ul className="divide-y divide-stone-100">
+          {equipamentos.map((e) => (
+            <li key={e.id} className="flex items-center gap-3 px-4 py-2.5">
+              <div className="min-w-0 flex-1">
+                <span className="font-mono text-sm font-semibold">{e.codigo}</span> <span className="font-medium">{e.nome}</span>
+                {e.setor && <span className="ml-2 text-xs text-stone-500">{e.setor.nome}</span>}
+              </div>
+              <ActionForm action={marcarMaquinaLinha} className="shrink-0">
+                <input type="hidden" name="id" value={e.id} />
+                <input type="hidden" name="linhaSerraria" value={e.linhaSerraria ? "" : "on"} />
+                <BotaoEnviar className={e.linhaSerraria ? "btn-primario px-3 py-1.5 text-sm" : "btn-secundario px-3 py-1.5 text-sm"}>
+                  {e.linhaSerraria ? "Na linha ✓" : "Fora da linha"}
+                </BotaoEnviar>
+              </ActionForm>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 async function Config({ admin }: { admin: boolean }) {
   const c = await configSerraria();
   return (
@@ -784,6 +827,17 @@ async function Config({ admin }: { admin: boolean }) {
               className="campo"
             />
           </div>
+          <div>
+            <label htmlFor="turnoInicio">Turno começa *</label>
+            <input id="turnoInicio" name="turnoInicio" type="time" required defaultValue={c.turnoInicio} className="campo" />
+          </div>
+          <div>
+            <label htmlFor="turnoFim">Turno termina *</label>
+            <input id="turnoFim" name="turnoFim" type="time" required defaultValue={c.turnoFim} className="campo" />
+          </div>
+          <p className="text-xs text-stone-500 sm:self-center">
+            Das paradas marcadas na hora, só o tempo dentro do turno entra no boletim.
+          </p>
           <div className="flex justify-end sm:col-span-3">
             <BotaoEnviar>Salvar configuração</BotaoEnviar>
           </div>

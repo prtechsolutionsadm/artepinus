@@ -6,6 +6,7 @@ import { numeroRequisicao } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { processarFoto } from "@/lib/fotos";
 import { idsPorPerfil, notificar } from "@/lib/notificacoes";
+import { refletirRequisicaoNaParada } from "@/lib/paradas";
 import { AVISO_NOVA } from "@/lib/permissoes";
 import type { UsuarioAtual } from "@/lib/session";
 
@@ -20,6 +21,8 @@ export const novaRequisicaoSchema = z.object({
   setorId: z.preprocess(vazioParaNull, z.string().nullable()),
   equipamentoId: z.preprocess(vazioParaNull, z.string().nullable()),
   maquinaParada: z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
+  /** Máquina da linha da serraria parada: tipo da falha (vai para o boletim como MEC ou ELE). */
+  centroParada: z.preprocess(vazioParaNull, z.enum(["MEC", "ELE"]).nullable()).default(null),
   /** Quando foi registrada no aparelho (fila offline); usada como início da parada. */
   registradaEm: z.preprocess(vazioParaNull, z.coerce.date().nullable()),
   /** Chave única gerada no aparelho (fila offline), para não duplicar em reenvios. */
@@ -28,8 +31,18 @@ export const novaRequisicaoSchema = z.object({
 
 export type DadosNovaRequisicao = z.infer<typeof novaRequisicaoSchema>;
 
-/** Cria a requisição (com fotos), registra histórico/auditoria e avisa a equipe. */
-export async function criarRequisicaoCompleta(eu: UsuarioAtual, dados: DadosNovaRequisicao, fotos: File[], origem: "online" | "offline") {
+/**
+ * Cria a requisição (com fotos), registra histórico/auditoria e avisa a equipe.
+ * Com máquina parada numa máquina da linha da serraria, abre também a parada no boletim
+ * (`semParada`: quem chama já tem a parada — o botão "Máquina parou").
+ */
+export async function criarRequisicaoCompleta(
+  eu: UsuarioAtual,
+  dados: DadosNovaRequisicao,
+  fotos: File[],
+  origem: "online" | "offline",
+  opcoes: { semParada?: boolean; inicioParada?: Date } = {},
+) {
   // Reenvio da fila offline (a resposta anterior se perdeu): devolve a que já existe
   if (dados.chaveOffline) {
     const existente = await db.requisicao.findUnique({ where: { chaveOffline: dados.chaveOffline } });
@@ -46,7 +59,7 @@ export async function criarRequisicaoCompleta(eu: UsuarioAtual, dados: DadosNova
 
   const agora = new Date();
   const registradaEm = dados.registradaEm && dados.registradaEm < agora ? dados.registradaEm : agora;
-  const { registradaEm: _ignorar, ...campos } = dados;
+  const { registradaEm: _ignorar, centroParada, ...campos } = dados;
 
   const req = await db.requisicao.create({
     data: {
@@ -54,7 +67,7 @@ export async function criarRequisicaoCompleta(eu: UsuarioAtual, dados: DadosNova
       equipamentoId: equipamento ? dados.equipamentoId : null,
       setorId: dados.setorId ?? equipamento?.setorId ?? null,
       solicitanteId: eu.id,
-      paradaInicio: dados.maquinaParada ? registradaEm : null,
+      paradaInicio: dados.maquinaParada ? (opcoes.inicioParada ?? registradaEm) : null,
       historico: {
         create: {
           statusNovo: "ABERTA",
@@ -67,6 +80,8 @@ export async function criarRequisicaoCompleta(eu: UsuarioAtual, dados: DadosNova
         : undefined,
     },
   });
+
+  if (req.maquinaParada && !opcoes.semParada) await refletirRequisicaoNaParada(req.id, eu.id, centroParada ?? "MEC");
 
   await auditar({
     usuarioId: eu.id,

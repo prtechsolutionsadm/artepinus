@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock, CheckCircle2, CircleDot, Clock3, Plus, TriangleAlert } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, CheckCircle2, CircleDot, Clock3, OctagonAlert, Plus, TriangleAlert } from "lucide-react";
+import { liberarMaquina } from "@/app/actions/paradas";
+import { BotaoAcao } from "@/components/producao/BotaoAcao";
 import { ConvitePush } from "@/components/AtivarPush";
 import { ListaRequisicoes, selectItemRequisicao } from "@/components/ListaRequisicoes";
 import { Titulo } from "@/components/ui";
-import { STATUS, STATUS_HEX, STATUS_PENDENTES } from "@/lib/constantes";
+import { STATUS, STATUS_HEX, STATUS_PENDENTES, formatarDuracao, minutosEntre, numeroRequisicao } from "@/lib/constantes";
+import { CENTRO } from "@/lib/producao";
 import { db } from "@/lib/db";
 import { exigirModulo } from "@/lib/session";
 import { pode } from "@/lib/permissoes";
@@ -21,7 +24,7 @@ export default async function InicioPage() {
   const hojeBR = new Date(agora.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const inicioMes = new Date(`${hojeBR.slice(0, 8)}01T00:00:00-03:00`);
 
-  const [porStatus, urgentes, minhas, proximas, concluidasMes] = await Promise.all([
+  const [porStatus, urgentes, minhas, proximas, concluidasMes, paradas] = await Promise.all([
     db.requisicao.groupBy({ by: ["status"], _count: { _all: true } }),
     db.requisicao.findMany({
       where: { status: { in: STATUS_PENDENTES }, prioridade: { in: ["URGENTE", "ALTA"] } },
@@ -42,6 +45,19 @@ export default async function InicioPage() {
       take: 5,
     }),
     db.requisicao.count({ where: { status: "CONCLUIDA", dataConclusao: { gte: inicioMes } } }),
+    // Máquinas paradas agora (da serraria ou não): o que mais custa enquanto espera
+    db.requisicao.findMany({
+      where: { maquinaParada: true, paradaFim: null, status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
+      select: {
+        id: true,
+        titulo: true,
+        paradaInicio: true,
+        responsavel: { select: { nome: true } },
+        equipamento: { select: { nome: true, codigo: true } },
+        paradaMaquina: { select: { id: true, centro: true } },
+      },
+      orderBy: { paradaInicio: "asc" },
+    }),
   ]);
 
   const contagem = Object.fromEntries(porStatus.map((s) => [s.status, s._count._all])) as Record<string, number>;
@@ -62,6 +78,41 @@ export default async function InicioPage() {
       </Titulo>
 
       <ConvitePush />
+
+      {paradas.length > 0 && (
+        <section className="cartao mb-6 border-rose-300 p-0 ring-1 ring-rose-200">
+          <div className="flex items-center justify-between border-b border-rose-100 px-4 py-3">
+            <h2 className="flex items-center gap-2 font-semibold text-rose-800">
+              <OctagonAlert className="h-5 w-5" /> Máquinas paradas agora
+            </h2>
+            <span className="rounded-full bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white">{paradas.length}</span>
+          </div>
+          <ul className="divide-y divide-stone-100">
+            {paradas.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                <Link href={`/requisicoes/${r.id}`} className="min-w-0 flex-1 hover:underline">
+                  <div className="font-medium">{r.equipamento ? `${r.equipamento.codigo} · ${r.equipamento.nome}` : r.titulo}</div>
+                  <div className="text-sm text-stone-500">
+                    {numeroRequisicao(r.id)} · parada há <b className="text-rose-700">{formatarDuracao(minutosEntre(r.paradaInicio))}</b>
+                    {r.paradaMaquina && ` · serraria (${CENTRO[r.paradaMaquina.centro].label.toLowerCase()})`}
+                    {` · ${r.responsavel ? r.responsavel.nome : "sem responsável"}`}
+                  </div>
+                </Link>
+                {equipe && r.paradaMaquina && (
+                  <BotaoAcao
+                    acao={liberarMaquina}
+                    arg={r.paradaMaquina.id}
+                    confirmar="A máquina voltou a operar? O tempo parado vai para o boletim da serraria."
+                    className="btn-primario shrink-0 px-3 py-1.5 text-sm"
+                  >
+                    <Check className="h-4 w-4" /> Máquina liberada
+                  </BotaoAcao>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Indicador titulo="Pendentes" valor={pendentes} href="/requisicoes?status=pendentes" icone={<Clock3 className="h-5 w-5" />} destaque />

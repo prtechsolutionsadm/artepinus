@@ -36,7 +36,7 @@ export async function mesesComCargas() {
 
 /** Configuração padrão da serraria (meta e horas do boletim). */
 export async function configSerraria() {
-  return (await db.configSerraria.findUnique({ where: { id: "padrao" } })) ?? { id: "padrao", metaDiariaM3: 60, horasDia: 8.8, rendimentoMeta: null, atualizadoEm: new Date(0) };
+  return (await db.configSerraria.findUnique({ where: { id: "padrao" } })) ?? { id: "padrao", metaDiariaM3: 60, horasDia: 8.8, rendimentoMeta: null, turnoInicio: "07:00", turnoFim: "17:00", atualizadoEm: new Date(0) };
 }
 
 /** Florestas, fornecedores e motoristas ativos (e os já usados, ao editar). */

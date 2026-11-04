@@ -110,6 +110,7 @@ export const MANUAL: Secao[] = [
         titulo: "Máquina parada",
         blocos: [
           { tipo: "texto", texto: "Marcar a máquina como parada avisa a manutenção com prioridade e começa a contar o tempo de máquina parada, usado nos indicadores. A contagem termina quando a manutenção informa que a máquina voltou a operar, ou quando a requisição é concluída." },
+          { tipo: "texto", texto: "Máquina da linha da serraria: escolha também se a falha é mecânica ou elétrica. A parada aparece na hora na serraria e, quando a máquina volta a operar (ou a requisição é concluída), o tempo entra no boletim do dia. Paradas marcadas pela serraria no botão Máquina parou chegam aqui como requisição nova; o botão Máquina liberada fecha a parada nos dois módulos." },
         ],
       },
       {
@@ -419,11 +420,25 @@ export const MANUAL: Secao[] = [
         ],
       },
       {
+        titulo: "Máquina parou (na hora)",
+        blocos: [
+          { tipo: "passos", itens: [
+            "No celular ou tablet, toque em Paradas de máquina (ou em Máquina parou no Início).",
+            "Toque no botão vermelho Máquina parou, escolha a máquina, o motivo (se souber) e o tipo da falha: mecânica, elétrica ou operacional.",
+            "Toque em Marcar parada agora. O cronômetro começa a correr e a parada aparece no Início e no painel da TV.",
+            "Mecânica ou elétrica: o sistema abre na hora uma requisição de manutenção (prioridade alta, máquina parada) e avisa a manutenção.",
+            "Quando a máquina voltar, toque em Máquina liberada (se quiser, anote o que foi feito). A manutenção também pode liberar pela requisição.",
+          ] },
+          { tipo: "texto", texto: "Ao liberar, o tempo parado entra sozinho no boletim do dia e conta na disponibilidade e no OEE. Só conta o tempo dentro do turno (Cadastros → Configuração); uma parada que passa da noite entra em cada dia com a parte do turno. Uma requisição aberta pela manutenção com máquina parada numa máquina da linha também vira parada da serraria." },
+          { tipo: "dica", texto: "As máquinas que aparecem no botão são as marcadas em Cadastros → Máquinas da linha. Paradas curtas que ninguém marcou na hora podem ser lançadas no fim do turno, como abaixo." },
+        ],
+      },
+      {
         titulo: "Paradas e toras do dia",
         blocos: [
           { tipo: "passos", itens: [
             "Abra o boletim do dia em Serraria e toque em Paradas e toras.",
-            "Em Paradas da linha, escolha o motivo, confira o centro e o equipamento e informe quantas vezes parou e os minutos.",
+            "As paradas marcadas na hora já aparecem (só leitura). Em Paradas da linha, lance as outras: motivo, centro, equipamento, quantas vezes parou e os minutos.",
             "Em Toras serradas no dia, marque as cargas que foram serradas e, se souber, a quantidade e o volume de toras (para o rendimento).",
           ] },
           { tipo: "atencao", texto: "Existe um boletim por data. Meta e horas não são editadas no boletim: mudam só em Cadastros → Configuração (valem para os próximos dias)." },

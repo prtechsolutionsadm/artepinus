@@ -24,6 +24,7 @@ import {
 } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 import { codigoLote } from "@/lib/rastreio";
+import { boletimDoDia, sincronizarParadasDoDia } from "@/lib/paradas";
 import { criarRequisicaoCompleta } from "@/lib/requisicoes";
 import { exigirUsuario } from "@/lib/session";
 import type { EstadoForm } from "./auth";
@@ -86,15 +87,22 @@ export async function salvarBoletim(entrada: DadosBoletim): Promise<Resultado> {
   const antes = id ? await db.boletimProducao.findUnique({ where: { id } }) : null;
   if (id && !antes) return { erro: "Boletim não encontrado" };
   const horas = antes?.horasProgramadas ?? cfg.horasDia;
+  // As paradas marcadas na hora (botão "Máquina parou") não passam pelo formulário
+  const automaticas = id
+    ? (await db.paradaProducao.aggregate({ where: { boletimId: id, paradaMaquinaId: { not: null } }, _sum: { minutos: true } }))._sum.minutos ?? 0
+    : 0;
   const minutosParados = paradas.reduce((t, p) => t + p.minutos, 0);
-  if (minutosParados > horas * 60) return { erro: `As paradas somam ${formatarDuracao(minutosParados)}, mais que as ${horas} h programadas` };
+  if (minutosParados > 0 && minutosParados + automaticas > horas * 60)
+    return {
+      erro: `As paradas somam ${formatarDuracao(minutosParados + automaticas)}${automaticas ? ` (${formatarDuracao(automaticas)} marcadas na hora)` : ""}, mais que as ${horas} h programadas`,
+    };
 
   const dados = { ...campos, data: diaParaDate(campos.data), paradas: { create: paradas } };
   try {
     if (id && antes) {
       if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor edita boletins de outra pessoa" };
       await db.$transaction([
-        db.paradaProducao.deleteMany({ where: { boletimId: id } }),
+        db.paradaProducao.deleteMany({ where: { boletimId: id, paradaMaquinaId: null } }),
         db.boletimProducao.update({ where: { id }, data: { ...dados, cargas: { set: cargaIds.map((c) => ({ id: c })) } } }),
       ]);
       await auditar({
@@ -112,6 +120,7 @@ export async function salvarBoletim(entrada: DadosBoletim): Promise<Resultado> {
       data: { ...dados, metaM3: cfg.metaDiariaM3, horasProgramadas: cfg.horasDia, responsavelId: eu.id, cargas: { connect: cargaIds.map((c) => ({ id: c })) } },
     });
     await auditar({ usuarioId: eu.id, acao: "boletim.criar", entidade: "BoletimProducao", entidadeId: novo.id, resumo: `Abriu o boletim de ${formatarDia(novo.data)} (${paradas.length} parada(s))` });
+    await sincronizarParadasDoDia(campos.data);
     revalidatePath("/producao", "layout");
     return { id: novo.id };
   } catch (e) {
@@ -187,18 +196,9 @@ export async function lancarLote(entrada: DadosLote): Promise<Resultado> {
   const pedido = await db.pedido.findUnique({ where: { id: pedidoId } });
   if (!pedido) return { erro: "Pedido não encontrado" };
 
-  // Boletim do dia: usa o existente ou abre com a configuração padrão
-  const dia = diaParaDate(data);
-  let boletim = await db.boletimProducao.findUnique({ where: { data: dia } });
-  if (!boletim) {
-    const cfg = await configSerraria();
-    try {
-      boletim = await db.boletimProducao.create({ data: { data: dia, metaM3: cfg.metaDiariaM3, horasProgramadas: cfg.horasDia, responsavelId: eu.id } });
-    } catch (e) {
-      if (!erroUnico(e)) throw e;
-      boletim = await db.boletimProducao.findUniqueOrThrow({ where: { data: dia } });
-    }
-  }
+  // Boletim do dia: usa o existente ou abre com a configuração padrão (e traz as paradas do dia)
+  const { boletim, novo } = await boletimDoDia(data, eu.id);
+  if (novo) await sincronizarParadasDoDia(data);
   const linhas = itens.map((i) => ({
     boletimId: boletim.id,
     espessura: i.espessura,
@@ -277,6 +277,7 @@ export async function abrirRequisicaoDaParada(paradaId: string): Promise<Resulta
       setorId: null,
       equipamentoId: p.equipamentoId ?? p.motivo?.equipamentoId ?? null,
       maquinaParada: false,
+      centroParada: null,
       registradaEm: null,
       chaveOffline: null,
     },

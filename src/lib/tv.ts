@@ -9,7 +9,7 @@ export async function dadosTv() {
   const hoje = hojeSP();
   const agora = new Date();
   const inicioDia = new Date(`${hoje}T00:00:00-03:00`);
-  const [cfg, boletim, boletinsMes, estufas, formados, expedidos] = await Promise.all([
+  const [cfg, boletim, boletinsMes, estufas, formados, expedidos, paradasAgora] = await Promise.all([
     configSerraria(),
     db.boletimProducao.findUnique({
       where: { data: diaParaDate(hoje) },
@@ -31,6 +31,7 @@ export async function dadosTv() {
     }),
     db.pacote.count({ where: { criadoEm: { gte: inicioDia }, status: { not: "CANCELADO" } } }),
     db.pacote.count({ where: { expedidoEm: { gte: inicioDia }, status: "EXPEDIDO" } }),
+    db.paradaMaquina.findMany({ where: { fim: null }, orderBy: { inicio: "asc" }, select: { id: true, inicio: true, centro: true, equipamento: { select: { nome: true } } } }),
   ]);
 
   const dia = calcularKpis(boletim ? [{ ...boletim, torasM3: null }] : []);
@@ -63,6 +64,7 @@ export async function dadosTv() {
       formados,
       expedidos,
     },
+    paradasAgora: paradasAgora.map((p) => ({ id: p.id, maquina: p.equipamento.nome, centro: p.centro, minutos: (agora.getTime() - p.inicio.getTime()) / 6e4 })),
     mes: { serradoM3: mes.producaoM3, metaM3: mes.metaM3, oee: mes.oee, disponibilidade: mes.disponibilidade, dias: boletinsMes.length },
     estufas: estufas.map((e) => {
       const c = e.ciclos[0];

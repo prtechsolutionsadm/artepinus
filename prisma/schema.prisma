@@ -92,6 +92,8 @@ model Usuario {
   romaneios             Romaneio[]            @relation("RomaneiosCriados")
   lotes                 Lote[]
   plantoes              CicloSecagem[]        @relation("PlantaoCiclo")
+  paradasAbertas        ParadaMaquina[]       @relation("ParadaAberta")
+  paradasEncerradas     ParadaMaquina[]       @relation("ParadaEncerrada")
 }
 
 model Setor {
@@ -117,6 +119,9 @@ model Equipamento {
   motivosParada   MotivoParada[]
   paradasProducao ParadaProducao[]
   estufa          Estufa?
+  /// Máquina da linha da serraria: aparece no botão "Máquina parou" e as paradas entram no boletim
+  linhaSerraria   Boolean           @default(false)
+  paradasMaquina  ParadaMaquina[]
 }
 
 model Requisicao {
@@ -149,6 +154,7 @@ model Requisicao {
   paradaFim     DateTime?
 
   paradasProducao ParadaProducao[] // paradas da produção que originaram esta requisição
+  paradaMaquina   ParadaMaquina? // parada da linha da serraria ligada a esta requisição
 
   /// Chave gerada no aparelho para requisições abertas sem internet (evita duplicar no reenvio)
   chaveOffline String? @unique
@@ -356,14 +362,15 @@ enum CentroParada {
 
 /// Catálogo de motivos de parada da linha (códigos da planilha da serraria).
 model MotivoParada {
-  id            String           @id @default(cuid())
-  codigo        Int              @unique
-  descricao     String
-  centro        CentroParada
-  equipamentoId String?
-  equipamento   Equipamento?     @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
-  ativo         Boolean          @default(true)
-  paradas       ParadaProducao[]
+  id             String           @id @default(cuid())
+  codigo         Int              @unique
+  descricao      String
+  centro         CentroParada
+  equipamentoId  String?
+  equipamento    Equipamento?     @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
+  ativo          Boolean          @default(true)
+  paradas        ParadaProducao[]
+  paradasMaquina ParadaMaquina[]
 }
 
 /// Meta do mês (pré-preenche os boletins e serve de referência nos comparativos).
@@ -438,22 +445,60 @@ model ItemProducao {
 }
 
 model ParadaProducao {
-  id            String          @id @default(cuid())
-  boletimId     String
-  boletim       BoletimProducao @relation(fields: [boletimId], references: [id], onDelete: Cascade)
-  motivoId      String?
-  motivo        MotivoParada?   @relation(fields: [motivoId], references: [id], onDelete: SetNull)
-  equipamentoId String?
-  equipamento   Equipamento?    @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
-  centro        CentroParada
-  ocorrencias   Int             @default(1)
-  minutos       Float
-  descricao     String?
-  requisicaoId  Int?
-  requisicao    Requisicao?     @relation(fields: [requisicaoId], references: [id], onDelete: SetNull)
+  id              String          @id @default(cuid())
+  boletimId       String
+  boletim         BoletimProducao @relation(fields: [boletimId], references: [id], onDelete: Cascade)
+  motivoId        String?
+  motivo          MotivoParada?   @relation(fields: [motivoId], references: [id], onDelete: SetNull)
+  equipamentoId   String?
+  equipamento     Equipamento?    @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
+  centro          CentroParada
+  ocorrencias     Int             @default(1)
+  minutos         Float
+  descricao       String?
+  requisicaoId    Int?
+  requisicao      Requisicao?     @relation(fields: [requisicaoId], references: [id], onDelete: SetNull)
+  /// Gerada por uma parada marcada na hora (não se edita no formulário do boletim)
+  paradaMaquinaId String?
+  paradaMaquina   ParadaMaquina?  @relation(fields: [paradaMaquinaId], references: [id], onDelete: Cascade)
 
+  @@unique([paradaMaquinaId, boletimId])
   @@index([boletimId])
   @@index([motivoId])
+}
+
+enum OrigemParada {
+  SERRARIA // botão "Máquina parou"
+  MANUTENCAO // requisição com máquina parada
+}
+
+/// Parada de máquina marcada na hora: o cronômetro corre até a liberação; ao fechar, os
+/// minutos dentro do turno entram no boletim de cada dia (ParadaProducao).
+model ParadaMaquina {
+  id             String           @id @default(cuid())
+  equipamentoId  String
+  equipamento    Equipamento      @relation(fields: [equipamentoId], references: [id])
+  motivoId       String?
+  motivo         MotivoParada?    @relation(fields: [motivoId], references: [id], onDelete: SetNull)
+  centro         CentroParada
+  descricao      String?
+  inicio         DateTime
+  fim            DateTime?
+  origem         OrigemParada     @default(SERRARIA)
+  abertaPorId    String
+  abertaPor      Usuario          @relation("ParadaAberta", fields: [abertaPorId], references: [id])
+  encerradaPorId String?
+  encerradaPor   Usuario?         @relation("ParadaEncerrada", fields: [encerradaPorId], references: [id])
+  /// Requisição de manutenção (MEC/ELE sempre têm uma)
+  requisicaoId   Int?             @unique
+  requisicao     Requisicao?      @relation(fields: [requisicaoId], references: [id], onDelete: SetNull)
+  /// Chave do aparelho (marcada sem internet), para não duplicar no reenvio
+  chaveOffline   String?          @unique
+  criadoEm       DateTime         @default(now())
+  boletins       ParadaProducao[]
+
+  @@index([fim])
+  @@index([inicio])
 }
 
 // ---------- Estufas ----------
@@ -870,6 +915,9 @@ model ConfigSerraria {
   metaDiariaM3   Float
   horasDia       Float
   rendimentoMeta Float?
+  /// Turno ("HH:MM", Brasília): só o tempo parado dentro dele entra no boletim
+  turnoInicio    String   @default("07:00")
+  turnoFim       String   @default("17:00")
   atualizadoEm   DateTime @updatedAt
 }
 

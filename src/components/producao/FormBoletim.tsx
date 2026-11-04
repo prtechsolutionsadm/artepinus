@@ -53,6 +53,7 @@ export function FormBoletim({
   meta,
   horasPadrao,
   producaoM3 = 0,
+  automaticas = [],
 }: {
   inicial: BoletimInicial | null;
   /** Data já escolhida (ex.: vindo de uma pendência "boletim de ontem não lançado"). */
@@ -65,6 +66,8 @@ export function FormBoletim({
   horasPadrao: number;
   /** Volume já lançado nos lotes do dia. */
   producaoM3?: number;
+  /** Paradas marcadas na hora ("Máquina parou"): só leitura aqui. */
+  automaticas?: { id: string; rotulo: string; centro: CentroParada; minutos: number }[];
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -97,7 +100,7 @@ export function FormBoletim({
     return g;
   }, [motivos]);
 
-  const minutosParados = paradas.reduce((t, p) => t + (num(p.minutos) || 0), 0);
+  const minutosParados = paradas.reduce((t, p) => t + (num(p.minutos) || 0), 0) + automaticas.reduce((t, p) => t + p.minutos, 0);
   const disponibilidade = horas > 0 ? Math.max(0, (horas * 60 - minutosParados) / (horas * 60)) : null;
   const produtividade = metaM3 > 0 ? producaoM3 / metaM3 : null;
   const kpis = { minutosParados };
@@ -176,7 +179,26 @@ export function FormBoletim({
             <h2 className="font-semibold">Paradas da linha</h2>
             <span className="text-sm text-stone-500">Total: {formatarDuracao(kpis.minutosParados)}</span>
           </div>
-          {paradas.length === 0 && <p className="mb-3 text-sm text-stone-500">Nenhuma parada lançada.</p>}
+          {automaticas.length > 0 && (
+            <div className="mb-3 rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Marcadas na hora (Paradas de máquina)</p>
+              <ul className="space-y-1 text-sm">
+                {automaticas.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: CENTRO[a.centro].hex }} aria-hidden />
+                      <span className="truncate">{a.rotulo}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-stone-600">
+                      {CENTRO[a.centro].curto} · {formatarDuracao(a.minutos)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-stone-500">Para corrigir, use a requisição da manutenção ou a tela Paradas de máquina.</p>
+            </div>
+          )}
+          {paradas.length === 0 && <p className="mb-3 text-sm text-stone-500">{automaticas.length ? "Nenhuma outra parada lançada." : "Nenhuma parada lançada."}</p>}
           <ul className="space-y-3">
             {paradas.map((p, n) => (
               <li key={p.k} className="rounded-xl border border-stone-200 p-3">

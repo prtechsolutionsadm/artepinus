@@ -72,13 +72,26 @@ export function FormNovaRequisicao({ setores, equipamentos, equipamentoInicial }
           <textarea id="descricao" name="descricao" required minLength={5} rows={4} placeholder="Descreva o problema, quando começou…" className="campo" />
         </div>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/60 p-3 font-normal has-checked:border-rose-400 has-checked:bg-rose-50">
-          <input type="checkbox" name="maquinaParada" className="mt-0.5 h-5 w-5 accent-rose-600" />
-          <span>
-            <span className="block font-semibold text-rose-800">A máquina está parada</span>
-            <span className="block text-sm text-rose-700/80">Marca o início do tempo de máquina parada e avisa a manutenção com prioridade.</span>
-          </span>
-        </label>
+        <div className="group rounded-xl border border-rose-200 bg-rose-50/60 p-3 has-checked:border-rose-400 has-checked:bg-rose-50">
+          <label className="flex cursor-pointer items-start gap-3 font-normal">
+            <input type="checkbox" name="maquinaParada" className="mt-0.5 h-5 w-5 accent-rose-600" />
+            <span>
+              <span className="block font-semibold text-rose-800">A máquina está parada</span>
+              <span className="block text-sm text-rose-700/80">
+                Marca o início do tempo de máquina parada e avisa a manutenção com prioridade. Máquina da serraria: a parada entra no boletim do dia.
+              </span>
+            </span>
+          </label>
+          <div className="mt-3 hidden flex-wrap items-center gap-x-4 gap-y-1 pl-8 text-sm group-has-checked:flex">
+            <span className="font-medium text-rose-800">Tipo da falha:</span>
+            <label className="flex items-center gap-1.5 font-normal">
+              <input type="radio" name="centroParada" value="MEC" defaultChecked className="accent-rose-600" /> Mecânica
+            </label>
+            <label className="flex items-center gap-1.5 font-normal">
+              <input type="radio" name="centroParada" value="ELE" className="accent-rose-600" /> Elétrica
+            </label>
+          </div>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">

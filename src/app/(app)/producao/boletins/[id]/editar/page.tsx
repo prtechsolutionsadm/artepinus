@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Editar boletim" };
 export default async function EditarBoletimPage({ params }: { params: Promise<{ id: string }> }) {
   const eu = await exigirProducao("lancar");
   const { id } = await params;
-  const b = await db.boletimProducao.findUnique({ where: { id }, include: { itens: { select: { m3: true } }, paradas: true, cargas: { select: { id: true } } } });
+  const b = await db.boletimProducao.findUnique({ where: { id }, include: { itens: { select: { m3: true } }, paradas: { include: { equipamento: { select: { nome: true } }, motivo: { select: { descricao: true } } } }, cargas: { select: { id: true } } } });
   if (!b) notFound();
   if (b.responsavelId !== eu.id && !podeProducao(eu, "gerir")) redirect(`/producao/boletins/${id}`);
   const opcoes = await opcoesBoletim();
@@ -22,7 +22,10 @@ export default async function EditarBoletimPage({ params }: { params: Promise<{ 
     <div className="mx-auto max-w-4xl">
       <Titulo subtitulo="Paradas da linha, toras serradas e observações do dia">Boletim de {formatarDia(b.data)}</Titulo>
       <FormBoletim
-        inicial={{ ...b, data: dateParaDia(b.data), cargaIds: b.cargas.map((c) => c.id) }}
+        inicial={{ ...b, data: dateParaDia(b.data), paradas: b.paradas.filter((p) => !p.paradaMaquinaId), cargaIds: b.cargas.map((c) => c.id) }}
+        automaticas={b.paradas
+          .filter((p) => p.paradaMaquinaId)
+          .map((p) => ({ id: p.id, centro: p.centro, minutos: p.minutos, rotulo: [p.equipamento?.nome, p.motivo?.descricao ?? p.descricao].filter(Boolean).join(" — ") || "Parada" }))}
         motivos={opcoes.motivos}
         equipamentos={opcoes.equipamentos}
         meta={b.metaM3}

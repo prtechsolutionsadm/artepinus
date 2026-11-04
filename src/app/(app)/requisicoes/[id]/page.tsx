@@ -16,6 +16,9 @@ import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
 import { BotaoImprimir } from "@/components/BotaoImprimir";
 import { Galeria } from "@/components/Galeria";
 import { SeletorFotos } from "@/components/SeletorFotos";
+import { BotaoAcao } from "@/components/producao/BotaoAcao";
+import { liberarMaquina } from "@/app/actions/paradas";
+import { CENTRO } from "@/lib/producao";
 import { PrioridadeBadge, StatusBadge } from "@/components/ui";
 import {
   STATUS,
@@ -58,6 +61,7 @@ export default async function RequisicaoPage({ params }: Params) {
       apontamentos: { include: { usuario: { select: { nome: true } } }, orderBy: { inicio: "desc" } },
       checklist: { include: { feitoPor: { select: { nome: true } } }, orderBy: { ordem: "asc" } },
       plano: { select: { id: true, titulo: true } },
+      paradaMaquina: { select: { id: true, centro: true, origem: true, fim: true } },
     },
   });
   if (!req) notFound();
@@ -150,9 +154,27 @@ export default async function RequisicaoPage({ params }: Params) {
               }`}
             >
               <OctagonAlert className="h-4 w-4 shrink-0" />
-              {req.paradaFim
-                ? `Máquina ficou parada ${formatarDuracao(minutosParada)} (de ${formatarData(req.paradaInicio, true)} a ${formatarData(req.paradaFim, true)})`
-                : `Máquina parada há ${formatarDuracao(minutosParada)} (desde ${formatarData(req.paradaInicio, true)})`}
+              <span className="min-w-0 flex-1">
+                {req.paradaFim
+                  ? `Máquina ficou parada ${formatarDuracao(minutosParada)} (de ${formatarData(req.paradaInicio, true)} a ${formatarData(req.paradaFim, true)})`
+                  : `Máquina parada há ${formatarDuracao(minutosParada)} (desde ${formatarData(req.paradaInicio, true)})`}
+                {req.paradaMaquina && (
+                  <span className="block text-xs font-normal opacity-80">
+                    Linha da serraria · {CENTRO[req.paradaMaquina.centro].label.toLowerCase()} ·{" "}
+                    {req.paradaMaquina.origem === "SERRARIA" ? "marcada na serraria" : "marcada aqui"} · o tempo entra no boletim do dia
+                  </span>
+                )}
+              </span>
+              {req.paradaMaquina && !req.paradaMaquina.fim && equipe && (
+                <BotaoAcao
+                  acao={liberarMaquina}
+                  arg={req.paradaMaquina.id}
+                  confirmar="A máquina voltou a operar? O tempo parado vai para o boletim da serraria."
+                  className="btn-primario shrink-0 px-3 py-1.5 text-sm"
+                >
+                  <Check className="h-4 w-4" /> Máquina liberada
+                </BotaoAcao>
+              )}
             </div>
           )}
           <p className="mt-3 whitespace-pre-wrap text-stone-700">{req.descricao}</p>
@@ -464,6 +486,24 @@ export default async function RequisicaoPage({ params }: Params) {
                   <input id="paradaFim" name="paradaFim" type="datetime-local" max={agoraLocal} defaultValue={dateParaDataLocal(req.paradaFim)} className="campo" />
                   <p className="mt-1 text-xs text-stone-500">Ao concluir, se vazio, usa a hora da conclusão.</p>
                 </div>
+                {req.equipamento?.linhaSerraria && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    <span className="font-medium">Falha (boletim da serraria):</span>
+                    {(["MEC", "ELE"] as const).map((c) => (
+                      <label key={c} className="flex items-center gap-1.5 font-normal">
+                        <input
+                          type="radio"
+                          name="centroParada"
+                          value={c}
+                          defaultChecked={(req.paradaMaquina?.centro === "ELE" ? "ELE" : "MEC") === c}
+                          disabled={!!req.paradaMaquina}
+                          className="accent-rose-600"
+                        />{" "}
+                        {CENTRO[c].label}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </fieldset>
             <div>

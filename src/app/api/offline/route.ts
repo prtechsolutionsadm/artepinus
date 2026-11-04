@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { lancarLote, salvarCargaToras, salvarLevantamento, type DadosCargaToras, type DadosLevantamento, type DadosLote } from "@/app/actions/producao";
+import { pararMaquina, type DadosParada } from "@/app/actions/paradas";
 import { usuarioAtual } from "@/lib/session";
 
 /**
@@ -20,7 +21,9 @@ export async function POST(req: NextRequest) {
           ? await lancarLote(corpo.dados as DadosLote)
           : corpo.tipo === "estoque"
             ? await salvarLevantamento(corpo.dados as DadosLevantamento)
-            : { erro: "Tipo de envio desconhecido" };
+            : corpo.tipo === "parada"
+              ? await pararMaquina(corpo.dados as DadosParada)
+              : { erro: "Tipo de envio desconhecido" };
     if (r.erro) return NextResponse.json({ erro: r.erro }, { status: 422 });
     return NextResponse.json(r);
   } catch (e) {
