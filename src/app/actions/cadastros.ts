@@ -6,6 +6,7 @@ import { auditar, diferencas } from "@/lib/auditoria";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
 import { exigirUsuario } from "@/lib/session";
+import { diaParaDate } from "@/lib/producao";
 import type { EstadoForm } from "./auth";
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
@@ -73,6 +74,10 @@ const pedidoSchema = z.object({
   numero: z.string().trim().min(1, "Informe o número do pedido").max(40),
   cliente: z.string().trim().min(2, "Informe o cliente").max(120),
   destino: opcional(z.string().trim().max(120)),
+  /** Volume combinado em m³ (aceita vírgula). */
+  volumeM3: opcional(z.preprocess((v) => (typeof v === "string" ? v.replace(",", ".") : v), z.coerce.number().positive("Volume inválido").max(100000))),
+  /** Prazo de entrega "AAAA-MM-DD". */
+  prazo: opcional(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Prazo inválido").transform((v) => diaParaDate(v))),
   observacoes: opcional(z.string().trim().max(500)),
   status: z.enum(["ABERTO", "CONCLUIDO"]).default("ABERTO"),
 });
@@ -83,7 +88,7 @@ export async function salvarPedido(_: EstadoForm, form: FormData): Promise<Estad
     schema: pedidoSchema,
     entidade: "Pedido",
     rotulo: (d) => `o pedido ${d.numero} (${d.cliente})`,
-    campos: ["numero", "cliente", "destino", "observacoes", "status"],
+    campos: ["numero", "cliente", "destino", "volumeM3", "prazo", "observacoes", "status"],
     buscar: (id) => db.pedido.findUnique({ where: { id } }),
     criar: (d) => db.pedido.create({ data: d }),
     atualizar: (id, d) => db.pedido.update({ where: { id }, data: d }),

@@ -4,6 +4,7 @@ import { ClipboardList } from "lucide-react";
 import { ApontamentoSerraria } from "@/components/producao/ApontamentoSerraria";
 import { Titulo } from "@/components/ui";
 import { db } from "@/lib/db";
+import { situacaoPedidos } from "@/lib/pedidos";
 import { diaParaDate, hojeSP } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 import { exigirProducao } from "@/lib/session";
@@ -16,7 +17,7 @@ export default async function ApontarSerrariaPage({ searchParams }: { searchPara
   const { data: q } = await searchParams;
   const data = q && /^\d{4}-\d{2}-\d{2}$/.test(q) && q <= hojeSP() ? q : hojeSP();
   const [pedidos, cfg, boletim] = await Promise.all([
-    db.pedido.findMany({ where: { status: "ABERTO" }, orderBy: { criadoEm: "desc" }, select: { id: true, numero: true, cliente: true, destino: true } }),
+    situacaoPedidos({ status: "ABERTO" }),
     configSerraria(),
     db.boletimProducao.findUnique({ where: { data: diaParaDate(data) }, select: { id: true, metaM3: true, horasProgramadas: true } }),
   ]);
@@ -34,7 +35,15 @@ export default async function ApontarSerrariaPage({ searchParams }: { searchPara
       >
         Apontar serraria
       </Titulo>
-      <ApontamentoSerraria pedidos={pedidos} dataInicial={data} meta={boletim?.metaM3 ?? cfg.metaDiariaM3} horas={boletim?.horasProgramadas ?? cfg.horasDia} />
+      <ApontamentoSerraria
+        pedidos={pedidos.map((p) => ({
+          id: p.id,
+          numero: p.numero,
+          cliente: p.cliente,
+          destino: p.destino,
+          // O que ainda falta serrar do volume combinado
+          falta: p.volumeM3 != null ? Math.max(0, p.volumeM3 - p.serrado) : null,
+        }))} dataInicial={data} meta={boletim?.metaM3 ?? cfg.metaDiariaM3} horas={boletim?.horasProgramadas ?? cfg.horasDia} />
     </div>
   );
 }

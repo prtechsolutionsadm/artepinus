@@ -825,6 +825,10 @@ model Pedido {
   id              String       @id @default(cuid())
   numero          String       @unique
   cliente         String
+  /// volume combinado (m³) — base do saldo e do aviso de pedido pronto
+  volumeM3        Float?
+  /// prazo de entrega
+  prazo           DateTime?    @db.Date
   destino         String?
   observacoes     String?
   status          StatusPedido @default(ABERTO)

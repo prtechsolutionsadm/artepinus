@@ -63,7 +63,7 @@ function ItemLateral({ item, ativo }: { item: ItemNav; ativo: boolean }) {
     <Link
       href={item.href}
       aria-current={ativo ? "page" : undefined}
-      className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
+      className={`relative flex items-center gap-3 rounded-md px-3 py-[7px] text-sm font-medium transition ${
         ativo ? "bg-white/12 text-white" : "text-white/70 hover:bg-white/6 hover:text-white"
       }`}
     >
@@ -111,7 +111,7 @@ export function MenuLateral({
         <TrocaModulo menus={menus} modulo={modulo} />
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-3 [scrollbar-width:thin]">
         {grupos.map((g, n) => (
           <div key={g.titulo || n}>
             {g.titulo && <div className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">{g.titulo}</div>}
@@ -126,7 +126,7 @@ export function MenuLateral({
         ))}
       </nav>
 
-      <p className="px-5 pb-3 text-[10px] leading-snug text-white/35">
+      <p className="shrink-0 px-5 pb-3 pt-2 text-[10px] leading-snug text-white/35">
         © {new Date().getFullYear()} Artepinus · Desenvolvido por PR Tech Solutions
       </p>
       <details className="group relative border-t border-white/10">

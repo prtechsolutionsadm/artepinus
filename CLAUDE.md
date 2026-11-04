@@ -20,6 +20,8 @@ Next.js 16 (App Router) + Prisma 7 (client gerado em `src/generated/prisma`) + P
 - Alertas da serraria (`src/lib/alertas-serraria.ts`, via `notificar()`): estufa passou da previsão (`alertaAtrasoEm`), dia útil sem apontamento (cron 18h `/api/cron/serraria`) e pedido pronto (`prontoAvisadoEm`, checado ao concluir ciclo/formar/expedir). Crons em `vercel.json` precisam de `CRON_SECRET`.
 - QR do pacote (`/p/[numero]`) é rota pública (`PREFIXOS_PUBLICOS` em `src/proxy.ts`): visitante vê o resumo PT/EN sem dados internos (cliente, pedido, pessoas, fornecedor, placas); equipe logada é redirecionada à tela interna (`?publico=1` força a versão pública). Etiquetas novas usam `Pacote.codigoPublico` (aleatório, `novoCodigoPublico()`); o número no QR só vale para visitante se `qrLegado` (etiquetas antigas).
 - Painel da TV em `/tv` (fora do layout do app, exige login): `src/lib/tv.ts` + `router.refresh()` a cada 60 s e Wake Lock.
+- Pedidos: `volumeM3`/`prazo`; situação (serrado, verde, estufa, seco, expedido, saldo, pronto) só por `situacaoPedidos()` em `src/lib/pedidos.ts` (também usada no aviso de pedido pronto). Telas `/producao/pedidos` e `/producao/disponivel` (estoque livre × reservado).
+- Certificado de origem por romaneio (PT/EN): `BotaoCertificado` com dados de `origemDosPacotes()`.
 - Zerar movimento de teste: `zerarMovimento()` (só ADMIN, Cadastros → Configuração) faz TRUNCATE ... RESTART IDENTITY nas tabelas de movimento (`MOVIMENTO` em `src/app/actions/cadastros.ts`); mantenha a lista atualizada ao criar tabelas de movimento.
 - Roteiros por função para imprimir: `src/lib/roteiros.ts` → `/ajuda/roteiros`.
 - Textos: não use a palavra "Produção" em rótulos/títulos da interface (pedido do cliente); a pasta/rotas `/producao` continuam.

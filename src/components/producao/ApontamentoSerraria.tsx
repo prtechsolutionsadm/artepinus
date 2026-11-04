@@ -10,7 +10,7 @@ import { enviarOuGuardar } from "@/lib/fila-offline";
 import { fmtNum, hojeSP, rotuloLarguras, type LinhaFicha } from "@/lib/producao";
 import { codigoLote } from "@/lib/rastreio";
 
-type Pedido = { id: string; numero: string; cliente: string; destino: string | null };
+type Pedido = { id: string; numero: string; cliente: string; destino: string | null; falta?: number | null };
 
 export function ApontamentoSerraria({
   pedidos,
@@ -100,6 +100,7 @@ export function ApontamentoSerraria({
               <option key={p.id} value={p.id}>
                 {p.numero} · {p.cliente}
                 {p.destino ? ` · ${p.destino}` : ""}
+                {p.falta != null ? ` · falta serrar ${fmtNum(p.falta, 1)} m³` : ""}
               </option>
             ))}
           </select>

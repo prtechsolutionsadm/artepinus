@@ -465,6 +465,9 @@ export const MANUAL: Secao[] = [
             "Toque no botão do meio da barra de baixo (Ler etiqueta) e aponte para o QR Code ou para o código de barras — de pacote ou de lote. Também dá para digitar o código.",
             "No pacote: envie para a estufa, registre a saída ou anote uma observação.",
             "A expedição é só a baixa física: cliente e destino já vêm do pedido.",
+            "Gestão → Pedidos mostra cada pedido com a barra do andamento (verde, na estufa, seco, expedido), o saldo a expedir e o prazo (em vermelho se atrasado). Com volume combinado, o aviso de pedido pronto sai quando os pacotes secos cobrem o saldo. No apontamento da serraria, cada pedido mostra quanto falta serrar.",
+            "Gestão → Disponível para venda: pacotes em estoque por bitola e classe, só os sem pedido (ou incluindo os reservados), separando seca (pronta), na estufa e verde. O botão PDF gera a lista para o comercial.",
+            "No romaneio, os botões Certificado (PT) e Certificate (EN) geram o certificado de origem da carga para o cliente: origem florestal, recebimento das toras, serragem, secagem em estufa e a lista de pacotes com o QR de cada um.",
             "Para carregar um caminhão: em Pacotes, marque os pacotes, toque em Registrar saída, escolha o motorista (as placas vêm do cadastro) e confirme. O sistema gera o romaneio da carga (ROM-000001).",
             "Na saída, informe também a nota fiscal (nº e, se quiser, a chave de acesso de 44 dígitos): ela sai no romaneio e a busca do topo encontra o romaneio pelo nº da nota.",
             "No romaneio, toque em Baixar PDF do romaneio e entregue ao motorista: tem pedidos, cliente, destino, placas, a lista de pacotes com bitola, peças e m³ e os campos de assinatura. Os romaneios ficam em Operação → Romaneios.",
@@ -578,7 +581,7 @@ export const MANUAL: Secao[] = [
         titulo: "O que fica em Cadastros",
         blocos: [
           { tipo: "lista", itens: [
-            "Pedidos: nº, cliente e destino. A serraria aponta cada lote em um pedido aberto; conclua o pedido para tirá-lo da lista.",
+            "Pedidos: nº, cliente, destino, volume combinado (m³) e prazo. A serraria aponta cada lote em um pedido aberto; conclua o pedido para tirá-lo da lista.",
             "Florestas, fornecedores e motoristas (com placa do caminhão e da julieta) usados no recebimento de toras.",
             "Motivos de parada e estufas. Desative em vez de excluir, para manter o histórico.",
             "Configuração: meta diária (m³), horas por dia e rendimento esperado — viram a meta e as horas (somente leitura) de cada boletim novo.",

@@ -94,6 +94,8 @@ function menuProducao(u: UsuarioComPerfis): GrupoNav[] {
     {
       titulo: "Gestão",
       itens: [
+        { href: "/producao/pedidos", label: "Pedidos", icone: "requisicoes" },
+        { href: "/producao/disponivel", label: "Disponível para venda", icone: "estoque" },
         { href: "/producao/indicadores", label: "Indicadores", icone: "indicadores" },
         { href: "/tv", label: "Painel para TV", icone: "painel" },
         { href: "/producao/estoque", label: "Inventário de madeira", icone: "estoque" },
@@ -102,7 +104,7 @@ function menuProducao(u: UsuarioComPerfis): GrupoNav[] {
     {
       titulo: "Cadastros",
       itens: [
-        ...se(podeProducao(u, "gerir"), { href: "/producao/cadastros", label: "Pedidos e cadastros", icone: "cadastrosProducao" }),
+        ...se(podeProducao(u, "gerir"), { href: "/producao/cadastros", label: "Cadastros", icone: "cadastrosProducao" }),
         ...se(pode(u.perfil, "usuarios"), { href: "/usuarios", label: "Usuários", icone: "usuarios" }),
         ...se(pode(u.perfil, "auditoria"), { href: "/auditoria", label: "Auditoria", icone: "auditoria" }),
       ],

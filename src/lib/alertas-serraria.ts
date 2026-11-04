@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { notificar } from "@/lib/notificacoes";
+import { situacaoPedidos } from "@/lib/pedidos";
 import { MODULOS_ATIVOS } from "@/lib/permissoes";
 import { diaParaDate, fmtM3, formatarDia, hojeSP } from "@/lib/producao";
 import type { PerfilProducao } from "@/generated/prisma/enums";
@@ -55,31 +56,26 @@ export async function alertarDiaSemApontamento() {
 }
 
 /**
- * Pedido pronto para expedir: tem pacotes e todos os que ainda não saíram estão secos
- * (nenhum verde ou na estufa). Se voltar a ter pacote pendente, a marcação é limpa
- * para avisar de novo quando ficar pronto.
+ * Pedido pronto para expedir: com volume combinado, quando os pacotes secos cobrem o saldo;
+ * sem volume, quando tudo o que não saiu está seco. Se deixar de estar pronto, a marcação é
+ * limpa para avisar de novo.
  */
 export async function verificarPedidosProntos(pedidoIds?: (string | null | undefined)[]) {
   const ids = pedidoIds?.filter((x): x is string => !!x);
   if (ids && !ids.length) return 0;
-  const pedidos = await db.pedido.findMany({
-    where: { status: "ABERTO", ...(ids ? { id: { in: ids } } : {}) },
-    include: { pacotes: { where: { status: { not: "CANCELADO" } }, select: { status: true, m3: true } } },
-  });
+  const lista = await situacaoPedidos({ status: "ABERTO", ...(ids ? { id: { in: ids } } : {}) });
+  const avisado = new Map((await db.pedido.findMany({ where: { id: { in: lista.map((p) => p.id) } }, select: { id: true, prontoAvisadoEm: true } })).map((p) => [p.id, p.prontoAvisadoEm]));
   let avisados = 0;
-  for (const p of pedidos) {
-    const secos = p.pacotes.filter((x) => x.status === "SECO");
-    const pendentes = p.pacotes.filter((x) => x.status === "VERDE" || x.status === "EM_ESTUFA");
-    const pronto = secos.length > 0 && pendentes.length === 0;
-    if (pronto && !p.prontoAvisadoEm) {
+  for (const p of lista) {
+    if (p.pronto && !avisado.get(p.id)) {
       await notificar(await idsSerraria(["SUPERVISOR"]), {
         titulo: `✅ Pedido ${p.numero} pronto para expedir`,
-        mensagem: `${p.cliente}${p.destino ? ` · ${p.destino}` : ""}: ${secos.length} pacote(s) seco(s), ${fmtM3(secos.reduce((t, x) => t + x.m3, 0), 2)}.`,
-        link: `/producao/pacotes?status=SECO&q=${encodeURIComponent(p.numero)}`,
+        mensagem: `${p.cliente}${p.destino ? ` · ${p.destino}` : ""}: ${fmtM3(p.seco, 2)} secos${p.saldo != null ? ` para um saldo de ${fmtM3(p.saldo, 2)}` : ""}.`,
+        link: `/producao/pedidos/${p.id}`,
       });
       await db.pedido.update({ where: { id: p.id }, data: { prontoAvisadoEm: new Date() } });
       avisados++;
-    } else if (!pronto && p.prontoAvisadoEm) {
+    } else if (!p.pronto && avisado.get(p.id)) {
       await db.pedido.update({ where: { id: p.id }, data: { prontoAvisadoEm: null } });
     }
   }

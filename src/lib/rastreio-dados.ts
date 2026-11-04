@@ -174,3 +174,44 @@ export async function diasComLotes() {
     ),
   }));
 }
+
+/**
+ * Origem de um conjunto de pacotes (ex.: os de um romaneio), para o certificado:
+ * florestas, período de recebimento das toras e de serragem, e os ciclos de estufa.
+ */
+export async function origemDosPacotes(pacoteIds: string[]) {
+  const selDia = { id: true, data: true, cargas: { select: { data: true, floresta: { select: { id: true, nome: true, municipio: true, uf: true, especie: true } } } } } as const;
+  const pacotes = await db.pacote.findMany({
+    where: { id: { in: pacoteIds } },
+    select: {
+      id: true,
+      boletim: { select: selDia },
+      ciclo: { select: { id: true, numero: true, entrada: true, saida: true, umidadeFinal: true, estufa: { select: { nome: true } }, boletins: { select: selDia } } },
+    },
+  });
+  const dias = new Map<string, Date>();
+  const toras = new Map<string, Date>();
+  const florestas = new Map<string, { nome: string; municipio: string | null; uf: string | null; especie: string | null }>();
+  const ciclos = new Map<string, { estufa: string; numero: number | null; entrada: Date; saida: Date | null; umidadeFinal: number | null }>();
+  const porPacote = new Map<string, { secagem: string | null }>();
+  for (const p of pacotes) {
+    const ds = [...(p.boletim ? [p.boletim] : []), ...(p.ciclo?.boletins ?? [])];
+    for (const d of ds) {
+      dias.set(d.id, d.data);
+      for (const c of d.cargas) {
+        toras.set(`${c.data.toISOString()}`, c.data);
+        if (c.floresta) florestas.set(c.floresta.id, c.floresta);
+      }
+    }
+    if (p.ciclo) ciclos.set(p.ciclo.id, { estufa: p.ciclo.estufa.nome, numero: p.ciclo.numero, entrada: p.ciclo.entrada, saida: p.ciclo.saida, umidadeFinal: p.ciclo.umidadeFinal });
+    porPacote.set(p.id, { secagem: p.ciclo ? `${p.ciclo.estufa.nome}${p.ciclo.numero ? ` #${p.ciclo.numero}` : ""}` : null });
+  }
+  const ordenar = (m: Map<string, Date>) => [...m.values()].sort((a, b) => a.getTime() - b.getTime());
+  return {
+    florestas: [...florestas.values()],
+    dias: ordenar(dias),
+    toras: ordenar(toras),
+    ciclos: [...ciclos.values()].sort((a, b) => a.entrada.getTime() - b.entrada.getTime()),
+    porPacote,
+  };
+}

@@ -326,8 +326,19 @@ async function Pedidos() {
               ),
               1,
             )}{" "}
-            serrados · {p._count.pacotes} pacote(s)
+            serrados
+            {p.volumeM3 ? ` de ${fmtM3(p.volumeM3, 1)}` : ""} ·{" "}
+            {p._count.pacotes} pacote(s)
+            {p.prazo
+              ? ` · prazo ${p.prazo.toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
+              : ""}
           </span>
+          <Link
+            href={`/producao/pedidos/${p.id}`}
+            className="text-xs font-semibold text-marca-700 hover:underline"
+          >
+            Acompanhar
+          </Link>
         </div>
       )}
       form={(p) => (
@@ -372,6 +383,25 @@ async function Pedidos() {
               name="destino"
               defaultValue={p?.destino ?? ""}
               placeholder="Cidade, porto…"
+              className="campo"
+            />
+          </div>
+          <div>
+            <label>Volume combinado (m³)</label>
+            <input
+              name="volumeM3"
+              inputMode="decimal"
+              defaultValue={p?.volumeM3 ?? ""}
+              placeholder="Ex.: 120"
+              className="campo"
+            />
+          </div>
+          <div>
+            <label>Prazo de entrega</label>
+            <input
+              name="prazo"
+              type="date"
+              defaultValue={p?.prazo ? p.prazo.toISOString().slice(0, 10) : ""}
               className="campo"
             />
           </div>
