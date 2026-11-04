@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { BotaoSair } from "@/components/BotaoSair";
@@ -31,6 +32,9 @@ export default async function MenuPage() {
         </div>
       </div>
       <MenuCelular menus={menusDoUsuario(eu)} salvo={moduloSalvo((await cookies()).get(COOKIE_MODULO)?.value)} />
+      <Link href="/sistema" className="btn-secundario w-full py-3">
+        Escolher módulo (Serraria / Manutenção)
+      </Link>
       <section>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Tema</h2>
         <SeletorTema grande />

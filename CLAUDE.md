@@ -1,6 +1,6 @@
 # Artepinus · Site e sistema
 
-`/` é o site institucional público (`src/app/(site)`, rotas públicas em `src/proxy.ts`); o sistema entra por `/sistema`. A manutenção está desligada em `MODULOS_ATIVOS` (`src/lib/permissoes.ts`) — não apague o código dela.
+`/` é o site institucional público (`src/app/(site)`, rotas públicas em `src/proxy.ts`); o sistema entra por `/sistema`, a tela de início com a escolha do módulo. A manutenção está em teste (`MODULOS_EM_TESTE` em `src/lib/permissoes.ts`): aparece "Em breve" para todos e abre só para o ADMIN; para liberar a todos, mova para `MODULOS_ATIVOS`. Avisos com link da manutenção só vão para quem enxerga o módulo (`notificar()`). Não apague o código dela.
 
 Next.js 16 (App Router) + Prisma 7 (client gerado em `src/generated/prisma`) + Prisma Postgres (`DATABASE_URL` = string TCP direta; local com `npm run db:local`). Interface e código em português.
 

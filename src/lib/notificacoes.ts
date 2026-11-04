@@ -1,6 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { db } from "@/lib/db";
+import { temModulo } from "@/lib/permissoes";
 import type { Perfil } from "@/generated/prisma/enums";
 
 export type Aviso = { titulo: string; mensagem: string; link?: string };
@@ -23,8 +24,14 @@ function pushDisponivel() {
  * Nunca lança erro: uma falha de notificação não pode desfazer a ação do usuário.
  */
 export async function notificar(usuarioIds: (string | null | undefined)[], aviso: Aviso) {
-  const ids = [...new Set(usuarioIds.filter((id): id is string => Boolean(id)))];
+  let ids = [...new Set(usuarioIds.filter((id): id is string => Boolean(id)))];
   if (ids.length === 0) return;
+  // Aviso da manutenção só vai para quem enxerga o módulo (em teste: só o administrador)
+  if (aviso.link && !aviso.link.startsWith("/producao") && !aviso.link.startsWith("/p/") && aviso.link !== "/notificacoes") {
+    const usuarios = await db.usuario.findMany({ where: { id: { in: ids } }, select: { id: true, perfil: true, perfilProducao: true } });
+    ids = usuarios.filter((u) => temModulo(u, "manutencao")).map((u) => u.id);
+    if (ids.length === 0) return;
+  }
 
   try {
     await db.notificacao.createMany({

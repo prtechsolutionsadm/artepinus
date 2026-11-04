@@ -181,9 +181,9 @@ export function BarraSuperior({
                   <div className="truncate text-sm font-semibold text-stone-900">{usuario.nome}</div>
                   <div className="truncate text-xs text-stone-500">{usuario.perfilLabel}</div>
                 </div>
-                <div className="px-3 pt-2">
-                  <TrocaModuloClaro menus={menus} modulo={modulo} />
-                </div>
+                <Link href="/sistema" className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-stone-50">
+                  <LayoutGrid className="h-4 w-4 text-stone-400" /> Escolher módulo
+                </Link>
                 {conta.map((i) => {
                   const Icone = ICONES[i.icone];
                   return (
@@ -234,20 +234,6 @@ export function BarraSuperior({
   );
 }
 
-/** Troca de módulo (só aparece com mais de um módulo ativo), na versão clara do menu do usuário. */
-function TrocaModuloClaro({ menus, modulo }: { menus: Menus; modulo: Modulo }) {
-  const disponiveis = Object.keys(menus) as Modulo[];
-  if (disponiveis.length < 2) return null;
-  return (
-    <div className="mb-2 grid grid-cols-2 gap-1 rounded-md bg-stone-100 p-1" role="tablist" aria-label="Módulo">
-      {disponiveis.map((m) => (
-        <Link key={m} href={MODULOS[m].inicio} role="tab" aria-selected={m === modulo} className={`rounded px-2 py-1.5 text-center text-sm font-semibold ${m === modulo ? "bg-white text-marca-800 shadow-sm" : "text-stone-500"}`}>
-          {MODULOS[m].nome}
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 type Aba = { href: string; label: string; Icone: LucideIcon; destaque?: boolean };
 

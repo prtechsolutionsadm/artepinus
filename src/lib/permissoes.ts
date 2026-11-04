@@ -54,11 +54,17 @@ export const MODULOS: Record<Modulo, { nome: string; inicio: string }> = {
  */
 export const MODULOS_ATIVOS: Modulo[] = ["producao"];
 
+/**
+ * Módulos em teste: aparecem como "Em breve" para todos e ficam abertos só para o
+ * administrador testar. Para liberar a todos, mova para MODULOS_ATIVOS.
+ */
+export const MODULOS_EM_TESTE: Modulo[] = ["manutencao"];
+
 /** Admin e Gerente enxergam todos os módulos com acesso total. */
 const GLOBAL: Perfil[] = ["ADMIN", "GERENTE"];
 
 export function temModulo(u: UsuarioComPerfis, m: Modulo) {
-  if (!MODULOS_ATIVOS.includes(m)) return false;
+  if (!MODULOS_ATIVOS.includes(m)) return MODULOS_EM_TESTE.includes(m) && u.perfil === "ADMIN";
   if (m === "manutencao") return u.perfil !== "SEM_ACESSO";
   return GLOBAL.includes(u.perfil) || u.perfilProducao !== null;
 }

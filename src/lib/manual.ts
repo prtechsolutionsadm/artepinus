@@ -56,6 +56,7 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "lista", itens: [
             "O sistema fica atrás do site da empresa: no site, toque em Acessar sistema (ou abra o app instalado).",
+            "Depois de entrar, a tela de início mostra os módulos: toque em Serraria para trabalhar. A Manutenção aparece como Em breve. Para voltar a essa tela, use Escolher módulo no menu do seu nome (no celular, em Mais).",
             "No computador: o menu fica na barra do topo — Início, Operação, Gestão e Cadastros (passe o mouse para ver a lista). Logo abaixo aparecem as abas do grupo em que você está. A busca, o manual, o sininho e o seu nome ficam à direita.",
             "A tela Início mostra o que precisa de atenção (dia sem apontamento, estufa passando da previsão, pacotes por formar) e os botões para lançar cada etapa.",
             "O menu segue a ordem do processo: 1 Recebimento de toras → 2 Serraria → 3 Estufas → 4 Pacotes e expedição. Indicadores e inventário ficam em Gestão; pedidos e demais cadastros, em Cadastros.",
