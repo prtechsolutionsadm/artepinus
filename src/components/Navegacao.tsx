@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, ChevronRight, ChevronUp, ClipboardList, Flame, House, LayoutGrid, Package, Plus, QrCode, Search, type LucideIcon } from "lucide-react";
 import { BotaoSair } from "@/components/BotaoSair";
+import { SeletorTema } from "@/components/Tema";
 import { ICONES } from "@/components/icones";
 import { COOKIE_MODULO, TITULO_CONTA, iniciais, itemAtivo, moduloDaRota, type GrupoNav, type ItemNav } from "@/lib/menu";
 import { MODULOS, type Modulo } from "@/lib/permissoes";
@@ -137,7 +138,7 @@ export function MenuLateral({
           </div>
           <ChevronUp className="h-4 w-4 shrink-0 text-white/50 transition group-open:rotate-180" />
         </summary>
-        <div className="absolute inset-x-3 bottom-full mb-2 overflow-hidden rounded-md border border-stone-200 bg-white py-1 text-stone-700 shadow-xl">
+        <div className="superficie absolute inset-x-3 bottom-full mb-2 overflow-hidden rounded-md border border-stone-200 bg-white py-1 text-stone-700 shadow-xl">
           {conta.map((i) => {
             const Icone = ICONES[i.icone];
             return (
@@ -146,6 +147,11 @@ export function MenuLateral({
               </Link>
             );
           })}
+          <div className="my-1 border-t border-stone-100" />
+          <div className="px-3 py-2">
+            <div className="mb-1.5 text-xs font-medium text-stone-500">Tema</div>
+            <SeletorTema />
+          </div>
           <div className="my-1 border-t border-stone-100" />
           <BotaoSair sair={sair} variante="item" />
         </div>
@@ -190,7 +196,7 @@ const ABAS: Record<Modulo, Aba[]> = {
   producao: [
     { href: "/producao", label: "Início", Icone: House },
     { href: "/producao/pacotes", label: "Pacotes", Icone: Package },
-    { href: "/producao/escanear", label: "Ler QR do pacote", Icone: QrCode, destaque: true },
+    { href: "/producao/escanear", label: "Ler etiqueta", Icone: QrCode, destaque: true },
     { href: "/producao/estufas", label: "Estufas", Icone: Flame },
     { href: "/menu", label: "Mais", Icone: LayoutGrid },
   ],

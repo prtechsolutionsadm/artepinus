@@ -60,7 +60,8 @@ export const MANUAL: Secao[] = [
             "A tela Início mostra o que precisa de atenção (dia sem apontamento, estufa passando da previsão, pacotes por formar) e os botões para lançar cada etapa.",
             "O menu segue a ordem do processo: 1 Recebimento de toras → 2 Serraria → 3 Estufas → 4 Pacotes e expedição. Indicadores e inventário ficam em Gestão; pedidos e demais cadastros, em Cadastros.",
             "No celular: use a barra de baixo — Início, Pacotes, o botão do meio para ler a etiqueta de um pacote ou lote, Estufas e Mais. Em Mais estão as demais telas e o botão Sair.",
-            "A busca do topo encontra requisições pelo número (ex.: 25 ou #00025), título ou código do equipamento.",
+            "Tema claro, escuro ou automático (segue o aparelho): no computador, no menu do seu nome (canto de baixo do menu lateral); no celular, em Mais ou em Meu perfil.",
+            "As fichas de madeira (lote, ciclo de estufa, Madeira carregada no mês e inventário) têm o botão PDF, que baixa a ficha no desenho do papel — funciona até sem internet.",
           ] },
         ],
       },
@@ -548,10 +549,10 @@ export const MANUAL: Secao[] = [
         titulo: "Inventário do dia",
         blocos: [
           { tipo: "passos", itens: [
-            "Em Inventário de madeira, toque em Novo inventário.",
-            "Em Madeira em, escolha Grade, Pacote, Estufa (e qual estufa) ou Verde.",
+            "Em Inventário de madeira, toque em Inventário do dia.",
+            "Em cada linha da ficha, escolha em Madeira em onde ela está: Grade, Pacote, a estufa (Estufa 01, 02…) ou Verde.",
             "Preencha a ficha, igual à da serraria: espessura, larguras e as peças em cada comprimento.",
-            "Salve. Faça um lançamento por local; a tela de inventário soma o último dia.",
+            "Use Adicionar linha para cada local e medida e toque em Registrar. A tela de inventário soma o último dia por local e espessura.",
           ] },
         ],
       },

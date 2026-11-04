@@ -134,6 +134,8 @@ const linhaFichaSchema = z.object({
     .record(z.string(), z.coerce.number().int().min(0).max(100000))
     .refine((p) => Object.keys(p).every((k) => COMPRIMENTOS.some((c) => String(c.mm) === k)), "Comprimento fora da ficha"),
   gradesUmidas: opcional(z.coerce.number().int().min(0).max(10000)).optional(),
+  /** "Madeira em" da linha (inventário): GRADE, PACOTE, VERDE ou ESTUFA:<id>. */
+  local: opcional(z.string().regex(/^(GRADE|PACOTE|VERDE|ESTUFA:[\w-]+)$/, "Local inválido")).optional(),
 });
 const fichaSchema = z
   .array(linhaFichaSchema)
@@ -150,6 +152,7 @@ function itensDaFicha(linhas: z.output<typeof fichaSchema>) {
       larguras: rotuloLarguras(l.larguras),
       linha: n,
       grades: j === 0 ? (l.gradesUmidas ?? 0) : 0,
+      local: l.local ?? null,
     })),
   );
 }
@@ -616,8 +619,9 @@ const levantamentoSchema = z.object({
   id: opcional(z.string()),
   chaveOffline: opcional(z.string().uuid()),
   data: dia,
-  local: z.enum(["GRADE", "PACOTE", "ESTUFA", "VERDE"], { message: "Escolha onde está a madeira" }),
-  estufaId: opcional(z.string()),
+  /** Antigo: um local para o lançamento todo. Agora cada linha da ficha tem o seu ("Madeira em"). */
+  local: opcional(z.enum(["GRADE", "PACOTE", "ESTUFA", "VERDE"])).optional(),
+  estufaId: opcional(z.string()).optional(),
   observacoes: opcional(z.string().trim().max(1000)),
   /** Ficha: linhas com espessura, larguras e peças por comprimento. */
   linhas: fichaSchema,
@@ -630,19 +634,38 @@ export async function salvarLevantamento(entrada: DadosLevantamento): Promise<Re
   if (!ok) return { erro: "Sem permissão" };
   const parse = levantamentoSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, chaveOffline, linhas: ficha, ...c } = parse.data;
-  if (c.data > hojeSP()) return { erro: "A data não pode ser futura" };
-  if (c.local === "ESTUFA" && !c.estufaId) return { erro: "Escolha a estufa" };
-  if (c.local !== "ESTUFA") c.estufaId = null;
+  const { id, chaveOffline, linhas: ficha, observacoes } = parse.data;
+  if (parse.data.data > hojeSP()) return { erro: "A data não pode ser futura" };
   if (chaveOffline) {
     const ja = await db.levantamentoEstoque.findUnique({ where: { chaveOffline } });
     if (ja) return { id: ja.id };
   }
-  const linhas = itensDaFicha(ficha).map((i) => ({ espessura: i.espessura, largura: i.larguras, comprimento: i.comprimento / 1000, pecas: i.pecas, linha: i.linha, m3: i.m3 }));
+  // "Madeira em" por linha; sem ele, vale o local do lançamento (formato anterior)
+  const padrao = parse.data.local ? (parse.data.local === "ESTUFA" ? `ESTUFA:${parse.data.estufaId ?? ""}` : parse.data.local) : null;
+  const estufas = new Map((await db.estufa.findMany({ select: { id: true, nome: true } })).map((e) => [e.id, e.nome]));
+  const itens = itensDaFicha(ficha);
+  const linhas: { espessura: number; largura: string; comprimento: number; pecas: number; linha: number; m3: number; local: "GRADE" | "PACOTE" | "ESTUFA" | "VERDE"; estufaId: string | null }[] = [];
+  for (const i of itens) {
+    const lugar = i.local ?? padrao;
+    if (!lugar) return { erro: `Escolha onde está a madeira (Madeira em) na linha ${i.linha + 1}` };
+    const [tipo, estufaId] = lugar.split(":") as ["GRADE" | "PACOTE" | "ESTUFA" | "VERDE", string | undefined];
+    if (tipo === "ESTUFA" && !(estufaId && estufas.has(estufaId))) return { erro: `Escolha a estufa na linha ${i.linha + 1}` };
+    linhas.push({ espessura: i.espessura, largura: i.larguras, comprimento: i.comprimento / 1000, pecas: i.pecas, linha: i.linha, m3: i.m3, local: tipo, estufaId: tipo === "ESTUFA" ? estufaId! : null });
+  }
   const volume = arred(linhas.reduce((t, l) => t + l.m3, 0), 2);
   const espessuras = [...new Set(linhas.map((l) => l.espessura))];
-  const dados = { ...c, espessura: espessuras.length === 1 ? espessuras[0] : null, data: diaParaDate(c.data) };
-  const onde = c.local === "ESTUFA" ? (await db.estufa.findUnique({ where: { id: c.estufaId! } }))?.nome ?? "estufa" : c.local.toLowerCase();
+  const lugares = [...new Set(linhas.map((l) => `${l.local}:${l.estufaId ?? ""}`))];
+  // Cabeçalho: se todas as linhas estão no mesmo lugar, guarda também nele (filtros e histórico)
+  const unico = lugares.length === 1 ? linhas[0] : null;
+  const dados = {
+    data: diaParaDate(parse.data.data),
+    observacoes,
+    local: unico?.local ?? null,
+    estufaId: unico?.estufaId ?? null,
+    espessura: espessuras.length === 1 ? espessuras[0] : null,
+  };
+  const nomeLugar = (l: { local: string; estufaId: string | null }) => (l.local === "ESTUFA" ? (estufas.get(l.estufaId!) ?? "estufa") : l.local.toLowerCase());
+  const onde = [...new Set(linhas.map(nomeLugar))].join(", ");
 
   if (id) {
     const antes = await db.levantamentoEstoque.findUnique({ where: { id } });

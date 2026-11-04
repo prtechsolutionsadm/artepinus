@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
 import { LOCAL_ESTOQUE, TIPO_ESTOQUE, dateParaDia, formatarDia, linhasDosItens, linhasParaTabela } from "@/lib/producao";
 import { TabelaFicha } from "@/components/producao/TabelaFicha";
+import { BotaoPdfFicha } from "@/components/producao/BotaoPdfFicha";
 import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Inventário" };
@@ -18,22 +19,33 @@ export default async function LevantamentoPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const l = await db.levantamentoEstoque.findUnique({
     where: { id },
-    include: { itens: { orderBy: [{ linha: "asc" }, { espessura: "asc" }, { comprimento: "desc" }] }, responsavel: { select: { nome: true } }, estufa: { select: { nome: true } } },
+    include: { itens: { orderBy: [{ linha: "asc" }, { espessura: "asc" }, { comprimento: "desc" }], include: { estufa: { select: { nome: true } } } }, responsavel: { select: { nome: true } }, estufa: { select: { nome: true } } },
   });
   if (!l) notFound();
-  const editar = !!l.local && (podeProducao(eu, "gerir") || (podeProducao(eu, "lancar") && l.responsavelId === eu.id));
-  const onde = l.local === "ESTUFA" ? (l.estufa?.nome ?? "Estufa") : l.local ? LOCAL_ESTOQUE[l.local] : l.tipo ? TIPO_ESTOQUE[l.tipo] : "—";
+  const editar = (!!l.local || l.itens.some((i) => i.local)) && (podeProducao(eu, "gerir") || (podeProducao(eu, "lancar") && l.responsavelId === eu.id));
+  const nome = (local: keyof typeof LOCAL_ESTOQUE | null, estufa?: { nome: string } | null) => (local === "ESTUFA" ? (estufa?.nome ?? "Estufa") : local ? LOCAL_ESTOQUE[local] : null);
+  const lugares = [...new Set(l.itens.map((i) => nome(i.local, i.estufa)).filter(Boolean))];
+  const onde = lugares.length ? lugares.join(", ") : (nome(l.local, l.estufa) ?? (l.tipo ? TIPO_ESTOQUE[l.tipo] : "—"));
   const estufas = editar ? await db.estufa.findMany({ where: { OR: [{ ativo: true }, ...(l.estufaId ? [{ id: l.estufaId }] : [])] }, orderBy: { numero: "asc" }, select: { id: true, nome: true } }) : [];
+  const tabela = linhasParaTabela(l.itens.map((i) => ({ ...i, larguras: i.largura, pecas: i.pecas ?? i.grades ?? i.pacotes }))).map((x, n) => {
+    const i = l.itens.find((it) => `L${it.linha}` === x.chave || `${it.espessura}|${it.largura}` === x.chave) ?? l.itens[n];
+    const lugar = nome(i?.local ?? l.local, i?.estufa ?? l.estufa) ?? "—";
+    return { ...x, antes: [lugar], antesTexto: [lugar] };
+  });
+  const pdf = { titulo: `Inventário de madeira · ${formatarDia(l.data)}`, subtitulo: `${onde} · registrado por ${l.responsavel.nome}`, arquivo: `inventario-${dateParaDia(l.data)}` };
   return (
     <div className="mx-auto max-w-7xl">
       <Titulo
         subtitulo={`Registrado por ${l.responsavel.nome}`}
         acao={
-          podeProducao(eu, "gerir") && (
-            <BotaoAcao acao={excluirLevantamento} arg={l.id} confirmar="Excluir este inventário?" depois="/producao/estoque" className="btn-perigo">
-              <Trash2 className="h-4 w-4" /> Excluir
-            </BotaoAcao>
-          )
+          <div className="flex flex-wrap gap-2">
+            {editar && <BotaoPdfFicha dados={{ ...pdf, colunasAntes: ["Madeira em"], linhas: tabela.map((t) => ({ ...t, antes: t.antesTexto })) }} />}
+            {podeProducao(eu, "gerir") && (
+              <BotaoAcao acao={excluirLevantamento} arg={l.id} confirmar="Excluir este inventário?" depois="/producao/estoque" className="btn-perigo">
+                <Trash2 className="h-4 w-4" /> Excluir
+              </BotaoAcao>
+            )}
+          </div>
         }
       >
         {onde}
@@ -53,7 +65,12 @@ export default async function LevantamentoPage({ params }: { params: Promise<{ i
         />
       ) : (
         <section className="cartao p-0">
-          <TabelaFicha linhas={linhasParaTabela(l.itens.map((i) => ({ ...i, larguras: i.largura, pecas: i.pecas ?? i.grades ?? i.pacotes })))} />
+          <TabelaFicha
+            titulo="Madeira contada"
+            pdf={pdf}
+            colunasAntes={["Madeira em"]}
+            linhas={tabela}
+          />
         </section>
       )}
     </div>

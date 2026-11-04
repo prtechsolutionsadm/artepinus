@@ -77,7 +77,11 @@ export default async function LotePage({ params }: { params: Promise<{ numero: s
       </dl>
 
       <section className="cartao p-0">
-        <TabelaFicha linhas={linhasParaTabela(l.itens.map((i) => ({ ...i, larguras: i.larguras ?? String(i.largura) })))} />
+        <TabelaFicha
+          titulo="Madeira serrada"
+          linhas={linhasParaTabela(l.itens.map((i) => ({ ...i, larguras: i.larguras ?? String(i.largura) })))}
+          pdf={{ titulo: `Lote ${codigoLote(l.numero)} · pedido ${l.pedido.numero} · ${l.pedido.cliente}`, subtitulo: `Serraria em ${formatarDia(l.boletim.data)}`, arquivo: codigoLote(l.numero) }}
+        />
       </section>
     </div>
   );

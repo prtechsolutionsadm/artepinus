@@ -6,7 +6,8 @@ import { formatarDuracao } from "@/lib/constantes";
 
 // Paleta categórica validada (light): azul, laranja, verde-água — nesta ordem fixa.
 export const SERIES = ["#2a78d6", "#eb6834", "#1baf7a"] as const;
-const GRADE = "#e7e5e4";
+/** Linhas de grade: segue o tema (cinza claro no claro, cinza escuro no escuro). */
+const GRADE = "var(--color-stone-200)";
 
 function ticks(maximo: number) {
   if (maximo <= 0) return [0, 1];
@@ -19,7 +20,7 @@ function ticks(maximo: number) {
   return lista;
 }
 
-type Serie = { chave: string; rotulo: string };
+type Serie = { chave: string; rotulo: string; cor?: string };
 
 /** Colunas empilhadas por categoria (ex.: mês) com legenda, dica ao passar o mouse e tabela. */
 export function ColunasEmpilhadas({
@@ -63,7 +64,7 @@ export function ColunasEmpilhadas({
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600" aria-label="Legenda">
           {series.map((s, i) => (
             <li key={s.chave} className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: SERIES[i] }} />
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: series[i].cor ?? SERIES[i] }} />
               {s.rotulo}
             </li>
           ))}
@@ -113,7 +114,7 @@ export function ColunasEmpilhadas({
                     const r = ultimo ? Math.min(4, h) : 0;
                     const x = cx - largura / 2;
                     const path = `M${x},${yTopo + h} V${yTopo + r} Q${x},${yTopo} ${x + r},${yTopo} H${x + largura - r} Q${x + largura},${yTopo} ${x + largura},${yTopo + r} V${yTopo + h} Z`;
-                    return <path key={s.si} d={path} fill={SERIES[s.si]} />;
+                    return <path key={s.si} d={path} fill={series[s.si].cor ?? SERIES[s.si]} />;
                   })}
                   {meta && metas[i] > 0 && (
                     <line x1={cx - Math.min(banda * 0.45, largura * 0.9)} x2={cx + Math.min(banda * 0.45, largura * 0.9)} y1={y(metas[i])} y2={y(metas[i])} stroke="#292524" strokeWidth={2} strokeLinecap="round" />
@@ -137,7 +138,7 @@ export function ColunasEmpilhadas({
               {series.map((s, i) => (
                 <div key={s.chave} className="flex items-center justify-between gap-4 text-stone-600">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-sm" style={{ background: SERIES[i] }} />
+                    <span className="h-2 w-2 rounded-sm" style={{ background: series[i].cor ?? SERIES[i] }} />
                     {s.rotulo}
                   </span>
                   <span className="font-medium tabular-nums text-stone-900">{dados[ativo][s.chave]}</span>

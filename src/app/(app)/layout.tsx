@@ -7,6 +7,7 @@ import { BarraInferior, BuscaTopo, MenuLateral, SecaoAtual } from "@/components/
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
+import { SCRIPT_TEMA, TemaApp } from "@/components/Tema";
 import { PERFIL, PERFIL_PRODUCAO } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { COOKIE_MODULO, iniciais, menusDoUsuario, moduloSalvo } from "@/lib/menu";
@@ -53,6 +54,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh">
+      <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      <TemaApp />
       <MenuLateral menus={menus} salvo={salvo} usuario={{ nome: eu.nome, perfilLabel }} sair={sair} />
 
       <div className="lg:pl-64 print:pl-0">

@@ -41,7 +41,14 @@ export const COMPRIMENTOS: { mm: number; classe: ClasseMadeira }[] = [
 ];
 
 /** Uma linha da ficha. `larguras`: "125" | "100" | "85" | "50" | "MISTA"; `pecas`: mm do comprimento → peças. */
-export type LinhaFicha = { espessura: number | null; larguras: string[]; pecas: Record<number, number>; gradesUmidas?: number | null };
+export type LinhaFicha = {
+  espessura: number | null;
+  larguras: string[];
+  pecas: Record<number, number>;
+  gradesUmidas?: number | null;
+  /** "Madeira em" (inventário): GRADE, PACOTE, VERDE ou ESTUFA:<id>. */
+  local?: string | null;
+};
 
 /** "100/85", "Mista" ou "Mista + 85". */
 export function rotuloLarguras(larguras: string[]) {
@@ -70,11 +77,14 @@ export function itensDaLinha(l: LinhaFicha) {
 }
 
 /** Monta de volta as linhas da ficha a partir dos itens gravados (agrupados por `linha`). */
-export function linhasDosItens(itens: { linha: number | null; espessura: number; larguras: string; comprimento: number; pecas: number | null; grades?: number | null }[]): LinhaFicha[] {
+export function linhasDosItens(
+  itens: { linha: number | null; espessura: number; larguras: string; comprimento: number; pecas: number | null; grades?: number | null; local?: string | null; estufaId?: string | null }[],
+): LinhaFicha[] {
   const mapa = new Map<string, LinhaFicha>();
   for (const i of itens) {
     const k = i.linha != null ? `L${i.linha}` : `${i.espessura}|${i.larguras}`;
-    const atual = mapa.get(k) ?? { espessura: i.espessura, larguras: larguraDoRotulo(i.larguras), pecas: {}, gradesUmidas: null };
+    const local = i.local === "ESTUFA" && i.estufaId ? `ESTUFA:${i.estufaId}` : (i.local ?? null);
+    const atual = mapa.get(k) ?? { espessura: i.espessura, larguras: larguraDoRotulo(i.larguras), pecas: {}, gradesUmidas: null, local };
     const mm = Math.round(i.comprimento < 100 ? i.comprimento * 1000 : i.comprimento);
     atual.pecas[mm] = (atual.pecas[mm] ?? 0) + (i.pecas ?? 0);
     if (i.grades) atual.gradesUmidas = (atual.gradesUmidas ?? 0) + i.grades;

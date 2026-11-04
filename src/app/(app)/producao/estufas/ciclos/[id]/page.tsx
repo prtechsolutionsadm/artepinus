@@ -170,8 +170,16 @@ export default async function CicloPage({
       )}
 
       <section className="cartao mb-6 overflow-hidden p-0">
-        <h2 className="border-b border-stone-100 px-4 py-3 font-semibold">Madeira carregada</h2>
-        <TabelaFicha linhas={linhasParaTabela(c.cargas.map((x) => ({ ...x, larguras: x.largura })))} gradesUmidas />
+        <TabelaFicha
+          titulo="Madeira carregada"
+          linhas={linhasParaTabela(c.cargas.map((x) => ({ ...x, larguras: x.largura })))}
+          gradesUmidas
+          pdf={{
+            titulo: `Madeira carregada · ${c.estufa.nome}${c.numero ? ` · ciclo ${c.numero}` : ""}`,
+            subtitulo: `Entrada ${formatarData(c.entrada, true)}`,
+            arquivo: `ciclo-${c.numero ?? c.id}-${c.estufa.nome.toLowerCase().replace(/\s+/g, "-")}`,
+          }}
+        />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-5">

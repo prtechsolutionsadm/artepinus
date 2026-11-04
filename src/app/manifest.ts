@@ -16,7 +16,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Ler QR do pacote", url: "/producao/escanear" },
+      { name: "Ler etiqueta", url: "/producao/escanear" },
       { name: "Apontar serraria", url: "/producao/boletins/novo" },
     ],
   };

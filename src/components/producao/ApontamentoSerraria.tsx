@@ -127,7 +127,7 @@ export function ApontamentoSerraria({
           {erro}
         </p>
       )}
-      <div className="flex flex-wrap items-center justify-end gap-3">
+      <div className="barra-acoes">
         {cheias.length > 0 && (
           <button type="button" onClick={() => setLinhas([linhaVazia()])} className="btn-secundario">
             Limpar ficha

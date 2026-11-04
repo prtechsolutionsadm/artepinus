@@ -156,7 +156,7 @@ export default async function InicioProducaoPage() {
           </h1>
         </div>
         <Link href="/producao/escanear" className="btn-secundario">
-          <QrCode className="h-4 w-4" /> Ler QR do pacote
+          <QrCode className="h-4 w-4" /> Ler etiqueta
         </Link>
       </div>
 

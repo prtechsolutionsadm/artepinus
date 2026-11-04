@@ -206,7 +206,7 @@ export function FormCiclo({
             {erro}
           </p>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="barra-acoes">
           <button
             type="button"
             onClick={() => router.back()}

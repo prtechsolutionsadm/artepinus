@@ -461,6 +461,7 @@ model Estufa {
   equipamento   Equipamento?          @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
   ativo         Boolean               @default(true)
   ciclos        CicloSecagem[]
+  itensEstoque  ItemEstoque[]
   levantamentos LevantamentoEstoque[]
 }
 
@@ -612,6 +613,10 @@ model ItemEstoque {
   pecas          Int?
   m3             Float
   linha          Int?
+  /// "Madeira em" da linha (inventários novos; os antigos usam o do levantamento)
+  local          LocalEstoque?
+  estufaId       String?
+  estufa         Estufa?             @relation(fields: [estufaId], references: [id], onDelete: SetNull)
 
   @@index([levantamentoId])
 }

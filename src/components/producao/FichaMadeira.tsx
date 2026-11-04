@@ -3,15 +3,17 @@
 import { Copy, Plus, Trash2 } from "lucide-react";
 import { CLASSE_MADEIRA, COMPRIMENTOS, ESPESSURAS, LARGURAS, MISTA, fmtM3, fmtNum, itensDaLinha, type LinhaFicha } from "@/lib/producao";
 
-export const linhaVazia = (base?: Partial<LinhaFicha>): LinhaFicha => ({ espessura: base?.espessura ?? null, larguras: base?.larguras ?? [], pecas: {}, gradesUmidas: null });
+export const linhaVazia = (base?: Partial<LinhaFicha>): LinhaFicha => ({ espessura: base?.espessura ?? null, larguras: base?.larguras ?? [], pecas: {}, gradesUmidas: null, local: base?.local ?? null });
 
 /** Linhas com alguma peça lançada. */
 export const linhasPreenchidas = (linhas: LinhaFicha[]) => linhas.filter((l) => Object.values(l.pecas).some((n) => n > 0));
 
 /** Confere as linhas antes de enviar; devolve a mensagem de erro ou null. */
-export function validarFicha(linhas: LinhaFicha[]) {
+export function validarFicha(linhas: LinhaFicha[], comLocal = false) {
   const cheias = linhasPreenchidas(linhas);
   if (!cheias.length) return "Preencha as peças de pelo menos um comprimento";
+  const semLocal = comLocal ? linhas.indexOf(cheias.find((l) => !l.local) ?? ({} as LinhaFicha)) : -1;
+  if (semLocal >= 0) return `Escolha onde está a madeira (Madeira em) na linha ${semLocal + 1}`;
   const n = linhas.indexOf(cheias.find((l) => !l.espessura) ?? ({} as LinhaFicha));
   if (n >= 0) return `Escolha a espessura da linha ${n + 1}`;
   const m = linhas.indexOf(cheias.find((l) => !l.larguras.length) ?? ({} as LinhaFicha));
@@ -31,9 +33,12 @@ export function FichaMadeira({
   linhas,
   onChange,
   gradesUmidas = false,
+  locais,
 }: {
   linhas: LinhaFicha[];
   onChange: (l: LinhaFicha[]) => void;
+  /** Opções da coluna "Madeira em" (inventário). Sem ela, a coluna não aparece. */
+  locais?: { valor: string; rotulo: string }[];
   /** Mostra a coluna "Grades úmidas" (ficha da estufa). */
   gradesUmidas?: boolean;
 }) {
@@ -54,7 +59,7 @@ export function FichaMadeira({
   };
   const remover = (i: number) => onChange(linhas.length > 1 ? linhas.filter((_, j) => j !== i) : [linhaVazia()]);
   const repetir = (i: number) => onChange([...linhas.slice(0, i + 1), linhaVazia(linhas[i]), ...linhas.slice(i + 1)]);
-  const adicionar = () => onChange([...linhas, linhaVazia({ espessura: linhas[linhas.length - 1]?.espessura ?? null })]);
+  const adicionar = () => onChange([...linhas, linhaVazia({ espessura: linhas[linhas.length - 1]?.espessura ?? null, local: linhas[linhas.length - 1]?.local ?? null })]);
 
   const totalLinha = (l: LinhaFicha) => Object.values(l.pecas).reduce((t, n) => t + n, 0);
   const m3Linha = (l: LinhaFicha) => itensDaLinha(l).reduce((t, i) => t + i.m3, 0);
@@ -101,6 +106,17 @@ export function FichaMadeira({
     </select>
   );
 
+  const local = (l: LinhaFicha, i: number, id: string) => (
+    <select id={id} aria-label={`Madeira em (linha ${i + 1})`} value={l.local ?? ""} onChange={(e) => mudar(i, { local: e.target.value || null })} className="campo h-9 min-w-[8rem] py-0 pl-2.5 pr-7 text-sm">
+      <option value="">Onde…</option>
+      {locais?.map((o) => (
+        <option key={o.valor} value={o.valor}>
+          {o.rotulo}
+        </option>
+      ))}
+    </select>
+  );
+
   const celula = (l: LinhaFicha, i: number, ci: number, mm: number, prefixo: string, classe = "") => (
     <input
       id={`${prefixo}-${i}-${ci}`}
@@ -125,6 +141,11 @@ export function FichaMadeira({
               <th rowSpan={2} className="w-8 px-1 py-2 text-left font-semibold">
                 #
               </th>
+              {locais && (
+                <th rowSpan={2} className="w-[9rem] px-1 py-2 text-left font-semibold">
+                  Madeira em
+                </th>
+              )}
               <th rowSpan={2} className="w-[7.5rem] px-1 py-2 text-left font-semibold">
                 Espessura
               </th>
@@ -160,6 +181,7 @@ export function FichaMadeira({
             {linhas.map((l, i) => (
               <tr key={i} className="border-b border-stone-100 align-middle">
                 <td className="px-1 py-1.5 text-xs text-stone-400 tabular-nums">{i + 1}</td>
+                {locais && <td className="px-1 py-1.5">{local(l, i, `f-loc-${i}`)}</td>}
                 <td className="px-1 py-1.5">
                   {espessura(l, i, `f-esp-${i}`)}
                 </td>
@@ -199,7 +221,7 @@ export function FichaMadeira({
           </tbody>
           <tfoot>
             <tr className="text-xs font-semibold text-stone-600">
-              <td colSpan={3} className="px-1 py-2">
+              <td colSpan={locais ? 4 : 3} className="px-1 py-2">
                 Total
               </td>
               {COMPRIMENTOS.map((c) => (
@@ -232,6 +254,7 @@ export function FichaMadeira({
               </span>
             </div>
             <div className="grid gap-2">
+              {locais && local(l, i, `fm-loc-${i}`)}
               {espessura(l, i, `fm-esp-${i}`)}
               <div className="overflow-x-auto">
                 {larguras(l, i)}

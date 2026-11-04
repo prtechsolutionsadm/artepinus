@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import { BotaoImprimir } from "@/components/BotaoImprimir";
 import { SeletorMes } from "@/components/SeletorMes";
 import { TabelaFicha, type LinhaTabelaFicha } from "@/components/producao/TabelaFicha";
 import { db } from "@/lib/db";
@@ -43,6 +42,7 @@ export default async function FichaEstufaPage({ params, searchParams }: { params
       c.id,
     ).map((l, i) => ({
       ...l,
+      antesTexto: [i === 0 ? formatarDia(c.entrada, { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }) : "", i === 0 ? String(c.numero ?? "") : ""],
       antes: [
         i === 0 ? formatarDia(c.entrada, { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }) : "",
         i === 0 ? (
@@ -71,7 +71,6 @@ export default async function FichaEstufaPage({ params, searchParams }: { params
         </div>
         <div className="nao-imprimir flex flex-wrap items-center gap-2">
           <SeletorMes mes={mes} atual={atual} base={`/producao/estufas/${id}`} comDados={comDados} />
-          <BotaoImprimir />
           {podeProducao(eu, "lancar") && (
             <Link href={`/producao/estufas/ciclos/novo?estufa=${id}`} className="btn-primario">
               <Plus className="h-4 w-4" /> Iniciar ciclo
@@ -80,7 +79,14 @@ export default async function FichaEstufaPage({ params, searchParams }: { params
         </div>
       </div>
       <section className="cartao p-0">
-        <TabelaFicha linhas={linhas} colunasAntes={["Data", "Ciclo"]} gradesUmidas vazio="Nenhum ciclo carregado nesta estufa no mês." />
+        <TabelaFicha
+          linhas={linhas}
+          colunasAntes={["Data", "Ciclo"]}
+          gradesUmidas
+          vazio="Nenhum ciclo carregado nesta estufa no mês."
+          titulo={`${ciclos.length} ciclo(s) · ${fmtM3(m3, 2)}`}
+          pdf={{ titulo: `Madeira carregada no mês · ${estufa.nome}`, subtitulo: nomeMesLongo(mes), arquivo: `madeira-carregada-${estufa.nome.toLowerCase().replace(/\s+/g, "-")}-${mes}` }}
+        />
       </section>
     </div>
   );

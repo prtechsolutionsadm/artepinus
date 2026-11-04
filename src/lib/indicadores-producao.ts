@@ -27,7 +27,7 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
       select: { entrada: true, saida: true, cargas: { select: { m3: true } } },
     }),
     db.cargaToras.findMany({ where: { data: intervaloMes(mes) }, include: { itens: true } }),
-    db.levantamentoEstoque.findFirst({ where: { local: { not: null } }, orderBy: { data: "desc" }, select: { data: true } }),
+    db.levantamentoEstoque.findFirst({ where: { OR: [{ local: { not: null } }, { itens: { some: { local: { not: null } } } }] }, orderBy: { data: "desc" }, select: { data: true } }),
   ]);
 
   const doMes = boletins.filter((b) => dateParaDia(b.data).startsWith(mes));
@@ -139,10 +139,14 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
 
   // Último inventário diário: m³ por local ("Madeira em")
   const doDia = ultimos
-    ? await db.levantamentoEstoque.findMany({ where: { data: ultimos.data, local: { not: null } }, select: { local: true, itens: { select: { m3: true } } } })
+    ? await db.levantamentoEstoque.findMany({ where: { data: ultimos.data }, select: { local: true, itens: { select: { m3: true, local: true } } } })
     : [];
   const porLocal: Partial<Record<LocalEstoque, number>> = {};
-  for (const l of doDia) porLocal[l.local!] = (porLocal[l.local!] ?? 0) + l.itens.reduce((s, i) => s + i.m3, 0);
+  for (const l of doDia)
+    for (const i of l.itens) {
+      const lugar = i.local ?? l.local;
+      if (lugar) porLocal[lugar] = (porLocal[lugar] ?? 0) + i.m3;
+    }
   const estoque = ultimos ? { data: ultimos.data, porLocal } : null;
 
   return {

@@ -1,3 +1,4 @@
+import { SeletorTema } from "@/components/Tema";
 import type { Metadata } from "next";
 import { trocarSenha } from "@/app/actions/auth";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
@@ -26,6 +27,11 @@ export default async function PerfilPage() {
         </div>
       </div>
       <AtivarPush />
+      <section className="cartao">
+        <h2 className="mb-1 font-semibold">Tema</h2>
+        <p className="mb-3 text-sm text-stone-500">Automático segue o claro/escuro do aparelho. Fica salvo neste aparelho.</p>
+        <SeletorTema grande />
+      </section>
       <ActionForm action={trocarSenha} limparAoSalvar className="cartao space-y-3">
         <h2 className="font-semibold">Trocar senha</h2>
         <div>

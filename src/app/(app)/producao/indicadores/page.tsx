@@ -6,7 +6,7 @@ import { SeletorMes } from "@/components/SeletorMes";
 import { formatarDuracao } from "@/lib/constantes";
 import { painelProducao } from "@/lib/indicadores-producao";
 import { podeProducao } from "@/lib/permissoes";
-import { CENTRO, LOCAL_ESTOQUE, CLASSE_DIAMETRO, fmtM3, fmtNum, fmtPct, formatarDia, hojeSP, mesDe, nomeMes, nomeMesLongo, type Kpis } from "@/lib/producao";
+import { CENTRO, LOCAL_ESTOQUE, CLASSE_DIAMETRO, CLASSE_MADEIRA, fmtM3, fmtNum, fmtPct, formatarDia, hojeSP, mesDe, nomeMes, nomeMesLongo, type Kpis } from "@/lib/producao";
 import { mesesComBoletim } from "@/lib/producao-dados";
 import { STATUS_EM_ESTOQUE, STATUS_PACOTE } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
@@ -22,10 +22,11 @@ const ABAS = [
 ] as const;
 type Aba = (typeof ABAS)[number]["id"];
 
+// Mesmas cores das etiquetas de classe (Ótimo verde, Bom azul, Regular laranja)
 const SERIES_CLASSE = [
-  { chave: "otimo", rotulo: "Ótimo" },
-  { chave: "bom", rotulo: "Bom" },
-  { chave: "regular", rotulo: "Regular" },
+  { chave: "otimo", rotulo: "Ótimo", cor: CLASSE_MADEIRA.OTIMO.hex },
+  { chave: "bom", rotulo: "Bom", cor: CLASSE_MADEIRA.BOM.hex },
+  { chave: "regular", rotulo: "Regular", cor: CLASSE_MADEIRA.REGULAR.hex },
 ];
 
 type Indice = "oee" | "disponibilidade" | "produtividade";
@@ -138,7 +139,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
         ) : (
           <>
             {/* Índices principais em uma faixa só */}
-            <section className="cartao grid p-0 sm:grid-cols-2 lg:grid-cols-4">
+            <section className="cartao grid p-0 sm:grid-cols-3">
               {INDICES.map((i, n) => {
                 const v = k[i.chave];
                 return (

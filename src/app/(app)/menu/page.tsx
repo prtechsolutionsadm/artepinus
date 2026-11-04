@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { BotaoSair } from "@/components/BotaoSair";
 import { MenuCelular } from "@/components/Navegacao";
+import { SeletorTema } from "@/components/Tema";
 import { sair } from "@/app/actions/auth";
 import { PERFIL, PERFIL_PRODUCAO } from "@/lib/constantes";
 import { COOKIE_MODULO, iniciais, menusDoUsuario, moduloSalvo } from "@/lib/menu";
@@ -30,6 +31,10 @@ export default async function MenuPage() {
         </div>
       </div>
       <MenuCelular menus={menusDoUsuario(eu)} salvo={moduloSalvo((await cookies()).get(COOKIE_MODULO)?.value)} />
+      <section>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Tema</h2>
+        <SeletorTema grande />
+      </section>
       <BotaoSair sair={sair} variante="botao" />
     </div>
   );

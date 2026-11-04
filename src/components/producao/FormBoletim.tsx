@@ -301,7 +301,7 @@ export function FormBoletim({
             {erro}
           </p>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="barra-acoes">
           <button type="button" onClick={() => router.back()} className="btn-secundario">
             Cancelar
           </button>

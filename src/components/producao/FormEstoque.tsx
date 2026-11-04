@@ -18,29 +18,35 @@ export type LevantamentoInicial = {
   linhas: LinhaFicha[];
 };
 
-/** Inventário do dia: onde está a madeira e a ficha (espessura, larguras e peças por comprimento). */
+/** Inventário do dia: a ficha com "Madeira em", espessura, larguras e peças por comprimento em cada linha. */
 export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial; estufas: { id: string; nome: string }[] }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ guardado: boolean; texto: string } | null>(null);
   const [data, setData] = useState(inicial.data);
-  const [local, setLocal] = useState<LocalEstoque | null>(inicial.local);
-  const [estufaId, setEstufaId] = useState(inicial.estufaId ?? estufas[0]?.id ?? "");
   const [obs, setObs] = useState(inicial.observacoes ?? "");
-  const [linhas, setLinhas] = useState<LinhaFicha[]>(inicial.linhas.length ? inicial.linhas : [linhaVazia()]);
+  // Lançamentos antigos tinham um local só: ele vira o "Madeira em" de cada linha
+  const localAntigo = inicial.local ? (inicial.local === "ESTUFA" ? `ESTUFA:${inicial.estufaId}` : inicial.local) : null;
+  const [linhas, setLinhas] = useState<LinhaFicha[]>(inicial.linhas.length ? inicial.linhas.map((l) => ({ ...l, local: l.local ?? localAntigo })) : [linhaVazia()]);
+  const locais = [
+    { valor: "GRADE", rotulo: LOCAL_ESTOQUE.GRADE },
+    { valor: "PACOTE", rotulo: LOCAL_ESTOQUE.PACOTE },
+    ...estufas.map((e) => ({ valor: `ESTUFA:${e.id}`, rotulo: e.nome })),
+    { valor: "VERDE", rotulo: LOCAL_ESTOQUE.VERDE },
+  ];
+  const nomeLocal = (v?: string | null) => locais.find((o) => o.valor === v)?.rotulo ?? "";
   const cheias = linhasPreenchidas(linhas);
 
   function enviar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
     setAviso(null);
-    if (!local) return setErro("Escolha onde está a madeira");
-    const invalida = validarFicha(linhas);
+    const invalida = validarFicha(linhas, true);
     if (invalida) return setErro(invalida);
     const esp = [...new Set(cheias.map((l) => l.espessura))].join("/");
-    const onde = local === "ESTUFA" ? (estufas.find((x) => x.id === estufaId)?.nome ?? "Estufa") : LOCAL_ESTOQUE[local];
-    const dados = { id: inicial.id ?? null, data, local, estufaId: local === "ESTUFA" ? estufaId : null, observacoes: obs, linhas: cheias };
+    const onde = [...new Set(cheias.map((l) => nomeLocal(l.local)))].join(", ");
+    const dados = { id: inicial.id ?? null, data, observacoes: obs, linhas: cheias };
     iniciar(async () => {
       const salvar = (d: Record<string, unknown>) => salvarLevantamento(d as Parameters<typeof salvarLevantamento>[0]);
       const r = inicial.id ? await salvar(dados) : await enviarOuGuardar("estoque", `Inventário: ${onde} · ${esp} mm`, dados, salvar);
@@ -56,14 +62,11 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
         router.refresh();
         return;
       }
-      setAviso({ guardado: false, texto: `${onde} · ${esp} mm registrado. Escolha outro local para continuar.` });
+      setAviso({ guardado: false, texto: `${onde} · ${esp} mm registrado. Pode lançar o próximo.` });
       setLinhas([linhaVazia()]);
       router.refresh();
     });
   }
-
-  const botao = (ativo: boolean, i: number) =>
-    `py-2.5 text-sm font-semibold transition ${i > 0 ? "border-l border-stone-300" : ""} ${ativo ? "bg-marca-700 text-white" : "bg-white text-stone-700 hover:bg-stone-50"}`;
 
   return (
     <form onSubmit={enviar}>
@@ -76,36 +79,18 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
             {aviso.guardado ? <CloudOff className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />} {aviso.texto}
           </p>
         )}
-        <section className="cartao grid gap-4 lg:grid-cols-3">
-          <div>
-            <label htmlFor="e-data">Data *</label>
-            <input id="e-data" type="date" required max={hojeSP()} value={data} onChange={(e) => setData(e.target.value)} className="campo" />
-          </div>
-          <div className="lg:col-span-2">
-            <span className="mb-1.5 block text-sm font-medium text-stone-700">Madeira em *</span>
-            <div className="grid grid-cols-4 overflow-hidden rounded-md border border-stone-300" role="radiogroup" aria-label="Madeira em">
-              {(Object.keys(LOCAL_ESTOQUE) as LocalEstoque[]).map((l, i) => (
-                <button key={l} type="button" role="radio" aria-checked={local === l} onClick={() => setLocal(l)} className={botao(local === l, i)}>
-                  {LOCAL_ESTOQUE[l]}
-                </button>
-              ))}
-            </div>
-            {local === "ESTUFA" && (
-              <select value={estufaId} onChange={(e) => setEstufaId(e.target.value)} aria-label="Estufa" className="campo">
-                {estufas.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.nome}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        </section>
-
         <section className="cartao">
-          <h2 className="mb-1 font-semibold">Madeira</h2>
-          <p className="mb-4 text-sm text-stone-500">Uma linha por medida: espessura, larguras e as peças em cada comprimento.</p>
-          <FichaMadeira linhas={linhas} onChange={setLinhas} />
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Madeira contada</h2>
+              <p className="text-sm text-stone-500">Uma linha por local e medida: onde está, espessura, larguras e as peças em cada comprimento.</p>
+            </div>
+            <div className="w-full sm:w-48">
+              <label htmlFor="e-data">Data *</label>
+              <input id="e-data" type="date" required max={hojeSP()} value={data} onChange={(e) => setData(e.target.value)} className="campo" />
+            </div>
+          </div>
+          <FichaMadeira linhas={linhas} onChange={setLinhas} locais={locais} />
         </section>
 
         <section className="cartao">
@@ -118,7 +103,7 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
             {erro}
           </p>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="barra-acoes">
           <button type="button" onClick={() => router.push("/producao/estoque")} className="btn-secundario">
             {inicial.id ? "Cancelar" : "Concluir"}
           </button>

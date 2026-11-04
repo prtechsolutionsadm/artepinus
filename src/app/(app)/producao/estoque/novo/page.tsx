@@ -12,7 +12,7 @@ export default async function NovoLevantamentoPage() {
   const estufas = await db.estufa.findMany({ where: { ativo: true }, orderBy: { numero: "asc" }, select: { id: true, nome: true } });
   return (
     <div className="mx-auto max-w-7xl">
-      <Titulo subtitulo="Escolha onde está a madeira e preencha a ficha: uma linha por medida. Repita para cada local.">Inventário do dia</Titulo>
+      <Titulo subtitulo="Preencha a ficha com tudo o que foi contado: em cada linha, onde está a madeira, a medida e as peças.">Inventário do dia</Titulo>
       <FormEstoque estufas={estufas} inicial={{ data: hojeSP(), local: null, estufaId: null, observacoes: null, linhas: [] }} />
     </div>
   );

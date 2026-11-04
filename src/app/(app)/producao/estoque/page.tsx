@@ -9,25 +9,29 @@ import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Inventário de madeira" };
 
-type Lev = { local: keyof typeof LOCAL_ESTOQUE | null; tipo: keyof typeof TIPO_ESTOQUE | null; estufa: { nome: string } | null };
-const onde = (l: Lev) => (l.local === "ESTUFA" ? (l.estufa?.nome ?? "Estufa") : l.local ? LOCAL_ESTOQUE[l.local] : l.tipo ? TIPO_ESTOQUE[l.tipo] : "—");
+type Lugar = { local: keyof typeof LOCAL_ESTOQUE | null; estufa: { nome: string } | null };
+type Lev = Lugar & { tipo: keyof typeof TIPO_ESTOQUE | null; itens: Lugar[] };
+const nomeLugar = (l: Lugar) => (l.local === "ESTUFA" ? (l.estufa?.nome ?? "Estufa") : l.local ? LOCAL_ESTOQUE[l.local] : null);
+/** Onde está a madeira do item (inventários novos: por linha; antigos: o do lançamento). */
+const ondeItem = (l: Lev, i: Lugar) => nomeLugar(i) ?? nomeLugar(l) ?? (l.tipo ? TIPO_ESTOQUE[l.tipo] : "—");
+const onde = (l: Lev) => [...new Set(l.itens.map((i) => ondeItem(l, i)))].join(", ") || nomeLugar(l) || "—";
 
 export default async function EstoquePage() {
   const eu = await exigirProducao();
   const levantamentos = await db.levantamentoEstoque.findMany({
     orderBy: [{ data: "desc" }, { criadoEm: "desc" }],
     take: 120,
-    include: { itens: { select: { m3: true, pecas: true, espessura: true } }, responsavel: { select: { nome: true } }, estufa: { select: { nome: true } } },
+    include: { itens: { select: { m3: true, pecas: true, espessura: true, local: true, estufa: { select: { nome: true } } } }, responsavel: { select: { nome: true } }, estufa: { select: { nome: true } } },
   });
   // Último dia com inventário: m³ por local × espessura
   const ultimoDia = levantamentos[0] ? dateParaDia(levantamentos[0].data) : null;
   const doDia = levantamentos.filter((l) => dateParaDia(l.data) === ultimoDia);
-  const linhas = [...new Set(doDia.map(onde))];
+  const itensDia = doDia.flatMap((l) => l.itens.map((i) => ({ ...i, onde: ondeItem(l, i) })));
+  const linhas = [...new Set(itensDia.map((i) => i.onde))];
   const espessuras = [...new Set([...ESPESSURAS, ...doDia.flatMap((l) => l.itens.map((i) => i.espessura))])].sort((a, b) => a - b);
   const m3 = (lugar: string | null, esp: number | null) =>
-    doDia
-      .filter((l) => lugar === null || onde(l) === lugar)
-      .flatMap((l) => l.itens)
+    itensDia
+      .filter((i) => lugar === null || i.onde === lugar)
       .filter((i) => esp === null || i.espessura === esp)
       .reduce((t, i) => t + i.m3, 0);
 
