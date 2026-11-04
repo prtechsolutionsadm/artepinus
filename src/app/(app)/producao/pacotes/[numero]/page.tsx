@@ -97,7 +97,7 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
             <Link href={`/producao/pacotes/etiquetas?n=${p.numero}`} className="inline-flex items-center gap-1 text-sm font-medium text-marca-700 hover:underline">
               <Printer className="h-4 w-4" /> Etiqueta
             </Link>
-            <Link href={`/p/${p.numero}?publico=1`} target="_blank" className="inline-flex items-center gap-1 text-sm font-medium text-marca-700 hover:underline">
+            <Link href={`/p/${p.codigoPublico ?? p.numero}?publico=1`} target="_blank" className="inline-flex items-center gap-1 text-sm font-medium text-marca-700 hover:underline">
               <Globe className="h-4 w-4" /> Como o cliente vê
             </Link>
           </div>

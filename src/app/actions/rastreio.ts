@@ -8,7 +8,7 @@ import { auditar, diferencas } from "@/lib/auditoria";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
 import { diaParaDate, formatarDia, hojeSP, m3Pecas } from "@/lib/producao";
-import { codigoColheita, codigoPacote, codigoRomaneio } from "@/lib/rastreio";
+import { codigoColheita, codigoPacote, codigoRomaneio, novoCodigoPublico } from "@/lib/rastreio";
 import { exigirUsuario } from "@/lib/session";
 import type { EstadoForm } from "./auth";
 
@@ -148,6 +148,7 @@ export async function criarPacotes(entrada: DadosPacote): Promise<Resultado> {
           ...p,
           m3,
           status,
+          codigoPublico: novoCodigoPublico(),
           boletimId: origem === "boletim" ? boletimId : null,
           cicloId: origem === "ciclo" ? cicloId : null,
           criadoPorId: eu.id,
@@ -171,7 +172,13 @@ export async function criarPacotes(entrada: DadosPacote): Promise<Resultado> {
 }
 
 /** Cria o romaneio (documento da carga) com o motorista e as placas do cadastro. */
-async function criarRomaneio(criadoPorId: string, pacoteIds: string[], motoristaId: string | null | undefined, observacoes: string | null | undefined) {
+async function criarRomaneio(
+  criadoPorId: string,
+  pacoteIds: string[],
+  motoristaId: string | null | undefined,
+  observacoes: string | null | undefined,
+  nf: { notaFiscal?: string | null; chaveNfe?: string | null } = {},
+) {
   const m = motoristaId ? await db.motorista.findUnique({ where: { id: motoristaId } }) : null;
   return db.romaneio.create({
     data: {
@@ -181,6 +188,8 @@ async function criarRomaneio(criadoPorId: string, pacoteIds: string[], motorista
       placa: m?.placaCaminhao ?? null,
       placaJulieta: m?.placaJulieta ?? null,
       observacoes: observacoes || null,
+      notaFiscal: nf.notaFiscal || null,
+      chaveNfe: nf.chaveNfe || null,
       pacotes: { connect: pacoteIds.map((id) => ({ id })) },
     },
   });
@@ -191,11 +200,18 @@ const eventoSchema = z.object({
   acao: z.enum(["estufa", "expedir", "local", "observacao", "cancelar"]),
   cicloId: opcional(z.string()),
   cliente: opcional(z.string().trim().max(120)),
-  notaFiscal: opcional(z.string().trim().max(40)),
   destino: opcional(z.string().trim().max(120)),
   localizacao: opcional(z.string().trim().max(80)),
   texto: opcional(z.string().trim().max(500)),
   motoristaId: opcional(z.string()),
+  notaFiscal: opcional(z.string().trim().max(20)).optional(),
+  /** Chave de acesso da NF-e: 44 dígitos (espaços e pontos são ignorados). */
+  chaveNfe: opcional(
+    z
+      .string()
+      .transform((v) => v.replace(/\D/g, ""))
+      .refine((v) => v === "" || v.length === 44, "A chave da NF-e tem 44 dígitos"),
+  ).optional(),
 });
 
 /** Ações feitas na tela do pacote (depois de escanear o QR). Cada uma vira um evento. */
@@ -230,7 +246,7 @@ export async function registrarEventoPacote(_: EstadoForm, form: FormData): Prom
       if (encerrado) return { erro: "Pacote já expedido ou cancelado" };
       if (pacote.status === "EM_ESTUFA") return { erro: "O pacote ainda está na estufa" };
       const pedido = pacote.pedidoId ? await db.pedido.findUnique({ where: { id: pacote.pedidoId } }) : null;
-      const rom = await criarRomaneio(eu.id, [pacote.id], d.motoristaId, d.texto);
+      const rom = await criarRomaneio(eu.id, [pacote.id], d.motoristaId, d.texto, { notaFiscal: d.notaFiscal, chaveNfe: d.chaveNfe });
       await evento(
         "EXPEDIDO",
         `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}${pedido ? ` · pedido ${pedido.numero} · ${pedido.cliente}` : ""}`,
@@ -262,6 +278,14 @@ const expedicaoSchema = z.object({
   numeros: z.array(z.coerce.number().int().positive()).min(1, "Selecione os pacotes").max(200),
   motoristaId: opcional(z.string()).optional(),
   observacoes: opcional(z.string().trim().max(500)).optional(),
+  notaFiscal: opcional(z.string().trim().max(20)).optional(),
+  /** Chave de acesso da NF-e: 44 dígitos (espaços e pontos são ignorados). */
+  chaveNfe: opcional(
+    z
+      .string()
+      .transform((v) => v.replace(/\D/g, ""))
+      .refine((v) => v === "" || v.length === 44, "A chave da NF-e tem 44 dígitos"),
+  ).optional(),
 });
 
 export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): Promise<Resultado> {
@@ -269,13 +293,13 @@ export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): 
   if (!ok) return { erro: "Sem permissão" };
   const parse = expedicaoSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { numeros, motoristaId, observacoes } = parse.data;
+  const { numeros, motoristaId, observacoes, notaFiscal, chaveNfe } = parse.data;
   const pacotes = await db.pacote.findMany({ where: { numero: { in: numeros } }, select: { id: true, numero: true, status: true } });
   const invalidos = pacotes.filter((p) => p.status !== "VERDE" && p.status !== "SECO");
   if (invalidos.length) return { erro: `Não dá para expedir: ${invalidos.map((p) => codigoPacote(p.numero)).join(", ")} (na estufa, expedido ou cancelado)` };
   const agora = new Date();
-  const rom = await criarRomaneio(eu.id, pacotes.map((p) => p.id), motoristaId, observacoes);
-  const descricao = `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}`;
+  const rom = await criarRomaneio(eu.id, pacotes.map((p) => p.id), motoristaId, observacoes, { notaFiscal, chaveNfe });
+  const descricao = `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.notaFiscal ? ` · NF ${rom.notaFiscal}` : ""}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}`;
   await db.$transaction([
     db.pacote.updateMany({ where: { id: { in: pacotes.map((p) => p.id) } }, data: { status: "EXPEDIDO", expedidoEm: agora } }),
     db.eventoPacote.createMany({ data: pacotes.map((p) => ({ pacoteId: p.id, tipo: "EXPEDIDO" as const, descricao, usuarioId: eu.id, criadoEm: agora })) }),

@@ -192,3 +192,51 @@ export async function salvarConfig(_: EstadoForm, form: FormData): Promise<Estad
   revalidatePath("/producao", "layout");
   return { ok: "Configuração salva" };
 }
+
+// ============================ Zerar movimento (só administrador) ============================
+
+/** Tabelas de movimento da serraria, na ordem segura (nenhum cadastro aponta para elas). */
+const MOVIMENTO = [
+  "EventoPacote",
+  "Pacote",
+  "Romaneio",
+  "ItemProducao",
+  "Lote",
+  "ParadaProducao",
+  "_ConsumoToras",
+  "_MadeiraCiclo",
+  "BoletimProducao",
+  "ItemChecklistCiclo",
+  "CargaCiclo",
+  "CicloSecagem",
+  "ItemCargaToras",
+  "CargaToras",
+  "Colheita",
+  "ItemEstoque",
+  "LevantamentoEstoque",
+];
+
+/**
+ * Apaga todo o movimento lançado em teste (cargas, boletins/lotes, ciclos, pacotes,
+ * romaneios, inventários) e reinicia a numeração. Mantém usuários e cadastros
+ * (florestas, fornecedores, motoristas, estufas, motivos, configuração) e a auditoria.
+ */
+export async function zerarMovimento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const eu = await exigirUsuario();
+  if (eu.perfil !== "ADMIN") return { erro: "Só o administrador pode zerar o movimento" };
+  if (String(form.get("confirmacao") ?? "").trim().toUpperCase() !== "APAGAR") return { erro: "Digite APAGAR para confirmar" };
+  const pedidos = form.get("pedidos") === "on";
+  const tabelas = [...MOVIMENTO, ...(pedidos ? ["Pedido"] : [])].map((t) => `"${t}"`).join(", ");
+  const antes = await Promise.all([db.pacote.count(), db.lote.count(), db.cargaToras.count(), db.cicloSecagem.count(), db.romaneio.count(), db.levantamentoEstoque.count()]);
+  await db.$executeRawUnsafe(`TRUNCATE TABLE ${tabelas} RESTART IDENTITY`);
+  if (!pedidos) await db.pedido.updateMany({ data: { prontoAvisadoEm: null } });
+  await db.notificacao.deleteMany({ where: { OR: [{ link: { startsWith: "/producao" } }, { link: { startsWith: "/p/" } }] } });
+  await auditar({
+    usuarioId: eu.id,
+    acao: "sistema.zerar",
+    entidade: "Sistema",
+    resumo: `Zerou o movimento da serraria${pedidos ? " e os pedidos" : ""}: ${antes[0]} pacote(s), ${antes[1]} lote(s), ${antes[2]} carga(s), ${antes[3]} ciclo(s), ${antes[4]} romaneio(s), ${antes[5]} inventário(s)`,
+  });
+  revalidatePath("/", "layout");
+  return { ok: "Movimento apagado. A numeração recomeça do 1." };
+}

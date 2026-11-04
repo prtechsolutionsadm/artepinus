@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, CameraOff, Search } from "lucide-react";
-import { lerCodigo } from "@/lib/rastreio";
+import { lerCodigo, type CodigoLido } from "@/lib/rastreio";
 
-const destino = (c: { tipo: "pacote" | "lote"; numero: number }) => `/producao/${c.tipo === "lote" ? "lotes" : "pacotes"}/${c.numero}`;
+// O QR com código aleatório passa pela página /p/…, que leva a equipe para a tela do pacote
+const destino = (c: CodigoLido) => (c.tipo === "codigo" ? `/p/${c.codigo}` : `/producao/${c.tipo === "lote" ? "lotes" : "pacotes"}/${c.numero}`);
 
 type Detector = { detect: (fonte: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 type DetectorCtor = new (opcoes: { formats: string[] }) => Detector;

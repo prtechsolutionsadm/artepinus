@@ -20,9 +20,12 @@ export async function qrSvg(texto: string) {
   return QRCode.toString(texto, { type: "svg", errorCorrectionLevel: "M", margin: 1, color: { dark: "#1c1917", light: "#ffffff" } });
 }
 
-/** Link do QR da etiqueta do pacote (curto, para o QR ficar fácil de ler). */
-export async function linkPacote(numero: number) {
-  return `${await urlBase()}/p/${numero}`;
+/**
+ * Link do QR da etiqueta do pacote: usa o código aleatório (não dá para adivinhar
+ * outros pacotes trocando o número). Etiquetas antigas, impressas com o número, continuam valendo.
+ */
+export async function linkPacote(codigoPublico: string) {
+  return `${await urlBase()}/p/${codigoPublico}`;
 }
 
 /** Link do QR da etiqueta do lote da serraria. */

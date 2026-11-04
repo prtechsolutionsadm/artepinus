@@ -54,6 +54,8 @@ export default async function RomaneioPage({ params }: { params: Promise<{ numer
             placas,
             responsavel: r.criadoPor.nome,
             observacoes: r.observacoes,
+            notaFiscal: r.notaFiscal,
+            chaveNfe: r.chaveNfe,
             pedidos: pedidos.map((p) => ({ numero: p.numero, cliente: p.cliente, destino: p.destino })),
             pacotes: r.pacotes.map((p) => ({ codigo: codigoPacote(p.numero), pedido: p.pedido?.numero ?? "", bitola: bit(p), classe: p.classe, pecas: p.pecas, m3: p.m3 })),
           }}
@@ -64,8 +66,8 @@ export default async function RomaneioPage({ params }: { params: Promise<{ numer
         {[
           ["Motorista", r.motorista ?? "—"],
           ["Placas", placas ?? "—"],
-          ["Pacotes", fmtNum(r.pacotes.length)],
-          ["Volume", fmtM3(totM3, 3)],
+          ["Nota fiscal", r.notaFiscal ?? "—"],
+          ["Pacotes", `${fmtNum(r.pacotes.length)} · ${fmtM3(totM3, 2)}`],
         ].map(([a, b]) => (
           <div key={a} className="min-w-0 bg-white px-4 py-3">
             <dt className="text-xs text-stone-500">{a}</dt>
@@ -128,7 +130,12 @@ export default async function RomaneioPage({ params }: { params: Promise<{ numer
           </tfoot>
         </table>
       </section>
-      {r.observacoes && <p className="mt-4 text-sm text-stone-600">Observações: {r.observacoes}</p>}
+      {r.chaveNfe && (
+        <p className="mt-4 text-sm text-stone-600">
+          Chave da NF-e: <span className="font-mono">{r.chaveNfe.replace(/(\d{4})(?=\d)/g, "$1 ")}</span>
+        </p>
+      )}
+      {r.observacoes && <p className="mt-2 text-sm text-stone-600">Observações: {r.observacoes}</p>}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { CheckCircle2, Factory, Flame, Package, TreePine, Truck, type LucideIcon
 import { EMPRESA } from "@/lib/empresa";
 import { podeProducao } from "@/lib/permissoes";
 import { codigoPacote } from "@/lib/rastreio";
+import { db } from "@/lib/db";
 import { rastrearPacote } from "@/lib/rastreio-dados";
 import { usuarioAtual } from "@/lib/session";
 
@@ -71,9 +72,20 @@ const T = {
   },
 } as const;
 
-export async function generateMetadata({ params }: { params: Promise<{ numero: string }> }): Promise<Metadata> {
-  const n = Number((await params).numero);
-  return { title: Number.isInteger(n) && n > 0 ? `${codigoPacote(n)} · Rastreabilidade` : "Rastreabilidade", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Rastreabilidade", robots: { index: false, follow: false } };
+
+/**
+ * O QR das etiquetas novas leva o código aleatório (/p/k7m2…); o das antigas, o número (/p/123).
+ * O número só vale para pacotes de etiqueta antiga — assim ninguém percorre os pacotes trocando o número.
+ */
+async function acharNumero(param: string) {
+  if (/^\d{1,9}$/.test(param)) {
+    const p = await db.pacote.findUnique({ where: { numero: Number(param) }, select: { numero: true, qrLegado: true } });
+    return p ? { numero: p.numero, legado: p.qrLegado } : null;
+  }
+  if (!/^[a-z0-9]{6,20}$/i.test(param)) return null;
+  const p = await db.pacote.findUnique({ where: { codigoPublico: param.toLowerCase() }, select: { numero: true } });
+  return p ? { numero: p.numero, legado: true } : null;
 }
 
 function Etapa({ Icone, titulo, cor, ativo, children, ultima }: { Icone: LucideIcon; titulo: string; cor: string; ativo: boolean; children: React.ReactNode; ultima?: boolean }) {
@@ -92,13 +104,17 @@ function Etapa({ Icone, titulo, cor, ativo, children, ultima }: { Icone: LucideI
 }
 
 export default async function PacotePublico({ params, searchParams }: { params: Promise<{ numero: string }>; searchParams: Promise<{ lang?: string; publico?: string }> }) {
-  const numero = Number((await params).numero);
+  const param = (await params).numero;
   const sp = await searchParams;
-  if (!Number.isInteger(numero) || numero <= 0) notFound();
-
-  // Equipe logada vai para a tela completa (a menos que peça a versão pública)
+  const achado = await acharNumero(param);
   const eu = await usuarioAtual();
-  if (eu && !eu.trocarSenha && podeProducao(eu, "ver") && !sp.publico) redirect(`/producao/pacotes/${numero}`);
+  const equipe = !!eu && !eu.trocarSenha && podeProducao(eu, "ver");
+  if (!achado) notFound();
+  const { numero } = achado;
+  // Equipe logada vai para a tela completa (a menos que peça a versão pública)
+  if (equipe && !sp.publico) redirect(`/producao/pacotes/${numero}`);
+  // Visitante com número de pacote de etiqueta nova: não mostra (evita percorrer os pacotes)
+  if (!achado.legado && !equipe) notFound();
 
   const r = await rastrearPacote(numero);
   if (!r) notFound();

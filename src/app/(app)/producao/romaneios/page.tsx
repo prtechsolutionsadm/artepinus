@@ -36,7 +36,7 @@ export default async function RomaneiosPage() {
                       <span className="text-sm text-stone-500">{formatarData(r.criadoEm, true)}</span>
                     </div>
                     <div className="truncate text-sm text-stone-600">
-                      {[r.motorista, [r.placa, r.placaJulieta].filter(Boolean).join(" + "), clientes.join(", ")].filter(Boolean).join(" · ") || "—"}
+                      {[r.notaFiscal ? `NF ${r.notaFiscal}` : null, r.motorista, [r.placa, r.placaJulieta].filter(Boolean).join(" + "), clientes.join(", ")].filter(Boolean).join(" · ") || "—"}
                     </div>
                   </div>
                   <div className="text-right text-sm tabular-nums">

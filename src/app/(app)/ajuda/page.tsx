@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Printer } from "lucide-react";
 import type { Metadata } from "next";
 import { ManualUsuario } from "@/components/ManualUsuario";
 import { Titulo } from "@/components/ui";
@@ -30,7 +32,16 @@ export default async function AjudaPage() {
           <div className="text-lg font-bold">Manual do usuário · {EMPRESA.sistema}</div>
         </div>
       </div>
-      <Titulo subtitulo={`Como usar o sistema · conteúdo para o seu acesso (${perfis.join(" · ")})`}>Manual do usuário</Titulo>
+      <Titulo
+        subtitulo={`Como usar o sistema · conteúdo para o seu acesso (${perfis.join(" · ")})`}
+        acao={
+          <Link href="/ajuda/roteiros" className="btn-secundario">
+            <Printer className="h-4 w-4" /> Roteiros para imprimir
+          </Link>
+        }
+      >
+        Manual do usuário
+      </Titulo>
       <ManualUsuario secoes={secoes} />
     </>
   );

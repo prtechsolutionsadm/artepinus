@@ -693,37 +693,41 @@ enum TipoEvento {
 
 /// Pacote de madeira serrada, identificado pela etiqueta com QR Code.
 model Pacote {
-  id           String           @id @default(cuid())
-  numero       Int              @unique @default(autoincrement())
-  status       StatusPacote
-  pedidoId     String?
-  pedido       Pedido?          @relation(fields: [pedidoId], references: [id], onDelete: SetNull)
-  boletimId    String? // dia em que a madeira foi serrada
-  boletim      BoletimProducao? @relation(fields: [boletimId], references: [id], onDelete: SetNull)
-  cicloId      String? // ciclo de estufa em que secou
-  ciclo        CicloSecagem?    @relation(fields: [cicloId], references: [id], onDelete: SetNull)
-  espessura    Int // mm
-  largura      Int // mm
-  comprimento  Int // mm
-  pecas        Int
-  m3           Float
-  classe       String?
-  mercado      Mercado          @default(EXTERNO)
-  umidade      Float? // % na formação/saída da estufa
-  localizacao  String?
-  cliente      String?
-  notaFiscal   String?
-  destino      String?
-  expedidoEm   DateTime?
+  id            String           @id @default(cuid())
+  /// código aleatório do QR público (/p/<código>): não dá para adivinhar outros pacotes
+  codigoPublico String?          @unique
+  /// etiquetas impressas antes do código aleatório: o QR com o número continua valendo
+  qrLegado      Boolean          @default(false)
+  numero        Int              @unique @default(autoincrement())
+  status        StatusPacote
+  pedidoId      String?
+  pedido        Pedido?          @relation(fields: [pedidoId], references: [id], onDelete: SetNull)
+  boletimId     String? // dia em que a madeira foi serrada
+  boletim       BoletimProducao? @relation(fields: [boletimId], references: [id], onDelete: SetNull)
+  cicloId       String? // ciclo de estufa em que secou
+  ciclo         CicloSecagem?    @relation(fields: [cicloId], references: [id], onDelete: SetNull)
+  espessura     Int // mm
+  largura       Int // mm
+  comprimento   Int // mm
+  pecas         Int
+  m3            Float
+  classe        String?
+  mercado       Mercado          @default(EXTERNO)
+  umidade       Float? // % na formação/saída da estufa
+  localizacao   String?
+  cliente       String?
+  notaFiscal    String?
+  destino       String?
+  expedidoEm    DateTime?
   /// Romaneio (documento da carga) em que o pacote saiu
-  romaneioId   String?
-  romaneio     Romaneio?        @relation(fields: [romaneioId], references: [id], onDelete: SetNull)
-  observacoes  String?
-  criadoPorId  String
-  criadoPor    Usuario          @relation(fields: [criadoPorId], references: [id])
-  criadoEm     DateTime         @default(now())
-  atualizadoEm DateTime         @updatedAt
-  eventos      EventoPacote[]
+  romaneioId    String?
+  romaneio      Romaneio?        @relation(fields: [romaneioId], references: [id], onDelete: SetNull)
+  observacoes   String?
+  criadoPorId   String
+  criadoPor     Usuario          @relation(fields: [criadoPorId], references: [id])
+  criadoEm      DateTime         @default(now())
+  atualizadoEm  DateTime         @updatedAt
+  eventos       EventoPacote[]
 
   @@index([status])
   @@index([boletimId])
@@ -803,6 +807,10 @@ model Romaneio {
   motorista    String?
   placa        String?
   placaJulieta String?
+  /// nota fiscal da carga
+  notaFiscal   String?
+  /// chave de acesso da NF-e (44 dígitos)
+  chaveNfe     String?
   observacoes  String?
   criadoPorId  String
   criadoPor    Usuario    @relation("RomaneiosCriados", fields: [criadoPorId], references: [id])

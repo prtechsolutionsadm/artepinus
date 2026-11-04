@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, ClipboardList, Package, Search, Tag, Truck } from "lucide-react";
+import { ChevronRight, ClipboardList, FileText, Package, Search, Tag, Truck } from "lucide-react";
 import { Titulo, Vazio } from "@/components/ui";
 import { db } from "@/lib/db";
 import { fmtM3, formatarDia } from "@/lib/producao";
-import { STATUS_PACOTE, codigoCarga, codigoLote, codigoPacote, lerCodigo } from "@/lib/rastreio";
+import { STATUS_PACOTE, codigoCarga, codigoLote, codigoPacote, codigoRomaneio, lerCodigo } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Buscar" };
@@ -17,7 +17,10 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
 
   const codigo = q ? lerCodigo(q) : null;
   const ct = q.match(/^CT[-\s]?0*(\d{1,9})$/i);
+  const rom = q.match(/^ROM[-\s]?0*(\d{1,9})$/i);
+  if (rom) redirect(`/producao/romaneios/${Number(rom[1])}`);
   // Códigos com prefixo abrem direto
+  if (codigo?.tipo === "codigo") redirect(`/p/${codigo.codigo}`);
   if (codigo && /^(PCT|LOT)|\/[pl]\//i.test(q)) redirect(`/producao/${codigo.tipo === "lote" ? "lotes" : "pacotes"}/${codigo.numero}`);
   if (ct) {
     const c = await db.cargaToras.findUnique({ where: { numero: Number(ct[1]) }, select: { id: true } });
@@ -26,8 +29,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
 
   const texto = { contains: q, mode: "insensitive" as const };
   const n = /^\d{1,9}$/.test(q) ? Number(q) : null;
-  const [pedidos, cargas, pacotes, lotes] = q.length < 2
-    ? [[], [], [], []]
+  const soDigitos = q.replace(/\D/g, "");
+  const [pedidos, cargas, pacotes, lotes, romaneios] = q.length < 2
+    ? [[], [], [], [], []]
     : await Promise.all([
         db.pedido.findMany({ where: { OR: [{ numero: texto }, { cliente: texto }, { destino: texto }] }, orderBy: { criadoEm: "desc" }, take: 10, include: { _count: { select: { pacotes: true, lotes: true } } } }),
         db.cargaToras.findMany({
@@ -38,8 +42,14 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
         }),
         db.pacote.findMany({ where: { OR: [...(n ? [{ numero: n }] : []), { pedido: { OR: [{ numero: texto }, { cliente: texto }] } }, { cliente: texto }] }, orderBy: { numero: "desc" }, take: 10 }),
         db.lote.findMany({ where: { OR: [...(n ? [{ numero: n }] : []), { pedido: { OR: [{ numero: texto }, { cliente: texto }] } }] }, orderBy: { numero: "desc" }, take: 10, include: { pedido: { select: { numero: true, cliente: true } }, boletim: { select: { data: true } } } }),
+        db.romaneio.findMany({
+          where: { OR: [{ notaFiscal: texto }, ...(soDigitos.length >= 6 ? [{ chaveNfe: { contains: soDigitos } }] : []), { motorista: texto }, { placa: texto }, { placaJulieta: texto }, ...(n ? [{ numero: n }] : [])] },
+          orderBy: { numero: "desc" },
+          take: 10,
+          include: { _count: { select: { pacotes: true } } },
+        }),
       ]);
-  const total = pedidos.length + cargas.length + pacotes.length + lotes.length;
+  const total = pedidos.length + cargas.length + pacotes.length + lotes.length + romaneios.length;
 
   const Grupo = ({ titulo, Icone, children }: { titulo: string; Icone: typeof Search; children: React.ReactNode }) => (
     <section className="cartao p-0">
@@ -63,7 +73,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="mx-auto max-w-4xl">
-      <Titulo subtitulo="Pacote (PCT-), lote (LOT-), carga (CT-), pedido, cliente, motorista, placa ou floresta">Buscar</Titulo>
+      <Titulo subtitulo="Pacote (PCT-), lote (LOT-), carga (CT-), romaneio (ROM-), nota fiscal, pedido, cliente, motorista, placa ou floresta">Buscar</Titulo>
       <form action="/producao/buscar" className="relative mb-6">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
         <input name="q" type="search" defaultValue={q} autoFocus placeholder="Ex.: PCT-000123, PED-45, João, ABC1D23…" className="campo mt-0 pl-9" />
@@ -88,6 +98,18 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
           <Grupo titulo="Lotes da serraria" Icone={Tag}>
             {lotes.map((l) => (
               <Item key={l.id} href={`/producao/lotes/${l.numero}`} a={codigoLote(l.numero)} b={`${formatarDia(l.boletim.data)} · pedido ${l.pedido.numero} · ${l.pedido.cliente}`} />
+            ))}
+          </Grupo>
+        )}
+        {romaneios.length > 0 && (
+          <Grupo titulo="Romaneios" Icone={FileText}>
+            {romaneios.map((r) => (
+              <Item
+                key={r.id}
+                href={`/producao/romaneios/${r.numero}`}
+                a={`${codigoRomaneio(r.numero)}${r.notaFiscal ? ` · NF ${r.notaFiscal}` : ""}`}
+                b={[r.criadoEm.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }), r.motorista, [r.placa, r.placaJulieta].filter(Boolean).join(" + "), `${r._count.pacotes} pacote(s)`].filter(Boolean).join(" · ")}
+              />
             ))}
           </Grupo>
         )}

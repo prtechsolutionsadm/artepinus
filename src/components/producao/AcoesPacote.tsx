@@ -95,6 +95,14 @@ export function AcoesPacote({
               </select>
             </div>
             <div>
+              <label htmlFor="ev-nf">Nota fiscal</label>
+              <input id="ev-nf" name="notaFiscal" inputMode="numeric" className="campo" />
+            </div>
+            <div>
+              <label htmlFor="ev-chave">Chave da NF-e</label>
+              <input id="ev-chave" name="chaveNfe" inputMode="numeric" placeholder="44 dígitos (opcional)" className="campo font-mono text-xs" />
+            </div>
+            <div className="sm:col-span-2">
               <label htmlFor="ev-obs">Observações do romaneio</label>
               <input id="ev-obs" name="texto" className="campo" />
             </div>

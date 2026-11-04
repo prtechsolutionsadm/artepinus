@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { EMPRESA } from "@/lib/empresa";
 import { fmtM3, fmtNum } from "@/lib/producao";
 import { linkPacote, qrSvg } from "@/lib/qr";
+import { novoCodigoPublico } from "@/lib/rastreio";
 import { codigoPacote } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
 
@@ -23,7 +24,11 @@ export default async function EtiquetasPacotesPage({ searchParams }: { searchPar
   const pacotes = numeros.length
     ? await db.pacote.findMany({ where: { numero: { in: numeros } }, orderBy: { numero: "asc" }, include: { ciclo: { include: { estufa: { select: { nome: true } } } } } })
     : [];
-  const etiquetas = await Promise.all(pacotes.map(async (p) => ({ ...p, svg: await qrSvg(await linkPacote(p.numero)) })));
+  // Pacote sem código (não deveria acontecer): gera na hora da impressão
+  for (const p of pacotes.filter((x) => !x.codigoPublico)) {
+    p.codigoPublico = (await db.pacote.update({ where: { id: p.id }, data: { codigoPublico: novoCodigoPublico() }, select: { codigoPublico: true } })).codigoPublico;
+  }
+  const etiquetas = await Promise.all(pacotes.map(async (p) => ({ ...p, svg: await qrSvg(await linkPacote(p.codigoPublico!)) })));
 
   return (
     <div className="etiquetas">

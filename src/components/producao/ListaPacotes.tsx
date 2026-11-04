@@ -39,6 +39,8 @@ export function ListaPacotes({
   const [saida, setSaida] = useState(false);
   const [motoristaId, setMotoristaId] = useState("");
   const [obs, setObs] = useState("");
+  const [nf, setNf] = useState("");
+  const [chave, setChave] = useState("");
   const selecionados = linhas.filter((l) => sel.includes(l.numero));
   const expediveis = selecionados.filter((l) => l.status === "VERDE" || l.status === "SECO");
   const alternar = (n: number) => setSel((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]));
@@ -46,7 +48,7 @@ export function ListaPacotes({
   function expedir() {
     setErro(null);
     iniciar(async () => {
-      const r = await expedirPacotes({ numeros: expediveis.map((l) => l.numero), motoristaId: motoristaId || null, observacoes: obs || null });
+      const r = await expedirPacotes({ numeros: expediveis.map((l) => l.numero), motoristaId: motoristaId || null, observacoes: obs || null, notaFiscal: nf || null, chaveNfe: chave || null });
       if (r.erro) return setErro(r.erro);
       setSel([]);
       setSaida(false);
@@ -79,7 +81,7 @@ export function ListaPacotes({
             </span>
           </div>
           {saida && expediveis.length > 0 && (
-            <div className="mt-3 grid gap-3 border-t border-stone-100 pt-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <div className="mt-3 grid gap-3 border-t border-stone-100 pt-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
               <div>
                 <label htmlFor="rom-mot">Motorista</label>
                 <select id="rom-mot" value={motoristaId} onChange={(e) => setMotoristaId(e.target.value)} className="campo">
@@ -93,10 +95,18 @@ export function ListaPacotes({
                 </select>
               </div>
               <div>
-                <label htmlFor="rom-obs">Observações do romaneio</label>
-                <input id="rom-obs" value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: nota fiscal, lacre…" className="campo" />
+                <label htmlFor="rom-nf">Nota fiscal</label>
+                <input id="rom-nf" value={nf} onChange={(e) => setNf(e.target.value)} inputMode="numeric" placeholder="Nº da NF" className="campo" />
               </div>
-              <div className="flex gap-2">
+              <div>
+                <label htmlFor="rom-chave">Chave da NF-e</label>
+                <input id="rom-chave" value={chave} onChange={(e) => setChave(e.target.value)} inputMode="numeric" placeholder="44 dígitos (opcional)" className="campo font-mono text-xs" />
+              </div>
+              <div>
+                <label htmlFor="rom-obs">Observações</label>
+                <input id="rom-obs" value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: lacre…" className="campo" />
+              </div>
+              <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-4">
                 <button type="button" onClick={() => setSaida(false)} className="btn-secundario">
                   Voltar
                 </button>
@@ -105,7 +115,7 @@ export function ListaPacotes({
                 </button>
               </div>
               {mot && (
-                <p className="text-xs text-stone-500 sm:col-span-3">
+                <p className="text-xs text-stone-500 sm:col-span-2 lg:col-span-4">
                   Placas: {mot.placaCaminhao}
                   {mot.placaJulieta ? ` + julieta ${mot.placaJulieta}` : ""}
                 </p>

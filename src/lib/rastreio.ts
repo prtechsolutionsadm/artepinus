@@ -3,15 +3,26 @@ import type { StatusPacote, TipoEvento, TipoOrigem } from "@/generated/prisma/en
 // Códigos e rótulos da rastreabilidade (servidor e navegador).
 
 export const codigoPacote = (n: number) => `PCT-${String(n).padStart(6, "0")}`;
+/** Código aleatório do QR público do pacote (10 letras/números, sem 0/o/1/l para não confundir). */
+export function novoCodigoPublico() {
+  const alfabeto = "23456789abcdefghijkmnpqrstuvwxyz";
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  return Array.from(bytes, (b) => alfabeto[b % alfabeto.length]).join("");
+}
+
 /** Romaneio de expedição: ROM-000123. */
 export const codigoRomaneio = (n: number) => `ROM-${String(n).padStart(6, "0")}`;
 export const codigoCarga = (n: number) => `CT-${String(n).padStart(5, "0")}`;
 export const codigoColheita = (n: number) => `COL-${String(n).padStart(4, "0")}`;
 export const codigoLote = (n: number) => `LOT-${String(n).padStart(6, "0")}`;
 
-/** Código lido (código de barras, QR ou digitado) → pacote ou lote. */
-export function lerCodigo(texto: string): { tipo: "pacote" | "lote"; numero: number } | null {
+export type CodigoLido = { tipo: "pacote" | "lote"; numero: number } | { tipo: "codigo"; codigo: string };
+
+/** Código lido (código de barras, QR ou digitado) → pacote, lote ou o código aleatório do QR do pacote. */
+export function lerCodigo(texto: string): CodigoLido | null {
   const t = texto.trim();
+  const qr = t.match(/\/p\/([a-z0-9]{6,20})(?:[?#/]|$)/i);
+  if (qr && !/^\d+$/.test(qr[1])) return { tipo: "codigo", codigo: qr[1].toLowerCase() };
   const lote = t.match(/\/l\/(\d+)/i) ?? t.match(/^LOT[-\s]?0*(\d{1,9})$/i);
   if (lote) return { tipo: "lote", numero: Number(lote[1]) };
   const n = numeroDoCodigo(t);

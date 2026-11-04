@@ -11,6 +11,8 @@ export type DadosRomaneio = {
   placas: string | null;
   responsavel: string;
   observacoes: string | null;
+  notaFiscal: string | null;
+  chaveNfe: string | null;
   pedidos: { numero: string; cliente: string; destino: string | null }[];
   pacotes: { codigo: string; pedido: string; bitola: string; classe: string | null; pecas: number; m3: number }[];
 };
@@ -36,7 +38,15 @@ export function BotaoPdfRomaneio({ dados, className = "btn-primario" }: { dados:
       caixa(12, util * 0.4, "Motorista", dados.motorista ?? "");
       caixa(12 + util * 0.4, util * 0.35, "Placas (caminhão + julieta)", dados.placas ?? "");
       caixa(12 + util * 0.75, util * 0.25, "Pacotes", `${dados.pacotes.length}`);
-      y += 17;
+      y += 13;
+      if (dados.notaFiscal || dados.chaveNfe) {
+        caixa(12, util * 0.25, "Nota fiscal", dados.notaFiscal ?? "");
+        doc.setDrawColor(200).setLineWidth(0.2).rect(12 + util * 0.25, y, util * 0.75, 13);
+        doc.setFont("helvetica", "normal").setFontSize(7).setTextColor(...CINZA).text("CHAVE DE ACESSO DA NF-E", 14 + util * 0.25, y + 4);
+        doc.setFont("courier", "bold").setFontSize(9.5).setTextColor(...TEXTO).text(dados.chaveNfe ? dados.chaveNfe.replace(/(\d{4})(?=\d)/g, "$1 ") : "—", 14 + util * 0.25, y + 10);
+        y += 13;
+      }
+      y += 4;
 
       // Pedidos (cliente e destino)
       if (dados.pedidos.length) autoTable(doc, {
