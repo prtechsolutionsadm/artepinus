@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, lerSessao } from "@/lib/jwt";
 
-/** O site da empresa e o login são abertos; o resto é o sistema (precisa estar logado). */
+/** O site da empresa, o login e a página pública do QR do pacote (/p/123) são abertos; o resto é o sistema (precisa estar logado). */
 const ROTAS_PUBLICAS = ["/", "/login"];
+const PREFIXOS_PUBLICOS = ["/p/"];
 
 export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
-  const publica = ROTAS_PUBLICAS.includes(path);
+  const publica = ROTAS_PUBLICAS.includes(path) || PREFIXOS_PUBLICOS.some((p) => path.startsWith(p));
   const sessao = await lerSessao(req.cookies.get(SESSION_COOKIE)?.value);
 
   if (!publica && !sessao) {

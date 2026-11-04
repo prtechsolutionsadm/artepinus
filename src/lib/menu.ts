@@ -95,6 +95,7 @@ function menuProducao(u: UsuarioComPerfis): GrupoNav[] {
       titulo: "Gestão",
       itens: [
         { href: "/producao/indicadores", label: "Indicadores", icone: "indicadores" },
+        { href: "/tv", label: "Painel para TV", icone: "painel" },
         { href: "/producao/estoque", label: "Inventário de madeira", icone: "estoque" },
       ],
     },

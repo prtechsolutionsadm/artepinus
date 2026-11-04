@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Factory, Flame, Package, Printer, TreePine, Truck, Warehouse, type LucideIcon } from "lucide-react";
+import { Factory, Flame, Globe, Package, Printer, TreePine, Truck, Warehouse, type LucideIcon } from "lucide-react";
 import { AcoesPacote } from "@/components/producao/AcoesPacote";
 import { Badge } from "@/components/ui";
 import { formatarData, formatarDuracao, minutosEntre } from "@/lib/constantes";
@@ -96,6 +96,9 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
             <Badge cor={st.cor}>{st.label}</Badge>
             <Link href={`/producao/pacotes/etiquetas?n=${p.numero}`} className="inline-flex items-center gap-1 text-sm font-medium text-marca-700 hover:underline">
               <Printer className="h-4 w-4" /> Etiqueta
+            </Link>
+            <Link href={`/p/${p.numero}?publico=1`} target="_blank" className="inline-flex items-center gap-1 text-sm font-medium text-marca-700 hover:underline">
+              <Globe className="h-4 w-4" /> Como o cliente vê
             </Link>
           </div>
         </div>

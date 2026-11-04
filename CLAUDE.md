@@ -18,6 +18,8 @@ Next.js 16 (App Router) + Prisma 7 (client gerado em `src/generated/prisma`) + P
 - Inventário: "Madeira em" é por linha da ficha (`ItemEstoque.local/estufaId`); o local do `LevantamentoEstoque` só existe nos antigos.
 - Expedição: toda saída gera um `Romaneio` (`ROM-000123`, motorista/placas copiados do cadastro) — PDF em `BotaoPdfRomaneio`; peças comuns dos PDFs em `src/lib/pdf-cliente.ts`. Relatório mensal em PDF: `BotaoRelatorioMensal` (dados de `painelProducao`).
 - Alertas da serraria (`src/lib/alertas-serraria.ts`, via `notificar()`): estufa passou da previsão (`alertaAtrasoEm`), dia útil sem apontamento (cron 18h `/api/cron/serraria`) e pedido pronto (`prontoAvisadoEm`, checado ao concluir ciclo/formar/expedir). Crons em `vercel.json` precisam de `CRON_SECRET`.
+- QR do pacote (`/p/[numero]`) é rota pública (`PREFIXOS_PUBLICOS` em `src/proxy.ts`): visitante vê o resumo PT/EN sem dados internos (cliente, pedido, pessoas, fornecedor, placas); equipe logada é redirecionada à tela interna (`?publico=1` força a versão pública).
+- Painel da TV em `/tv` (fora do layout do app, exige login): `src/lib/tv.ts` + `router.refresh()` a cada 60 s e Wake Lock.
 - Textos: não use a palavra "Produção" em rótulos/títulos da interface (pedido do cliente); a pasta/rotas `/producao` continuam.
 - KPIs só por `calcularKpis()` (`src/lib/producao.ts`); OEE = Disponibilidade × Produtividade (sem Qualidade); m³ das bitolas é calculado no servidor (mm → m³). Datas de boletim são `@db.Date` ("AAAA-MM-DD" via `diaParaDate`/`dateParaDia`).
 - Mudanças de status sempre geram um registro em `HistoricoStatus`.
