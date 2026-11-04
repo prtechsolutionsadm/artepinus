@@ -5,7 +5,12 @@ export function Rodape({ className = "", claro }: { className?: string; claro?: 
   return (
     <footer className={`text-center text-xs leading-relaxed ${claro ? "text-marca-100/70" : "text-stone-400"} ${className}`}>
       <p>{direitos()}</p>
-      <p>{CREDITO}</p>
+      <p>
+        {CREDITO} ·{" "}
+        <a href="/privacidade" className="underline-offset-2 hover:underline">
+          Privacidade
+        </a>
+      </p>
     </footer>
   );
 }

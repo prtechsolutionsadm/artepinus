@@ -5,6 +5,7 @@ import { formatarData, numeroRequisicao } from "@/lib/constantes";
 import { idsPorPerfil, notificar } from "@/lib/notificacoes";
 import { gerarPreventivas } from "@/lib/preventivas";
 import { verificarAlertas } from "@/lib/alertas-serraria";
+import { limparRegistrosAntigos } from "@/lib/retencao";
 
 /**
  * Rotina diária (7h de Brasília): gera as preventivas dos planos e envia o lembrete
@@ -46,6 +47,8 @@ export async function GET(req: NextRequest) {
 
   // Serraria: estufas que passaram da previsão e pedidos prontos para expedir
   const serraria = await verificarAlertas();
+  // LGPD: apaga registros que passaram do prazo de guarda
+  const limpeza = await limparRegistrosAntigos().catch((e) => (console.error("Falha na limpeza", e), null));
 
-  return NextResponse.json({ preventivasGeradas: preventivas.length, lembretesEnviados: agendadas.length, serraria });
+  return NextResponse.json({ preventivasGeradas: preventivas.length, lembretesEnviados: agendadas.length, serraria, limpeza });
 }

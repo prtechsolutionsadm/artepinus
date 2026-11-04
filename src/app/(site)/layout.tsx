@@ -168,7 +168,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <div className="border-t border-stone-200">
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-5 text-xs text-stone-400 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
             <span>{direitos()}</span>
-            <span>{CREDITO}</span>
+            <span>
+              {CREDITO} ·{" "}
+              <Link href="/privacidade" className="hover:text-stone-600">
+                Política de Privacidade
+              </Link>
+            </span>
           </div>
         </div>
       </footer>
