@@ -148,9 +148,11 @@ export function MenuLateral({
             );
           })}
           <div className="my-1 border-t border-stone-100" />
-          <div className="px-3 py-2">
-            <div className="mb-1.5 text-xs font-medium text-stone-500">Tema</div>
-            <SeletorTema />
+          <div className="flex items-center gap-3 px-3 py-2">
+            <span className="text-sm font-medium text-stone-600">Tema</span>
+            <div className="flex-1">
+              <SeletorTema />
+            </div>
           </div>
           <div className="my-1 border-t border-stone-100" />
           <BotaoSair sair={sair} variante="item" />
@@ -246,21 +248,22 @@ export function BarraInferior({ menus, salvo }: { menus: Menus; salvo: Modulo | 
 /** Busca do topo: só faz sentido no módulo de manutenção. */
 export function BuscaTopo({ menus, salvo, celular = false }: { menus: Menus; salvo: Modulo | null; celular?: boolean }) {
   const modulo = useModulo(menus, salvo);
-  if (modulo !== "manutencao") return null;
+  const serraria = modulo === "producao";
+  const destino = serraria ? "/producao/buscar" : "/requisicoes";
   if (celular) {
     return (
-      <Link href="/requisicoes" aria-label="Buscar" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100 sm:hidden">
+      <Link href={destino} aria-label="Buscar" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100 sm:hidden">
         <Search className="h-5 w-5" />
       </Link>
     );
   }
   return (
-    <form action="/requisicoes" className="relative hidden max-w-md flex-1 sm:block">
+    <form action={destino} className="relative hidden max-w-md flex-1 sm:block">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
       <input
         name="q"
         type="search"
-        placeholder="Buscar requisição, nº ou equipamento…"
+        placeholder={serraria ? "Buscar pacote, lote, carga, pedido, motorista, placa…" : "Buscar requisição, nº ou equipamento…"}
         className="h-10 w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-3 text-sm outline-none transition focus:border-marca-500 focus:bg-white focus:ring-2 focus:ring-marca-500/20"
       />
     </form>

@@ -60,6 +60,8 @@ export const MANUAL: Secao[] = [
             "A tela Início mostra o que precisa de atenção (dia sem apontamento, estufa passando da previsão, pacotes por formar) e os botões para lançar cada etapa.",
             "O menu segue a ordem do processo: 1 Recebimento de toras → 2 Serraria → 3 Estufas → 4 Pacotes e expedição. Indicadores e inventário ficam em Gestão; pedidos e demais cadastros, em Cadastros.",
             "No celular: use a barra de baixo — Início, Pacotes, o botão do meio para ler a etiqueta de um pacote ou lote, Estufas e Mais. Em Mais estão as demais telas e o botão Sair.",
+            "A busca do topo encontra pacote (PCT-), lote (LOT-) e carga (CT-) pelo código — abre direto — e também pedido, cliente, motorista, placa ou floresta.",
+            "A tela Início mostra também as Estufas agora: livre ou secando, há quanto tempo, o volume e o andamento até a previsão de saída.",
             "Tema claro, escuro ou automático (segue o aparelho): no computador, no menu do seu nome (canto de baixo do menu lateral); no celular, em Mais ou em Meu perfil.",
             "As fichas de madeira (lote, ciclo de estufa, Madeira carregada no mês e inventário) têm o botão PDF, que baixa a ficha no desenho do papel — funciona até sem internet.",
           ] },

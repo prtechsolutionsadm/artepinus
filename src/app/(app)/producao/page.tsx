@@ -14,7 +14,7 @@ import {
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
-import { formatarData } from "@/lib/constantes";
+import { formatarData, formatarDuracao } from "@/lib/constantes";
 import { dadosInicio, type Pendencia } from "@/lib/inicio-producao";
 import { podeProducao } from "@/lib/permissoes";
 import {
@@ -163,7 +163,7 @@ export default async function InicioProducaoPage() {
       <div className="grid gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-2 lg:min-h-0">
           {/* Pendências */}
-          <section className="cartao flex flex-col p-0 lg:min-h-0 lg:flex-1">
+          <section className="cartao flex flex-col p-0 lg:min-h-0 lg:shrink">
             <div className="flex shrink-0 items-center justify-between border-b border-stone-200 px-4 py-3 sm:px-5">
               <h2 className="font-semibold">O que precisa de atenção</h2>
               {d.pendencias.length > 0 && (
@@ -216,6 +216,48 @@ export default async function InicioProducaoPage() {
               </ul>
             )}
           </section>
+
+          {/* Estufas agora */}
+          {d.estufas.length > 0 && (
+            <section className="shrink-0">
+              <div className="mb-2 flex items-baseline justify-between">
+                <h2 className="font-semibold">Estufas agora</h2>
+                <Link href="/producao/estufas" className="text-xs font-semibold text-marca-700 hover:underline">
+                  Ver estufas
+                </Link>
+              </div>
+              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                {d.estufas.map((e) => (
+                  <li key={e.id}>
+                    <Link
+                      href={e.ciclo ? `/producao/estufas/ciclos/${e.ciclo.id}` : `/producao/estufas/ciclos/novo?estufa=${e.id}`}
+                      className="block h-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 transition hover:border-marca-300"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-semibold">{e.nome}</span>
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${!e.ciclo ? "bg-stone-300" : e.ciclo.atrasado ? "bg-rose-500" : "bg-[#eb6834]"}`} aria-hidden />
+                      </div>
+                      {e.ciclo ? (
+                        <>
+                          <div className="mt-0.5 text-xs text-stone-500 tabular-nums">
+                            {formatarDuracao(e.ciclo.horas * 60)} · {fmtM3(e.ciclo.m3, 1)}
+                          </div>
+                          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-stone-100">
+                            <div className={`h-full rounded-full ${e.ciclo.atrasado ? "bg-rose-500" : "bg-[#eb6834]"}`} style={{ width: `${(e.ciclo.progresso ?? 0) * 100}%` }} />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mt-0.5 text-xs text-stone-400">Livre · iniciar ciclo</div>
+                          <div className="mt-1.5 h-1 rounded-full bg-stone-100" />
+                        </>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* Tarefas, na ordem do processo */}
           {lancar && (
@@ -324,7 +366,7 @@ export default async function InicioProducaoPage() {
             </div>
           </section>
 
-          <section className="cartao flex flex-col p-0 lg:min-h-0 lg:flex-1">
+          <section className="cartao flex flex-col p-0 lg:min-h-0 lg:shrink">
             <div className="shrink-0 border-b border-stone-200 px-4 py-3 sm:px-5">
               <h2 className="font-semibold">Últimos lançamentos</h2>
             </div>

@@ -51,6 +51,35 @@ export async function dadosInicio() {
     }),
   ]);
 
+  // Estufas agora: livre ou secando (há quanto tempo, previsão e volume)
+  const estufas = (
+    await db.estufa.findMany({
+      where: { ativo: true },
+      orderBy: { numero: "asc" },
+      select: {
+        id: true,
+        nome: true,
+        ciclos: { where: { status: "EM_SECAGEM" }, take: 1, select: { id: true, numero: true, entrada: true, previsaoSaida: true, cargas: { select: { m3: true } } } },
+      },
+    })
+  ).map((e) => {
+    const c = e.ciclos[0];
+    return {
+      id: e.id,
+      nome: e.nome,
+      ciclo: c
+        ? {
+            id: c.id,
+            numero: c.numero,
+            horas: (agora.getTime() - c.entrada.getTime()) / 3.6e6,
+            progresso: c.previsaoSaida ? Math.min(1, (agora.getTime() - c.entrada.getTime()) / Math.max(1, c.previsaoSaida.getTime() - c.entrada.getTime())) : null,
+            atrasado: !!c.previsaoSaida && c.previsaoSaida < agora,
+            m3: c.cargas.reduce((t, x) => t + x.m3, 0),
+          }
+        : null,
+    };
+  });
+
   const lancados = new Set(boletinsRecentes.map((b) => dateParaDia(b.data)));
   const boletimHoje = boletinsRecentes.find((b) => dateParaDia(b.data) === hoje) ?? null;
 
@@ -106,6 +135,7 @@ export async function dadosInicio() {
     boletimHoje,
     pendencias,
     emSecagem: emSecagem.length,
+    estufas,
     estoque: porStatus as Partial<Record<"VERDE" | "EM_ESTUFA" | "SECO", { qtd: number; m3: number }>>,
     mes: { producaoM3: k.producaoM3, metaM3: k.metaM3, dias: boletinsMes.length, oee: k.oee, metaDiaria: metaMes?.metaDiariaM3 ?? null },
     recentes,

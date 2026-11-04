@@ -74,10 +74,10 @@ export function SeletorTema({ grande = false }: { grande?: boolean }) {
           aria-checked={tema === valor}
           onClick={() => escolher(valor)}
           title={rotulo}
-          className={`flex items-center justify-center gap-1.5 rounded px-2 font-medium transition ${grande ? "py-2.5 text-sm" : "py-1.5 text-xs"} ${tema === valor ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"}`}
+          className={`flex items-center justify-center gap-1.5 rounded px-2 font-medium transition ${grande ? "py-2.5 text-sm" : "py-2"} ${tema === valor ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"}`}
         >
-          <Icone className="h-3.5 w-3.5 shrink-0" />
-          <span className={grande ? "" : "truncate"}>{valor === "auto" && !grande ? "Auto" : rotulo}</span>
+          <Icone className={grande ? "h-3.5 w-3.5 shrink-0" : "h-4 w-4 shrink-0"} />
+          <span className={grande ? "" : "sr-only"}>{rotulo}</span>
         </button>
       ))}
     </div>
