@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatarData, numeroRequisicao } from "@/lib/constantes";
 import { idsPorPerfil, notificar } from "@/lib/notificacoes";
 import { gerarPreventivas } from "@/lib/preventivas";
+import { verificarAlertas } from "@/lib/alertas-serraria";
 
 /**
  * Rotina diária (7h de Brasília): gera as preventivas dos planos e envia o lembrete
@@ -43,5 +44,8 @@ export async function GET(req: NextRequest) {
     await db.requisicao.update({ where: { id: r.id }, data: { lembreteEm: new Date() } });
   }
 
-  return NextResponse.json({ preventivasGeradas: preventivas.length, lembretesEnviados: agendadas.length });
+  // Serraria: estufas que passaram da previsão e pedidos prontos para expedir
+  const serraria = await verificarAlertas();
+
+  return NextResponse.json({ preventivasGeradas: preventivas.length, lembretesEnviados: agendadas.length, serraria });
 }

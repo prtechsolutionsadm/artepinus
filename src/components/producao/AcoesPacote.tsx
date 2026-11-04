@@ -21,6 +21,7 @@ export function AcoesPacote({
   ciclos,
   podeGerir,
   pedido,
+  motoristas = [],
 }: {
   numero: number;
   status: StatusPacote;
@@ -28,6 +29,7 @@ export function AcoesPacote({
   podeGerir: boolean;
   /** "Nº · cliente" do pedido do pacote, se houver. */
   pedido?: string | null;
+  motoristas?: { id: string; nome: string; placaCaminhao: string; placaJulieta: string | null }[];
 }) {
   const encerrado = status === "EXPEDIDO" || status === "CANCELADO";
   const acoes: Acao[] = [
@@ -76,9 +78,27 @@ export function AcoesPacote({
             <p className="text-sm text-stone-500">Nenhuma estufa com ciclo em andamento. Inicie o ciclo em Estufas.</p>
           ))}
         {acao === "expedir" && (
-          <p className="text-sm text-stone-600">
-            Registra a saída física do pacote. Cliente e destino já vêm do pedido{pedido ? ` (${pedido})` : ""}.
-          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <p className="text-sm text-stone-600 sm:col-span-2">
+              Registra a saída física do pacote e gera o romaneio. Cliente e destino já vêm do pedido{pedido ? ` (${pedido})` : ""}. Para vários pacotes no mesmo caminhão, use a lista de Pacotes.
+            </p>
+            <div>
+              <label htmlFor="ev-mot">Motorista</label>
+              <select id="ev-mot" name="motoristaId" className="campo" defaultValue="">
+                <option value="">— Sem motorista cadastrado —</option>
+                {motoristas.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome} · {m.placaCaminhao}
+                    {m.placaJulieta ? ` + ${m.placaJulieta}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="ev-obs">Observações do romaneio</label>
+              <input id="ev-obs" name="texto" className="campo" />
+            </div>
+          </div>
         )}
         {(acao === "observacao" || acao === "cancelar") && (
           <div>

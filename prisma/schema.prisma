@@ -84,6 +84,7 @@ model Usuario {
   colheitas             Colheita[]
   pacotesCriados        Pacote[]
   eventosPacote         EventoPacote[]
+  romaneios             Romaneio[]            @relation("RomaneiosCriados")
   lotes                 Lote[]
   plantoes              CicloSecagem[]        @relation("PlantaoCiclo")
 }
@@ -478,6 +479,8 @@ model CicloSecagem {
   numero         Int? // nº do ciclo (controle da estufa)
   status         StatusCiclo          @default(EM_SECAGEM)
   entrada        DateTime
+  /// quando o aviso de previsão vencida foi enviado
+  alertaAtrasoEm DateTime?
   previsaoSaida  DateTime?
   saida          DateTime?
   umidadeInicial Float?
@@ -712,6 +715,9 @@ model Pacote {
   notaFiscal   String?
   destino      String?
   expedidoEm   DateTime?
+  /// Romaneio (documento da carga) em que o pacote saiu
+  romaneioId   String?
+  romaneio     Romaneio?        @relation(fields: [romaneioId], references: [id], onDelete: SetNull)
   observacoes  String?
   criadoPorId  String
   criadoPor    Usuario          @relation(fields: [criadoPorId], references: [id])
@@ -784,19 +790,41 @@ model Motorista {
   ativo         Boolean      @default(true)
   criadoEm      DateTime     @default(now())
   cargas        CargaToras[]
+  romaneios     Romaneio[]
+}
+
+/// Romaneio de expedição: o documento da carga que vai com o motorista.
+model Romaneio {
+  id           String     @id @default(cuid())
+  numero       Int        @unique @default(autoincrement())
+  motoristaId  String?
+  motoristaCad Motorista? @relation(fields: [motoristaId], references: [id], onDelete: SetNull)
+  /// nome e placas no momento da saída (histórico)
+  motorista    String?
+  placa        String?
+  placaJulieta String?
+  observacoes  String?
+  criadoPorId  String
+  criadoPor    Usuario    @relation("RomaneiosCriados", fields: [criadoPorId], references: [id])
+  criadoEm     DateTime   @default(now())
+  pacotes      Pacote[]
+
+  @@index([criadoEm])
 }
 
 /// Pedido do cliente: a produção da serraria é lançada já ligada a ele.
 model Pedido {
-  id          String       @id @default(cuid())
-  numero      String       @unique
-  cliente     String
-  destino     String?
-  observacoes String?
-  status      StatusPedido @default(ABERTO)
-  criadoEm    DateTime     @default(now())
-  lotes       Lote[]
-  pacotes     Pacote[]
+  id              String       @id @default(cuid())
+  numero          String       @unique
+  cliente         String
+  destino         String?
+  observacoes     String?
+  status          StatusPedido @default(ABERTO)
+  criadoEm        DateTime     @default(now())
+  /// quando o aviso "pedido pronto para expedir" foi enviado
+  prontoAvisadoEm DateTime?
+  lotes           Lote[]
+  pacotes         Pacote[]
 }
 
 /// Lançamento da grade da serraria (uma espessura, um pedido) — vira etiqueta com código de barras e QR.

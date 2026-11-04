@@ -87,6 +87,7 @@ function menuProducao(u: UsuarioComPerfis): GrupoNav[] {
         { href: "/producao/boletins", label: "Serraria", icone: "boletins", etapa: 2 },
         { href: "/producao/estufas", label: "Estufas", icone: "estufas", etapa: 3 },
         { href: "/producao/pacotes", label: "Pacotes e expedição", icone: "pacotes", etapa: 4 },
+        { href: "/producao/romaneios", label: "Romaneios", icone: "relatorios" },
         { href: "/producao/escanear", label: "Ler etiqueta", icone: "escanear" },
       ],
     },

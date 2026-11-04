@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui";
 import { formatarData, formatarDuracao, minutosEntre } from "@/lib/constantes";
 import { podeProducao } from "@/lib/permissoes";
 import { CLASSE_DIAMETRO, MERCADO, calcularKpis, fmtM3, fmtNum, formatarDia } from "@/lib/producao";
-import { STATUS_PACOTE, TIPO_EVENTO, bitola, codigoCarga, codigoPacote } from "@/lib/rastreio";
+import { STATUS_PACOTE, TIPO_EVENTO, bitola, codigoCarga, codigoPacote, codigoRomaneio } from "@/lib/rastreio";
+import { db } from "@/lib/db";
 import { ciclosAtivos, rastrearPacote } from "@/lib/rastreio-dados";
 import { exigirProducao } from "@/lib/session";
 
@@ -70,6 +71,11 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
   const { pacote: p, dias, cargas, florestas } = r;
   const lancar = podeProducao(eu, "lancar");
   const ciclos = lancar && p.status === "VERDE" ? await ciclosAtivos() : [];
+  const motoristas =
+    lancar && (p.status === "VERDE" || p.status === "SECO")
+      ? await db.motorista.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true, placaCaminhao: true, placaJulieta: true } })
+      : [];
+  const romaneio = p.romaneioId ? await db.romaneio.findUnique({ where: { id: p.romaneioId }, select: { numero: true, motorista: true, placa: true, placaJulieta: true } }) : null;
   const st = STATUS_PACOTE[p.status];
   const conformes = p.ciclo?.checklist.filter((i) => i.conforme === true).length ?? 0;
   const naoConformes = p.ciclo?.checklist.filter((i) => i.conforme === false).length ?? 0;
@@ -113,7 +119,7 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
         {p.observacoes && <p className="mt-3 text-sm text-stone-600">{p.observacoes}</p>}
       </section>
 
-      {lancar && <AcoesPacote numero={p.numero} status={p.status} ciclos={ciclos} podeGerir={podeProducao(eu, "gerir")} pedido={p.pedido ? `${p.pedido.numero} · ${p.pedido.cliente}` : null} />}
+      {lancar && <AcoesPacote numero={p.numero} status={p.status} ciclos={ciclos} podeGerir={podeProducao(eu, "gerir")} pedido={p.pedido ? `${p.pedido.numero} · ${p.pedido.cliente}` : null} motoristas={motoristas} />}
 
       <section className="cartao">
         <h2 className="mb-1 font-semibold">Da floresta ao pacote</h2>
@@ -222,6 +228,16 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
                 ["Destino", p.pedido?.destino ?? p.destino],
                 ["Data", formatarData(p.expedidoEm, true)],
                 ["Por", expedido?.usuario?.nome],
+                [
+                  "Romaneio",
+                  romaneio ? (
+                    <Link key="r" href={`/producao/romaneios/${romaneio.numero}`} className="text-marca-700 hover:underline">
+                      {codigoRomaneio(romaneio.numero)}
+                    </Link>
+                  ) : null,
+                ],
+                ["Motorista", romaneio?.motorista ?? null],
+                ["Placas", romaneio ? [romaneio.placa, romaneio.placaJulieta].filter(Boolean).join(" + ") || null : null],
               ]}
             />
           </Etapa>

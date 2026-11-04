@@ -3,6 +3,8 @@ import type { StatusPacote, TipoEvento, TipoOrigem } from "@/generated/prisma/en
 // Códigos e rótulos da rastreabilidade (servidor e navegador).
 
 export const codigoPacote = (n: number) => `PCT-${String(n).padStart(6, "0")}`;
+/** Romaneio de expedição: ROM-000123. */
+export const codigoRomaneio = (n: number) => `ROM-${String(n).padStart(6, "0")}`;
 export const codigoCarga = (n: number) => `CT-${String(n).padStart(5, "0")}`;
 export const codigoColheita = (n: number) => `COL-${String(n).padStart(4, "0")}`;
 export const codigoLote = (n: number) => `LOT-${String(n).padStart(6, "0")}`;

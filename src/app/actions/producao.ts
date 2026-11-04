@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { verificarPedidosProntos } from "@/lib/alertas-serraria";
 import { z } from "zod";
 import { auditar, diferencas } from "@/lib/auditoria";
 import { dataLocalParaDate, formatarData, formatarDuracao } from "@/lib/constantes";
@@ -519,6 +521,9 @@ export async function concluirCiclo(_: EstadoForm, form: FormData): Promise<Esta
     }),
   ]);
   await auditar({ usuarioId: eu.id, acao: "ciclo.concluir", entidade: "CicloSecagem", entidadeId: id, resumo: `Concluiu o ciclo da ${ciclo.estufa.nome}` });
+  // Os pacotes saíram secos: algum pedido pode ter ficado pronto para expedir
+  const pedidos = await db.pacote.findMany({ where: { cicloId: id, pedidoId: { not: null } }, select: { pedidoId: true }, distinct: ["pedidoId"] });
+  after(() => verificarPedidosProntos(pedidos.map((p) => p.pedidoId)).catch((e) => console.error(e)));
   revalidatePath("/producao", "layout");
   return { ok: "Ciclo concluído" };
 }

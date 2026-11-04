@@ -22,25 +22,39 @@ export type LinhaPacote = {
 };
 
 /** Lista de pacotes com seleção para imprimir etiquetas ou expedir vários de uma vez. */
-export function ListaPacotes({ linhas, podeExpedir }: { linhas: LinhaPacote[]; podeExpedir: boolean }) {
+export function ListaPacotes({
+  linhas,
+  podeExpedir,
+  motoristas = [],
+}: {
+  linhas: LinhaPacote[];
+  podeExpedir: boolean;
+  /** Motoristas do cadastro (o romaneio leva nome e placas). */
+  motoristas?: { id: string; nome: string; placaCaminhao: string; placaJulieta: string | null }[];
+}) {
   const router = useRouter();
   const [sel, setSel] = useState<number[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
+  const [saida, setSaida] = useState(false);
+  const [motoristaId, setMotoristaId] = useState("");
+  const [obs, setObs] = useState("");
   const selecionados = linhas.filter((l) => sel.includes(l.numero));
   const expediveis = selecionados.filter((l) => l.status === "VERDE" || l.status === "SECO");
   const alternar = (n: number) => setSel((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]));
 
   function expedir() {
-    if (!confirm(`Registrar a saída de ${expediveis.length} pacote(s)?`)) return;
     setErro(null);
     iniciar(async () => {
-      const r = await expedirPacotes({ numeros: expediveis.map((l) => l.numero) });
+      const r = await expedirPacotes({ numeros: expediveis.map((l) => l.numero), motoristaId: motoristaId || null, observacoes: obs || null });
       if (r.erro) return setErro(r.erro);
       setSel([]);
-      router.refresh();
+      setSaida(false);
+      // Abre o romaneio para imprimir / baixar o PDF que vai com o motorista
+      router.push(`/producao/romaneios/${r.romaneio}`);
     });
   }
+  const mot = motoristas.find((m) => m.id === motoristaId);
 
   return (
     <div>
@@ -55,8 +69,8 @@ export function ListaPacotes({ linhas, podeExpedir }: { linhas: LinhaPacote[]; p
                 <Printer className="h-4 w-4" /> Etiquetas
               </Link>
               {podeExpedir && expediveis.length > 0 && (
-                <button type="button" onClick={expedir} disabled={pendente} className="btn-primario px-3 py-1.5 text-sm">
-                  <Truck className="h-4 w-4" /> {pendente ? "Registrando…" : `Registrar saída de ${expediveis.length}`}
+                <button type="button" onClick={() => setSaida(true)} disabled={pendente || saida} className="btn-primario px-3 py-1.5 text-sm">
+                  <Truck className="h-4 w-4" /> Registrar saída de {expediveis.length}
                 </button>
               )}
               <button type="button" onClick={() => setSel([])} className="btn-secundario px-3 py-1.5 text-sm">
@@ -64,6 +78,40 @@ export function ListaPacotes({ linhas, podeExpedir }: { linhas: LinhaPacote[]; p
               </button>
             </span>
           </div>
+          {saida && expediveis.length > 0 && (
+            <div className="mt-3 grid gap-3 border-t border-stone-100 pt-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <div>
+                <label htmlFor="rom-mot">Motorista</label>
+                <select id="rom-mot" value={motoristaId} onChange={(e) => setMotoristaId(e.target.value)} className="campo">
+                  <option value="">— Sem motorista cadastrado —</option>
+                  {motoristas.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome} · {m.placaCaminhao}
+                      {m.placaJulieta ? ` + ${m.placaJulieta}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="rom-obs">Observações do romaneio</label>
+                <input id="rom-obs" value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: nota fiscal, lacre…" className="campo" />
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setSaida(false)} className="btn-secundario">
+                  Voltar
+                </button>
+                <button type="button" onClick={expedir} disabled={pendente} className="btn-primario">
+                  {pendente ? "Registrando…" : "Confirmar e gerar romaneio"}
+                </button>
+              </div>
+              {mot && (
+                <p className="text-xs text-stone-500 sm:col-span-3">
+                  Placas: {mot.placaCaminhao}
+                  {mot.placaJulieta ? ` + julieta ${mot.placaJulieta}` : ""}
+                </p>
+              )}
+            </div>
+          )}
           {selecionados.length > expediveis.length && <p className="mt-2 text-xs text-stone-500">Pacotes na estufa, expedidos ou cancelados ficam de fora da saída.</p>}
           {erro && (
             <p role="alert" className="mt-2 text-sm text-rose-700">

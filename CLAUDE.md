@@ -16,6 +16,8 @@ Next.js 16 (App Router) + Prisma 7 (client gerado em `src/generated/prisma`) + P
 - Tema escuro: classe `.dark` no `<html>` (`src/components/Tema.tsx`, salvo em localStorage); `globals.css` remapeia a paleta (stone/marca/status e `--color-white` = superfície) só na tela — impressão/PDF ficam claros. Use as classes de cor normais do Tailwind; painel claro dentro de área `text-white` precisa da classe `superficie`.
 - PDF das fichas: `BotaoPdfFicha` (jsPDF no navegador) via prop `pdf` da `TabelaFicha`.
 - Inventário: "Madeira em" é por linha da ficha (`ItemEstoque.local/estufaId`); o local do `LevantamentoEstoque` só existe nos antigos.
+- Expedição: toda saída gera um `Romaneio` (`ROM-000123`, motorista/placas copiados do cadastro) — PDF em `BotaoPdfRomaneio`; peças comuns dos PDFs em `src/lib/pdf-cliente.ts`. Relatório mensal em PDF: `BotaoRelatorioMensal` (dados de `painelProducao`).
+- Alertas da serraria (`src/lib/alertas-serraria.ts`, via `notificar()`): estufa passou da previsão (`alertaAtrasoEm`), dia útil sem apontamento (cron 18h `/api/cron/serraria`) e pedido pronto (`prontoAvisadoEm`, checado ao concluir ciclo/formar/expedir). Crons em `vercel.json` precisam de `CRON_SECRET`.
 - Textos: não use a palavra "Produção" em rótulos/títulos da interface (pedido do cliente); a pasta/rotas `/producao` continuam.
 - KPIs só por `calcularKpis()` (`src/lib/producao.ts`); OEE = Disponibilidade × Produtividade (sem Qualidade); m³ das bitolas é calculado no servidor (mm → m³). Datas de boletim são `@db.Date` ("AAAA-MM-DD" via `diaParaDate`/`dateParaDia`).
 - Mudanças de status sempre geram um registro em `HistoricoStatus`.

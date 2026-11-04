@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, QrCode } from "lucide-react";
+import { Plus, QrCode, FileText } from "lucide-react";
 import { ListaPacotes } from "@/components/producao/ListaPacotes";
 import { BotaoLink, Titulo, Vazio } from "@/components/ui";
 import { formatarData } from "@/lib/constantes";
@@ -37,10 +37,16 @@ export default async function PacotesPage({ searchParams }: { searchParams: Prom
     const medidas = busca.match(/^(\d+)\s*[x×*]\s*(\d+)(?:\s*[x×*]\s*(\d+))?$/i);
     if (n && !medidas) where.numero = n;
     else if (medidas) Object.assign(where, { espessura: Number(medidas[1]), largura: Number(medidas[2]), ...(medidas[3] ? { comprimento: Number(medidas[3]) } : {}) });
-    else where.OR = [{ cliente: { contains: busca, mode: "insensitive" } }, { localizacao: { contains: busca, mode: "insensitive" } }, { classe: { contains: busca, mode: "insensitive" } }];
+    else
+      where.OR = [
+        { cliente: { contains: busca, mode: "insensitive" } },
+        { pedido: { OR: [{ numero: { contains: busca, mode: "insensitive" } }, { cliente: { contains: busca, mode: "insensitive" } }] } },
+        { localizacao: { contains: busca, mode: "insensitive" } },
+        { classe: { contains: busca, mode: "insensitive" } },
+      ];
   }
 
-  const [pacotes, resumo] = await Promise.all([
+  const [pacotes, resumo, motoristas] = await Promise.all([
     db.pacote.findMany({
       where,
       orderBy: { numero: "desc" },
@@ -48,6 +54,7 @@ export default async function PacotesPage({ searchParams }: { searchParams: Prom
       include: { boletim: { select: { data: true } }, ciclo: { select: { numero: true, estufa: { select: { nome: true } } } } },
     }),
     db.pacote.groupBy({ by: ["status"], where: { status: { in: STATUS_EM_ESTOQUE } }, _count: true, _sum: { m3: true } }),
+    db.motorista.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true, placaCaminhao: true, placaJulieta: true } }),
   ]);
   const porStatus = Object.fromEntries(resumo.map((r) => [r.status, r]));
 
@@ -57,8 +64,11 @@ export default async function PacotesPage({ searchParams }: { searchParams: Prom
         subtitulo="Cada pacote com etiqueta QR: da floresta à expedição"
         acao={
           <div className="flex flex-wrap gap-2">
+            <Link href="/producao/romaneios" className="btn-secundario">
+              <FileText className="h-4 w-4" /> Romaneios
+            </Link>
             <Link href="/producao/escanear" className="btn-secundario">
-              <QrCode className="h-4 w-4" /> Ler QR
+              <QrCode className="h-4 w-4" /> Ler etiqueta
             </Link>
             {podeProducao(eu, "lancar") && (
               <BotaoLink href="/producao/pacotes/novo">
@@ -101,7 +111,7 @@ export default async function PacotesPage({ searchParams }: { searchParams: Prom
         </nav>
         <form className="w-full sm:ml-auto sm:w-72">
           <input type="hidden" name="status" value={status} />
-          <input name="q" type="search" defaultValue={busca} placeholder="Código, bitola (25x100) ou cliente" aria-label="Buscar pacotes" className="campo py-1.5" />
+          <input name="q" type="search" defaultValue={busca} placeholder="Código, bitola (25x100), pedido ou cliente" aria-label="Buscar pacotes" className="campo py-1.5" />
         </form>
       </div>
 
@@ -117,6 +127,7 @@ export default async function PacotesPage({ searchParams }: { searchParams: Prom
       ) : (
         <ListaPacotes
           podeExpedir={podeProducao(eu, "lancar")}
+          motoristas={motoristas}
           linhas={pacotes.map((p) => ({
             numero: p.numero,
             status: p.status,

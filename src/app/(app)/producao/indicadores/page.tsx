@@ -3,10 +3,11 @@ import Link from "next/link";
 import { ArrowRight, BarChart3, Boxes, FileSpreadsheet, Flame, Plus, TreePine } from "lucide-react";
 import { BarrasHorizontais, ColunasEmpilhadas } from "@/components/Graficos";
 import { SeletorMes } from "@/components/SeletorMes";
+import { BotaoRelatorioMensal } from "@/components/producao/BotaoRelatorioMensal";
 import { formatarDuracao } from "@/lib/constantes";
 import { painelProducao } from "@/lib/indicadores-producao";
 import { podeProducao } from "@/lib/permissoes";
-import { CENTRO, LOCAL_ESTOQUE, CLASSE_DIAMETRO, CLASSE_MADEIRA, fmtM3, fmtNum, fmtPct, formatarDia, hojeSP, mesDe, nomeMes, nomeMesLongo, type Kpis } from "@/lib/producao";
+import { CENTRO, LOCAL_ESTOQUE, CLASSE_DIAMETRO, CLASSE_MADEIRA, fmtM3, fmtNum, fmtPct, formatarDia, hojeSP, mesDe, mesesAntes, nomeMes, nomeMesLongo, type Kpis } from "@/lib/producao";
 import { mesesComBoletim } from "@/lib/producao-dados";
 import { STATUS_EM_ESTOQUE, STATUS_PACOTE } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
@@ -108,6 +109,22 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <SeletorMes mes={mes} atual={atual} base="/producao/indicadores" extra={{ aba: aba !== "geral" ? aba : undefined }} comDados={comDados} />
+          <BotaoRelatorioMensal
+            dados={{
+              mes: nomeMesLongo(mes),
+              mesAnterior: nomeMes(mesesAntes(mes, 1)),
+              dias: p.diasLancados,
+              kpis: k,
+              anterior: p.comparativo.find((c) => c.mes === mesesAntes(mes, 1))?.kpis ?? null,
+              diario: p.diario.map((d) => ({ dia: d.dia, otimo: d.otimo, bom: d.bom, regular: d.regular, meta: d.metaM3 })),
+              pareto: p.pareto.map((x) => ({ rotulo: x.rotulo, minutos: x.minutos, ocorrencias: x.ocorrencias, centro: x.centro })),
+              equipamentos: p.paradasPorEquipamento,
+              estufas: p.estufas,
+              toras: { cargas: p.toras.cargas, pesoT: p.toras.pesoT, porClasse: p.toras.porClasse },
+              pacotes: { ...p.pacotes, porCliente: p.pacotes.porCliente },
+              comparativo: [...p.comparativo].reverse().map((c) => ({ mes: nomeMes(c.mes), dias: c.dias, producaoM3: c.kpis.producaoM3, metaM3: c.kpis.metaM3, oee: c.kpis.oee, disponibilidade: c.kpis.disponibilidade, produtividade: c.kpis.produtividade })),
+            }}
+          />
           <a href={`/producao/excel?mes=${mes}`} className="btn-secundario px-3 py-2">
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </a>

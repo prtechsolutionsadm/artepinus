@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { formatarData, formatarDuracao } from "@/lib/constantes";
 import { dadosInicio, type Pendencia } from "@/lib/inicio-producao";
+import { alertarEstufasAtrasadas } from "@/lib/alertas-serraria";
+import { after } from "next/server";
 import { podeProducao } from "@/lib/permissoes";
 import {
   fmtM3,
@@ -135,6 +137,8 @@ export default async function InicioProducaoPage() {
   const eu = await exigirProducao();
   const lancar = podeProducao(eu, "lancar");
   const d = await dadosInicio();
+  // A rotina agendada roda poucas vezes por dia: quem abre o Início também dispara o aviso de estufa atrasada
+  after(() => alertarEstufasAtrasadas().catch((e) => console.error(e)));
   const primeiroNome = eu.nome.split(" ")[0];
   const progresso =
     d.mes.metaM3 > 0 ? Math.min(1, d.mes.producaoM3 / d.mes.metaM3) : 0;

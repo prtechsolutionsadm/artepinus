@@ -1,16 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { verificarPedidosProntos } from "@/lib/alertas-serraria";
 import { z } from "zod";
 import { auditar, diferencas } from "@/lib/auditoria";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
 import { diaParaDate, formatarDia, hojeSP, m3Pecas } from "@/lib/producao";
-import { codigoColheita, codigoPacote } from "@/lib/rastreio";
+import { codigoColheita, codigoPacote, codigoRomaneio } from "@/lib/rastreio";
 import { exigirUsuario } from "@/lib/session";
 import type { EstadoForm } from "./auth";
 
-export type Resultado = { erro?: string; id?: string | number; numeros?: number[] };
+export type Resultado = { erro?: string; id?: string | number; numeros?: number[]; romaneio?: number };
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
 const opcional = <T extends z.ZodTypeAny>(t: T) => z.preprocess(vazioParaNull, t.nullable());
@@ -164,7 +166,24 @@ export async function criarPacotes(entrada: DadosPacote): Promise<Resultado> {
     resumo: `Formou ${quantidade} pacote(s) ${p.espessura}×${p.largura}×${p.comprimento} mm: ${codigoPacote(numeros[0])}${quantidade > 1 ? ` a ${codigoPacote(numeros[numeros.length - 1])}` : ""}`,
   });
   revalidatePath("/producao", "layout");
+  after(() => verificarPedidosProntos([p.pedidoId]).catch((e) => console.error(e)));
   return { numeros };
+}
+
+/** Cria o romaneio (documento da carga) com o motorista e as placas do cadastro. */
+async function criarRomaneio(criadoPorId: string, pacoteIds: string[], motoristaId: string | null | undefined, observacoes: string | null | undefined) {
+  const m = motoristaId ? await db.motorista.findUnique({ where: { id: motoristaId } }) : null;
+  return db.romaneio.create({
+    data: {
+      criadoPorId,
+      motoristaId: m?.id ?? null,
+      motorista: m?.nome ?? null,
+      placa: m?.placaCaminhao ?? null,
+      placaJulieta: m?.placaJulieta ?? null,
+      observacoes: observacoes || null,
+      pacotes: { connect: pacoteIds.map((id) => ({ id })) },
+    },
+  });
 }
 
 const eventoSchema = z.object({
@@ -176,6 +195,7 @@ const eventoSchema = z.object({
   destino: opcional(z.string().trim().max(120)),
   localizacao: opcional(z.string().trim().max(80)),
   texto: opcional(z.string().trim().max(500)),
+  motoristaId: opcional(z.string()),
 });
 
 /** Ações feitas na tela do pacote (depois de escanear o QR). Cada uma vira um evento. */
@@ -210,7 +230,12 @@ export async function registrarEventoPacote(_: EstadoForm, form: FormData): Prom
       if (encerrado) return { erro: "Pacote já expedido ou cancelado" };
       if (pacote.status === "EM_ESTUFA") return { erro: "O pacote ainda está na estufa" };
       const pedido = pacote.pedidoId ? await db.pedido.findUnique({ where: { id: pacote.pedidoId } }) : null;
-      await evento("EXPEDIDO", pedido ? `Saída registrada (pedido ${pedido.numero} · ${pedido.cliente})` : "Saída registrada", { status: "EXPEDIDO", expedidoEm: new Date() });
+      const rom = await criarRomaneio(eu.id, [pacote.id], d.motoristaId, d.texto);
+      await evento(
+        "EXPEDIDO",
+        `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}${pedido ? ` · pedido ${pedido.numero} · ${pedido.cliente}` : ""}`,
+        { status: "EXPEDIDO", expedidoEm: new Date() },
+      );
       break;
     }
     case "local":
@@ -227,6 +252,7 @@ export async function registrarEventoPacote(_: EstadoForm, form: FormData): Prom
       await evento("CANCELADO", d.texto ? `Cancelado: ${d.texto}` : "Cancelado", { status: "CANCELADO" });
       break;
   }
+  after(() => verificarPedidosProntos([pacote.pedidoId]).catch((e) => console.error(e)));
   revalidatePath(`/producao/pacotes/${pacote.numero}`);
   revalidatePath("/producao/pacotes");
   return { ok: "Registrado" };
@@ -234,6 +260,8 @@ export async function registrarEventoPacote(_: EstadoForm, form: FormData): Prom
 
 const expedicaoSchema = z.object({
   numeros: z.array(z.coerce.number().int().positive()).min(1, "Selecione os pacotes").max(200),
+  motoristaId: opcional(z.string()).optional(),
+  observacoes: opcional(z.string().trim().max(500)).optional(),
 });
 
 export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): Promise<Resultado> {
@@ -241,12 +269,13 @@ export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): 
   if (!ok) return { erro: "Sem permissão" };
   const parse = expedicaoSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { numeros } = parse.data;
+  const { numeros, motoristaId, observacoes } = parse.data;
   const pacotes = await db.pacote.findMany({ where: { numero: { in: numeros } }, select: { id: true, numero: true, status: true } });
   const invalidos = pacotes.filter((p) => p.status !== "VERDE" && p.status !== "SECO");
   if (invalidos.length) return { erro: `Não dá para expedir: ${invalidos.map((p) => codigoPacote(p.numero)).join(", ")} (na estufa, expedido ou cancelado)` };
-  const descricao = "Saída registrada";
   const agora = new Date();
+  const rom = await criarRomaneio(eu.id, pacotes.map((p) => p.id), motoristaId, observacoes);
+  const descricao = `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}`;
   await db.$transaction([
     db.pacote.updateMany({ where: { id: { in: pacotes.map((p) => p.id) } }, data: { status: "EXPEDIDO", expedidoEm: agora } }),
     db.eventoPacote.createMany({ data: pacotes.map((p) => ({ pacoteId: p.id, tipo: "EXPEDIDO" as const, descricao, usuarioId: eu.id, criadoEm: agora })) }),
@@ -255,9 +284,9 @@ export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): 
     usuarioId: eu.id,
     acao: "pacote.expedir",
     entidade: "Pacote",
-    resumo: `Registrou a saída de ${pacotes.length} pacote(s)`,
+    resumo: `Registrou a saída de ${pacotes.length} pacote(s) no romaneio ${codigoRomaneio(rom.numero)}`,
     detalhes: { pacotes: pacotes.map((p) => codigoPacote(p.numero)) },
   });
   revalidatePath("/producao", "layout");
-  return { numeros: pacotes.map((p) => p.numero) };
+  return { numeros: pacotes.map((p) => p.numero), romaneio: rom.numero };
 }

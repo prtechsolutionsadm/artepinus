@@ -88,7 +88,7 @@ export function AtivarPush() {
           <p className="text-sm text-stone-500">
             {estado === "carregando" && "Verificando…"}
             {estado === "ativo" && "Ativadas. Você recebe avisos mesmo com o sistema fechado."}
-            {estado === "desativado" && "Receba avisos de novas requisições, mudanças de status e lembretes do dia."}
+            {estado === "desativado" && "Receba avisos de estufa passando da previsão, dia sem apontamento e pedido pronto para expedir."}
             {estado === "bloqueado" &&
               "As notificações foram bloqueadas no navegador. Libere nas configurações do site (ícone de cadeado ao lado do endereço) e recarregue a página."}
             {estado === "instalar-ios" &&
@@ -150,7 +150,7 @@ export function ConvitePush() {
         <div className="text-marca-700">
           {estado === "instalar-ios"
             ? "No iPhone: Compartilhar → “Adicionar à Tela de Início”, depois ative em Perfil."
-            : "Saiba na hora quando houver requisição nova ou mudança de status."}
+            : "Saiba na hora quando uma estufa passar da previsão, faltar apontamento ou um pedido ficar pronto."}
         </div>
       </div>
       {estado === "desativado" && (

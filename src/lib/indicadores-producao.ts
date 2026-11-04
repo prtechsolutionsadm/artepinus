@@ -107,7 +107,7 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
   type ComCargas = { cargas: { colheitaId: string | null; florestaId: string | null }[] } | null | undefined;
   const temColheita = (b: ComCargas) => !!b?.cargas.some((c) => c.florestaId || c.colheitaId);
   const selCargas = { select: { cargas: { select: { colheitaId: true, florestaId: true } } } } as const;
-  const [formados, expedidos, emEstoque] = await Promise.all([
+  const [formados, expedidos, emEstoque, romaneiosMes] = await Promise.all([
     db.pacote.findMany({
       where: { criadoEm: intervaloMesSP(mes), status: { not: "CANCELADO" } },
       select: {
@@ -118,6 +118,7 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
     }),
     db.pacote.findMany({ where: { status: "EXPEDIDO", expedidoEm: intervaloMesSP(mes) }, select: { m3: true, criadoEm: true, expedidoEm: true, cliente: true, pedido: { select: { cliente: true } } } }),
     db.pacote.groupBy({ by: ["status"], where: { status: { in: ["VERDE", "EM_ESTUFA", "SECO"] } }, _count: true, _sum: { m3: true } }),
+    db.romaneio.count({ where: { criadoEm: intervaloMesSP(mes) } }),
   ]);
   const rastreados = formados.filter((p) => temColheita(p.boletim) || !!p.ciclo?.boletins.some(temColheita)).length;
   const diasEmEstoque = expedidos.map((p) => (p.expedidoEm!.getTime() - p.criadoEm.getTime()) / 864e5);
@@ -135,6 +136,7 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
     diasMedioEmEstoque: diasEmEstoque.length ? diasEmEstoque.reduce((a, b) => a + b, 0) / diasEmEstoque.length : null,
     estoque: Object.fromEntries(emEstoque.map((e) => [e.status, { qtd: e._count, m3: e._sum.m3 ?? 0 }])) as Partial<Record<"VERDE" | "EM_ESTUFA" | "SECO", { qtd: number; m3: number }>>,
     porCliente: [...porCliente].map(([rotulo, m3]) => ({ rotulo, m3 })).sort((a, b) => b.m3 - a.m3),
+    romaneios: romaneiosMes,
   };
 
   // Último inventário diário: m³ por local ("Madeira em")
