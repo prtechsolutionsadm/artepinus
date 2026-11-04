@@ -67,7 +67,9 @@ export default async function EtiquetasLotePage({ searchParams }: { searchParams
                 <div className="mt-2 flex gap-3">
                   <div className="w-[28%] shrink-0 [&_svg]:h-auto [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: l.qr }} />
                   <div className="min-w-0 flex-1 text-sm leading-snug">
-                    <div className="text-base font-bold">{l.espessura} mm</div>
+                    <div className="text-base font-bold">
+                      {[...new Set(l.itens.map((i) => `${i.espessura} mm · ${i.larguras ?? i.largura}`))].join(" | ")}
+                    </div>
                     <div>
                       {fmtNum(pecas)} peças · {fmtM3(m3, 3)}
                     </div>

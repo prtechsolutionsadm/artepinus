@@ -22,7 +22,7 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
     include: {
       responsavel: { select: { nome: true } },
       itens: { select: { tipo: true, m3: true, comprimento: true, pecas: true, loteId: true } },
-      lotes: { orderBy: { numero: "asc" }, include: { pedido: { select: { numero: true, cliente: true } }, itens: { select: { pecas: true, m3: true, comprimento: true } } } },
+      lotes: { orderBy: { numero: "asc" }, include: { pedido: { select: { numero: true, cliente: true } }, itens: { select: { pecas: true, m3: true, comprimento: true, espessura: true, larguras: true, largura: true } } } },
       paradas: {
         orderBy: { minutos: "desc" },
         include: { motivo: true, equipamento: { select: { nome: true } }, requisicao: { select: { id: true, status: true } } },
@@ -74,7 +74,7 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
           ["Disponibilidade", fmtPct(k.disponibilidade), `${formatarDuracao(k.minutosParados)} parado de ${fmtNum(b.horasProgramadas, 1)} h`],
           ["Produtividade", fmtPct(k.produtividade), "serrado ÷ meta"],
           ["OEE", fmtPct(k.oee), "disponibilidade × produtividade"],
-          ["Ótimo", fmtM3(k.porClasse.OTIMO), "2,50 e 2,15 m"],
+          ["Ótimo", fmtM3(k.porClasse.OTIMO), "2,50 e 2,10 m"],
           ["Bom", fmtM3(k.porClasse.BOM), "1,65 m"],
           ["Regular", fmtM3(k.porClasse.REGULAR), "1,30 · 1,00 · 0,70 m"],
           ["Rendimento", fmtPct(k.rendimento), b.torasM3 ? `de ${fmtM3(b.torasM3)} em toras` : "toras não informadas"],
@@ -104,7 +104,7 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
               <li key={l.id}>
                 <Link href={`/producao/lotes/${l.numero}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-stone-50">
                   <span className="font-mono text-sm font-semibold">{codigoLote(l.numero)}</span>
-                  <span className="text-sm">{l.espessura} mm</span>
+                  <span className="text-sm">{[...new Set(l.itens.map((i) => `${i.espessura} mm · ${i.larguras ?? i.largura}`))].join(" | ")}</span>
                   <span className="text-sm text-stone-600">
                     {fmtNum(l.itens.reduce((t, i) => t + i.pecas, 0))} peças · {fmtM3(l.itens.reduce((t, i) => t + i.m3, 0), 3)}
                   </span>

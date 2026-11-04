@@ -4,11 +4,12 @@ import { notFound } from "next/navigation";
 import { Printer, Trash2 } from "lucide-react";
 import { excluirLote } from "@/app/actions/producao";
 import { BotaoAcao } from "@/components/producao/BotaoAcao";
-import { Badge, Titulo } from "@/components/ui";
+import { Titulo } from "@/components/ui";
 import { formatarData } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
-import { CLASSE_MADEIRA, COMPRIMENTOS, LARGURAS, classeDoComprimento, fmtComprimento, fmtM3, fmtNum, formatarDia } from "@/lib/producao";
+import { fmtM3, fmtNum, formatarDia, linhasParaTabela } from "@/lib/producao";
+import { TabelaFicha } from "@/components/producao/TabelaFicha";
 import { codigoLote } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
 
@@ -17,24 +18,22 @@ export async function generateMetadata({ params }: { params: Promise<{ numero: s
   return { title: Number.isInteger(n) && n > 0 ? codigoLote(n) : "Lote" };
 }
 
-/** Lote da serraria (destino do QR da etiqueta): grade lançada, pedido e dia. */
+/** Lote da serraria (destino do QR da etiqueta): ficha lançada, pedido e dia. */
 export default async function LotePage({ params }: { params: Promise<{ numero: string }> }) {
   const eu = await exigirProducao();
   const numero = Number((await params).numero);
   if (!Number.isInteger(numero) || numero <= 0) notFound();
   const l = await db.lote.findUnique({
     where: { numero },
-    include: { itens: true, pedido: true, boletim: { select: { id: true, data: true } }, criadoPor: { select: { nome: true } } },
+    include: { itens: { orderBy: [{ linha: "asc" }, { comprimento: "desc" }] }, pedido: true, boletim: { select: { id: true, data: true } }, criadoPor: { select: { nome: true } } },
   });
   if (!l) notFound();
-  const pecas = (lg: number, c: number) => l.itens.filter((i) => i.largura === lg && i.comprimento === c).reduce((t, i) => t + i.pecas, 0);
   const totalPecas = l.itens.reduce((t, i) => t + i.pecas, 0);
   const totalM3 = l.itens.reduce((t, i) => t + i.m3, 0);
-  const comps = [...new Set([...COMPRIMENTOS.map((c) => c.mm), ...l.itens.map((i) => i.comprimento)])].sort((a, b) => b - a);
-  const largs = [...new Set([...LARGURAS, ...l.itens.map((i) => i.largura)])].sort((a, b) => a - b);
+  const espessuras = [...new Set(l.itens.map((i) => i.espessura))].join(", ");
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       <Titulo
         subtitulo={`Lançado por ${l.criadoPor.nome} em ${formatarData(l.criadoEm, true)}`}
         acao={
@@ -58,7 +57,7 @@ export default async function LotePage({ params }: { params: Promise<{ numero: s
           ["Pedido", `${l.pedido.numero} · ${l.pedido.cliente}`],
           ["Destino", l.pedido.destino ?? "—"],
           ["Dia", formatarDia(l.boletim.data)],
-          ["Espessura", `${l.espessura} mm`],
+          ["Espessura", `${espessuras} mm`],
           ["Peças", fmtNum(totalPecas)],
           ["Volume", fmtM3(totalM3, 3)],
         ].map(([r, v]) => (
@@ -77,39 +76,8 @@ export default async function LotePage({ params }: { params: Promise<{ numero: s
         </div>
       </dl>
 
-      <section className="cartao overflow-x-auto p-0">
-        <table className="w-full min-w-[480px] text-sm">
-          <thead className="border-b border-stone-200 text-xs text-stone-500">
-            <tr>
-              <th className="px-4 py-2 text-left font-semibold">Comprimento</th>
-              {largs.map((lg) => (
-                <th key={lg} className="px-2 py-2 text-center font-semibold">
-                  {lg} mm
-                </th>
-              ))}
-              <th className="px-4 py-2 text-right font-semibold">Peças</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-100">
-            {comps.map((c) => {
-              const total = largs.reduce((t, lg) => t + pecas(lg, c), 0);
-              const cls = CLASSE_MADEIRA[classeDoComprimento(c)];
-              return (
-                <tr key={c} className={total ? "" : "text-stone-300"}>
-                  <th scope="row" className="px-4 py-2 text-left font-medium">
-                    {fmtComprimento(c)} <Badge cor={cls.cor}>{cls.label}</Badge>
-                  </th>
-                  {largs.map((lg) => (
-                    <td key={lg} className="px-2 py-2 text-center tabular-nums">
-                      {pecas(lg, c) || "·"}
-                    </td>
-                  ))}
-                  <td className="px-4 py-2 text-right font-semibold tabular-nums">{total || "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <section className="cartao p-0">
+        <TabelaFicha linhas={linhasParaTabela(l.itens.map((i) => ({ ...i, larguras: i.larguras ?? String(i.largura) })))} />
       </section>
     </div>
   );

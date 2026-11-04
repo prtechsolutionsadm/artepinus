@@ -32,7 +32,7 @@ export default async function BoletinsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <Titulo
-        subtitulo="Lotes apontados em grade, paradas e toras de cada dia"
+        subtitulo="Lotes apontados na ficha, paradas e toras de cada dia"
         acao={
           podeProducao(eu, "lancar") && (
             <BotaoLink href="/producao/boletins/novo">

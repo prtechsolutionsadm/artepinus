@@ -4,17 +4,20 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2, Printer } from "lucide-react";
 import { criarPacotes } from "@/app/actions/rastreio";
-import { CLASSE_MADEIRA, classeDoComprimento, fmtComprimento, fmtM3, fmtNum, m3Pecas } from "@/lib/producao";
+import { CLASSE_MADEIRA, LARGURAS, classeDoComprimento, fmtComprimento, fmtM3, fmtNum, m3Pecas } from "@/lib/producao";
 import { codigoPacote } from "@/lib/rastreio";
 
-type MaterialEstufa = { id: string; espessura: number; largura: string; comprimentoMm: number; grades: number; m3: number };
-type MaterialVerde = { id: string; lote: string; pedidoId: string; espessura: number; largura: number; comprimentoMm: number; pecas: number };
+type MaterialEstufa = { id: string; espessura: number; largura: string; comprimentoMm: number; grades: number; pecas: number | null; m3: number };
+type MaterialVerde = { id: string; lote: string; pedidoId: string; espessura: number; largura: number; larguras: string | null; comprimentoMm: number; pecas: number };
 type Ciclo = { id: string; rotulo: string; pacotesFormados: number; pedidoIds: string[]; materiais: MaterialEstufa[] };
 type Dia = { id: string; rotulo: string; materiais: MaterialVerde[] };
 type Pedido = { id: string; numero: string; cliente: string };
 
-/** "85-100-125" → [85, 100, 125]. */
-const larguras = (s: string) => [...new Set((s.match(/\d+/g) ?? []).map(Number).filter((n) => n >= 30 && n <= 400))];
+/** "100/85" → [100, 85]; "Mista" → todas as larguras da ficha. */
+const larguras = (s: string) => {
+  const ns = [...new Set((s.match(/\d+/g) ?? []).map(Number).filter((n) => n >= 30 && n <= 400))];
+  return /mista/i.test(s) || !ns.length ? [...new Set([...LARGURAS, ...ns])] : ns;
+};
 
 /**
  * Formar pacote: escolhe a estufa (ou o dia de serraria, para pacote verde) e
@@ -48,8 +51,8 @@ export function FormPacote({
   function escolherEstufa(m: MaterialEstufa) {
     const ls = larguras(m.largura);
     const largura = ls.length === 1 ? ls[0] : 0;
-    // Uma grade costuma virar um pacote: peças estimadas pelo volume de cada grade
-    const pecas = largura ? Math.round((m.m3 / Math.max(1, m.grades)) / ((m.espessura * largura * m.comprimentoMm) / 1e9)) : 0;
+    // Ficha nova: peças contadas. Antiga: uma grade vira um pacote, peças estimadas pelo volume da grade
+    const pecas = m.pecas ?? (largura ? Math.round(m.m3 / Math.max(1, m.grades) / ((m.espessura * largura * m.comprimentoMm) / 1e9)) : 0);
     setMaterialId(m.id);
     setOpcoesLargura(ls);
     setF((x) => ({
@@ -58,15 +61,16 @@ export function FormPacote({
       largura,
       comprimento: m.comprimentoMm,
       pecas: pecas ? String(pecas) : "",
-      quantidade: String(Math.max(1, m.grades)),
+      quantidade: m.pecas ? "1" : String(Math.max(1, m.grades)),
       pedidoId: x.pedidoId || (ciclo?.pedidoIds.length === 1 ? ciclo.pedidoIds[0] : ""),
     }));
   }
 
   function escolherVerde(m: MaterialVerde) {
     setMaterialId(m.id);
-    setOpcoesLargura([m.largura]);
-    setF((x) => ({ ...x, espessura: m.espessura, largura: m.largura, comprimento: m.comprimentoMm, pecas: String(m.pecas), quantidade: "1", pedidoId: m.pedidoId }));
+    const ls = m.larguras ? larguras(m.larguras) : [m.largura];
+    setOpcoesLargura(ls);
+    setF((x) => ({ ...x, espessura: m.espessura, largura: ls.length === 1 ? ls[0] : 0, comprimento: m.comprimentoMm, pecas: String(m.pecas), quantidade: "1", pedidoId: m.pedidoId }));
   }
 
   const pecas = Number(f.pecas) || 0;
@@ -169,7 +173,7 @@ export function FormPacote({
                           {m.espessura} × {m.largura} × {fmtComprimento(m.comprimentoMm)}
                         </div>
                         <div className="text-sm text-stone-500">
-                          {m.grades} grade(s) · {fmtM3(m.m3, 2)}
+                          {m.pecas ? `${fmtNum(m.pecas)} peças` : `${m.grades} grade(s)`} · {fmtM3(m.m3, 2)}
                         </div>
                       </button>
                     </li>
@@ -194,7 +198,7 @@ export function FormPacote({
                     <li key={m.id}>
                       <button type="button" onClick={() => escolherVerde(m)} className={cartao(materialId === m.id)} aria-pressed={materialId === m.id}>
                         <div className="font-semibold tabular-nums">
-                          {m.espessura} × {m.largura} × {fmtComprimento(m.comprimentoMm)}
+                          {m.espessura} × {m.larguras ?? m.largura} × {fmtComprimento(m.comprimentoMm)}
                         </div>
                         <div className="text-sm text-stone-500">
                           {fmtNum(m.pecas)} peças · {m.lote}

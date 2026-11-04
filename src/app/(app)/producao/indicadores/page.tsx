@@ -171,7 +171,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
                   d: k.metaM3 ? `${fmtPct(k.producaoM3 / k.metaM3)} da meta de ${fmtM3(k.metaM3, 0)}` : "sem meta definida",
                 },
                 { r: "Tempo parado", v: formatarDuracao(k.minutosParados), d: `${fmtPct(k.minutosProgramados ? k.minutosParados / k.minutosProgramados : null)} do tempo programado` },
-                { r: "Classe Ótimo", v: fmtM3(k.porClasse.OTIMO, 1), d: `${fmtPct(k.producaoM3 ? k.porClasse.OTIMO / k.producaoM3 : null)} do serrado (2,50 e 2,15 m)` },
+                { r: "Classe Ótimo", v: fmtM3(k.porClasse.OTIMO, 1), d: `${fmtPct(k.producaoM3 ? k.porClasse.OTIMO / k.producaoM3 : null)} do serrado (2,50 e 2,10 m)` },
                 { r: "Rendimento", v: fmtPct(k.rendimento), d: k.torasM3 ? `sobre ${fmtM3(k.torasM3, 0)} de toras` : "informe as toras no boletim" },
               ].map((x) => (
                 <div key={x.r} className="min-w-0 bg-white px-5 py-3.5">
@@ -367,7 +367,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
                   </tbody>
                 </table>
               </div>
-              <p className="border-t border-stone-100 px-4 py-2 text-xs text-stone-500">Serrado e meta em m³; Ótimo = % do serrado nas peças de 2,50 e 2,15 m. Índices calculados sobre os totais de cada mês.</p>
+              <p className="border-t border-stone-100 px-4 py-2 text-xs text-stone-500">Serrado e meta em m³; Ótimo = % do serrado nas peças de 2,50 e 2,10 m. Índices calculados sobre os totais de cada mês.</p>
             </section>
           </>
         ))}

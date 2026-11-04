@@ -43,8 +43,10 @@ módulo no topo do menu.
 
 ## Serraria
 
-- **Apontamento em grade**: escolhe o pedido e a espessura (23/25/32/38) e digita as peças em
-  largura (50/85/101/125/135) × comprimento (2,50/2,15 Ótimo · 1,65 Bom · 1,30/1,00/0,70 Regular).
+- **Ficha de madeira** (igual ao papel da fábrica): escolhe o pedido e preenche uma linha por medida —
+  espessura (23/25/32/38), larguras marcadas (125/100/85/50 ou Mista) e as peças em cada comprimento
+  (2,50/2,10 Ótimo · 1,65 Bom · 1,30/1,00/0,70 Regular). O mesmo formato vale no ciclo da estufa (com
+  grades úmidas) e no inventário; cada estufa tem a ficha "Madeira carregada no mês".
   Cada lançamento vira um **lote** com etiqueta. Meta e horas do boletim vêm da **Configuração**
   (somente leitura). No boletim do dia ficam ainda paradas (motivo pelo código da planilha, centro
   MEC/ELE/OPE, equipamento, minutos) e toras consumidas.
@@ -54,7 +56,7 @@ módulo no topo do menu.
 - **Estufas**: ciclos de secagem com plantão escolhido entre os usuários, checklist e aviso de
   aclimatação de 48 h.
 - **Toras**: carga com floresta, fornecedor, motorista, comprimento médio, diâmetro (Fina/Média/Grossa)
-  e peso (t). **Inventário diário**: madeira em Grade / Pacote / Estufa / Verde, na mesma grade da serraria.
+  e peso (t). **Inventário diário**: madeira em Grade / Pacote / Estufa / Verde, na mesma ficha da serraria.
 - **Sem internet**: carga, lote e inventário ficam guardados no aparelho (IndexedDB) e são enviados
   sozinhos quando a conexão volta (`src/lib/fila-offline.ts` → `/api/offline`).
 

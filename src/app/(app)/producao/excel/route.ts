@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
     if (c.mes === mes) r.font = { bold: true };
   });
   comp.addRow([]);
-  comp.addRow(["Fórmulas: Disponibilidade = (tempo programado − paradas) ÷ tempo programado · Produtividade = serrado ÷ meta · OEE = D × P · Rendimento = serrado ÷ m³ de toras · Classe: 2,50/2,15 m Ótimo, 1,65 m Bom, 1,30/1,00/0,70 m Regular"]).font = {
+  comp.addRow(["Fórmulas: Disponibilidade = (tempo programado − paradas) ÷ tempo programado · Produtividade = serrado ÷ meta · OEE = D × P · Rendimento = serrado ÷ m³ de toras · Classe: 2,50/2,10 m Ótimo, 1,65 m Bom, 1,30/1,00/0,70 m Regular"]).font = {
     size: 9,
     color: { argb: "FF57534E" },
   };
@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
       { header: "Classe", key: "tipo", width: 12 },
       { header: "Mercado", key: "mercado", width: 16 },
       { header: "Espessura (mm)", key: "e", width: 14 },
-      { header: "Largura (mm)", key: "l", width: 13 },
+      { header: "Larguras (mm)", key: "l", width: 14 },
       { header: "Comprimento (mm)", key: "c", width: 16 },
       { header: "Peças", key: "pecas", width: 9, fmt: "#,##0" },
       { header: "m³", key: "m3", width: 11, fmt: "#,##0.0000" },
@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
   let n = 0;
   for (const b of boletins) {
     for (const it of b.itens) {
-      const r = linha(prod, { data: b.data, lote: it.lote ? codigoLote(it.lote.numero) : "", pedido: it.lote?.pedido.numero ?? "", tipo: CLASSE_MADEIRA[it.classe ?? classeDoComprimento(it.comprimento)].label, mercado: MERCADO[it.mercado], e: it.espessura, l: it.largura, c: it.comprimento, pecas: it.pecas, m3: it.m3 }, n++);
+      const r = linha(prod, { data: b.data, lote: it.lote ? codigoLote(it.lote.numero) : "", pedido: it.lote?.pedido.numero ?? "", tipo: CLASSE_MADEIRA[it.classe ?? classeDoComprimento(it.comprimento)].label, mercado: MERCADO[it.mercado], e: it.espessura, l: it.larguras ?? it.largura, c: it.comprimento, pecas: it.pecas, m3: it.m3 }, n++);
       r.getCell("data").numFmt = "dd/mm/yyyy";
     }
   }

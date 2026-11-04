@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, Flame, Plus } from "lucide-react";
+import { ChevronRight, Flame, Plus, Table2 } from "lucide-react";
 import { Badge, Titulo, Vazio } from "@/components/ui";
 import { formatarData, formatarDuracao, minutosEntre } from "@/lib/constantes";
 import { db } from "@/lib/db";
@@ -63,6 +63,9 @@ export default async function EstufasPage() {
                     <h2 className="font-semibold">{e.nome}</h2>
                     <Badge cor="bg-stone-100 text-stone-600 ring-stone-200">Livre</Badge>
                   </div>
+                  <Link href={`/producao/estufas/${e.id}`} className="mt-1 inline-flex items-center gap-1 self-start text-sm font-medium text-marca-700 hover:underline">
+                    <Table2 className="h-4 w-4" /> Madeira carregada no mês
+                  </Link>
                   <p className="mt-2 flex-1 text-sm text-stone-500">Sem ciclo em andamento{e.capacidadeM3 ? ` · capacidade ${fmtM3(e.capacidadeM3, 1)}` : ""}.</p>
                   {lancar && (
                     <Link href={`/producao/estufas/ciclos/novo?estufa=${e.id}`} className="btn-secundario mt-3 self-start">
@@ -79,8 +82,8 @@ export default async function EstufasPage() {
             const nao = c.checklist.filter((i) => i.conforme === false).length;
             const m3 = volume(c);
             return (
-              <li key={e.id}>
-                <Link href={`/producao/estufas/ciclos/${c.id}`} className="cartao block h-full hover:border-marca-300">
+              <li key={e.id} className="flex flex-col">
+                <Link href={`/producao/estufas/ciclos/${c.id}`} className="cartao block flex-1 hover:border-marca-300">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="flex items-center gap-2 font-semibold">
                       <Flame className="h-4 w-4 text-[#eb6834]" /> {e.nome}
@@ -116,6 +119,9 @@ export default async function EstufasPage() {
                       </dd>
                     </div>
                   </dl>
+                </Link>
+                <Link href={`/producao/estufas/${e.id}`} className="mt-1.5 inline-flex items-center gap-1 self-start px-1 text-sm font-medium text-marca-700 hover:underline">
+                  <Table2 className="h-4 w-4" /> Madeira carregada no mês
                 </Link>
               </li>
             );

@@ -155,7 +155,7 @@ export async function ciclosComMaterial() {
     rotulo: `${c.estufa.nome}${c.numero ? ` · ciclo nº ${c.numero}` : ""} · saiu ${c.saida ? formatarDia(c.saida, { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }) : "—"}`,
     pacotesFormados: c._count.pacotes,
     pedidoIds: [...new Set(c.boletins.flatMap((b) => b.lotes.map((l) => l.pedidoId)))],
-    materiais: c.cargas.map((m) => ({ id: m.id, espessura: m.espessura, largura: m.largura, comprimentoMm: Math.round(m.comprimento * 1000), grades: m.grades, m3: m.m3 })),
+    materiais: c.cargas.map((m) => ({ id: m.id, espessura: m.espessura, largura: m.largura, comprimentoMm: Math.round(m.comprimento * 1000), grades: m.grades, pecas: m.pecas, m3: m.m3 })),
   }));
 }
 
@@ -164,13 +164,13 @@ export async function diasComLotes() {
   const lista = await db.boletimProducao.findMany({
     where: { data: { gte: new Date(Date.now() - 30 * DIA) }, lotes: { some: {} } },
     orderBy: { data: "desc" },
-    include: { lotes: { orderBy: { numero: "asc" }, include: { itens: { orderBy: [{ comprimento: "desc" }, { largura: "asc" }] } } } },
+    include: { lotes: { orderBy: { numero: "asc" }, include: { itens: { orderBy: [{ linha: "asc" }, { comprimento: "desc" }] } } } },
   });
   return lista.map((b) => ({
     id: b.id,
     rotulo: formatarDia(b.data, { weekday: "short", day: "2-digit", month: "2-digit" }),
     materiais: b.lotes.flatMap((l) =>
-      l.itens.map((i) => ({ id: i.id, lote: codigoLote(l.numero), pedidoId: l.pedidoId, espessura: l.espessura, largura: i.largura, comprimentoMm: i.comprimento, pecas: i.pecas })),
+      l.itens.map((i) => ({ id: i.id, lote: codigoLote(l.numero), pedidoId: l.pedidoId, espessura: i.espessura, largura: i.largura, larguras: i.larguras, comprimentoMm: i.comprimento, pecas: i.pecas })),
     ),
   }));
 }

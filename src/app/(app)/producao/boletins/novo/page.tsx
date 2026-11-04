@@ -10,7 +10,7 @@ import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Apontar serraria" };
 
-/** Apontamento da serraria: pedido + espessura + grade de peças → lote com etiqueta. */
+/** Apontamento da serraria: pedido + ficha (espessura, larguras e peças por comprimento) → lote com etiqueta. */
 export default async function ApontarSerrariaPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   await exigirProducao("lancar");
   const { data: q } = await searchParams;
@@ -21,9 +21,9 @@ export default async function ApontarSerrariaPage({ searchParams }: { searchPara
     db.boletimProducao.findUnique({ where: { data: diaParaDate(data) }, select: { id: true, metaM3: true, horasProgramadas: true } }),
   ]);
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-7xl">
       <Titulo
-        subtitulo="Escolha o pedido e a espessura e digite as peças na grade. Cada lançamento vira um lote com etiqueta."
+        subtitulo="Escolha o pedido e preencha a ficha: uma linha por espessura e larguras, com as peças em cada comprimento. Cada lançamento vira um lote com etiqueta."
         acao={
           boletim && (
             <Link href={`/producao/boletins/${boletim.id}`} className="btn-secundario">

@@ -417,10 +417,15 @@ model ItemProducao {
   tipo        TipoProduto     @default(BOM)
   mercado     Mercado         @default(EXTERNO)
   espessura   Int
+  /// largura usada no m³ (média das marcadas; "Mista" = média de todas)
   largura     Int
+  /// larguras marcadas na ficha: "100/85", "Mista"…
+  larguras    String?
   comprimento Int
   pecas       Int
   m3          Float
+  /// nº da linha da ficha (agrupa os comprimentos de uma mesma linha)
+  linha       Int?
 
   @@index([boletimId])
   @@index([loteId])
@@ -500,10 +505,13 @@ model CargaCiclo {
   cicloId     String
   ciclo       CicloSecagem @relation(fields: [cicloId], references: [id], onDelete: Cascade)
   espessura   Int // mm
-  largura     String // ex.: "85-100-125" ou "Mista 3, 4 e 5"
+  largura     String // ex.: "100/85" ou "Mista"
   comprimento Float // m
-  grades      Int
+  /// grades úmidas (na ficha, ficam na 1ª célula da linha)
+  grades      Int          @default(0)
+  pecas       Int?
   m3          Float
+  linha       Int?
 
   @@index([cicloId])
 }
@@ -603,6 +611,7 @@ model ItemEstoque {
   pacotes        Int?
   pecas          Int?
   m3             Float
+  linha          Int?
 
   @@index([levantamentoId])
 }
@@ -793,7 +802,8 @@ model Lote {
   boletim      BoletimProducao @relation(fields: [boletimId], references: [id], onDelete: Cascade)
   pedidoId     String
   pedido       Pedido          @relation(fields: [pedidoId], references: [id])
-  espessura    Int
+  /// espessura do lote quando todas as linhas têm a mesma
+  espessura    Int?
   criadoPorId  String
   criadoPor    Usuario         @relation(fields: [criadoPorId], references: [id])
   criadoEm     DateTime        @default(now())

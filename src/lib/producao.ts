@@ -22,19 +22,91 @@ export const STATUS_CICLO: Record<StatusCiclo, { label: string; cor: string }> =
   CANCELADO: { label: "Cancelado", cor: "bg-stone-100 text-stone-600 ring-stone-200" },
 };
 
-// ---------- Grade de apontamento (serraria e estoque) ----------
+// ---------- Ficha de madeira (serraria, estufa e inventário) ----------
+// Mesmo formato da ficha em papel "Madeira carregada no mês": uma linha por
+// lançamento, com a espessura, as larguras marcadas (ou Mista) e as peças em cada comprimento.
 
 export const ESPESSURAS = [23, 25, 32, 38] as const;
-export const LARGURAS = [50, 85, 101, 125, 135] as const;
+/** Larguras da ficha (mm), na ordem do papel. "Mista" é uma opção à parte. */
+export const LARGURAS = [125, 100, 85, 50] as const;
+export const MISTA = "MISTA";
 /** Comprimentos (mm) e a classe que cada um define. */
 export const COMPRIMENTOS: { mm: number; classe: ClasseMadeira }[] = [
   { mm: 2500, classe: "OTIMO" },
-  { mm: 2150, classe: "OTIMO" },
+  { mm: 2100, classe: "OTIMO" },
   { mm: 1650, classe: "BOM" },
   { mm: 1300, classe: "REGULAR" },
   { mm: 1000, classe: "REGULAR" },
   { mm: 700, classe: "REGULAR" },
 ];
+
+/** Uma linha da ficha. `larguras`: "125" | "100" | "85" | "50" | "MISTA"; `pecas`: mm do comprimento → peças. */
+export type LinhaFicha = { espessura: number | null; larguras: string[]; pecas: Record<number, number>; gradesUmidas?: number | null };
+
+/** "100/85", "Mista" ou "Mista + 85". */
+export function rotuloLarguras(larguras: string[]) {
+  const nums = LARGURAS.filter((l) => larguras.includes(String(l)));
+  const partes = [...(larguras.includes(MISTA) ? ["Mista"] : []), ...nums.map(String)];
+  return partes.join("/") || "—";
+}
+
+/** Largura usada no volume: média das larguras marcadas; Mista (ou nada) = média de todas. */
+export function larguraEfetiva(larguras: string[]) {
+  const nums = LARGURAS.filter((l) => larguras.includes(String(l)));
+  const base: number[] = nums.length && !larguras.includes(MISTA) ? nums : [...LARGURAS];
+  return Math.round(base.reduce((t, l) => t + l, 0) / base.length);
+}
+
+/** Itens (um por comprimento preenchido) de uma linha da ficha, com classe e m³. */
+export function itensDaLinha(l: LinhaFicha) {
+  const largura = larguraEfetiva(l.larguras);
+  return COMPRIMENTOS.filter((c) => (l.pecas[c.mm] ?? 0) > 0).map((c) => ({
+    comprimento: c.mm,
+    pecas: l.pecas[c.mm],
+    classe: c.classe,
+    largura,
+    m3: l.espessura ? m3Pecas(l.espessura, largura, c.mm, l.pecas[c.mm]) : 0,
+  }));
+}
+
+/** Monta de volta as linhas da ficha a partir dos itens gravados (agrupados por `linha`). */
+export function linhasDosItens(itens: { linha: number | null; espessura: number; larguras: string; comprimento: number; pecas: number | null; grades?: number | null }[]): LinhaFicha[] {
+  const mapa = new Map<string, LinhaFicha>();
+  for (const i of itens) {
+    const k = i.linha != null ? `L${i.linha}` : `${i.espessura}|${i.larguras}`;
+    const atual = mapa.get(k) ?? { espessura: i.espessura, larguras: larguraDoRotulo(i.larguras), pecas: {}, gradesUmidas: null };
+    const mm = Math.round(i.comprimento < 100 ? i.comprimento * 1000 : i.comprimento);
+    atual.pecas[mm] = (atual.pecas[mm] ?? 0) + (i.pecas ?? 0);
+    if (i.grades) atual.gradesUmidas = (atual.gradesUmidas ?? 0) + i.grades;
+    mapa.set(k, atual);
+  }
+  return [...mapa.values()];
+}
+
+/** Itens gravados → linhas da ficha (para mostrar), somando peças, grades e m³ de cada linha. */
+export function linhasParaTabela(itens: { linha: number | null; espessura: number; larguras: string; comprimento: number; pecas: number | null; grades?: number | null; m3: number }[], prefixo = "") {
+  const mapa = new Map<string, { chave: string; espessura: number; larguras: string; pecas: Record<number, number>; gradesUmidas: number; m3: number }>();
+  for (const i of itens) {
+    const k = i.linha != null ? `L${i.linha}` : `${i.espessura}|${i.larguras}`;
+    const a = mapa.get(k) ?? { chave: prefixo + k, espessura: i.espessura, larguras: i.larguras, pecas: {}, gradesUmidas: 0, m3: 0 };
+    const mm = Math.round(i.comprimento < 100 ? i.comprimento * 1000 : i.comprimento);
+    // Lançamentos antigos (fora da ficha) entram no comprimento mais próximo
+    const alvo = COMPRIMENTOS.reduce((m, c) => (Math.abs(c.mm - mm) < Math.abs(m - mm) ? c.mm : m), COMPRIMENTOS[0].mm);
+    a.pecas[alvo] = (a.pecas[alvo] ?? 0) + (i.pecas ?? 0);
+    a.gradesUmidas += i.grades ?? 0;
+    a.m3 += i.m3;
+    mapa.set(k, a);
+  }
+  return [...mapa.values()];
+}
+
+/** "100/85" → ["100","85"]; "Mista" → ["MISTA"]. */
+export function larguraDoRotulo(r: string) {
+  return r
+    .split(/[\/\-, ]+/)
+    .map((x) => (/^mista$/i.test(x) ? MISTA : x.replace(/\D/g, "")))
+    .filter(Boolean);
+}
 
 export const CLASSE_MADEIRA: Record<ClasseMadeira, { label: string; cor: string; hex: string }> = {
   OTIMO: { label: "Ótimo", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200", hex: "#1baf7a" },
@@ -42,9 +114,9 @@ export const CLASSE_MADEIRA: Record<ClasseMadeira, { label: string; cor: string;
   REGULAR: { label: "Regular", cor: "bg-amber-50 text-amber-800 ring-amber-200", hex: "#eb6834" },
 };
 
-/** Classe da madeira pelo comprimento (mm): 2,50 e 2,15 Ótimo; 1,65 Bom; abaixo, Regular. */
+/** Classe da madeira pelo comprimento (mm): 2,50 e 2,10 Ótimo; 1,65 Bom; abaixo, Regular. */
 export function classeDoComprimento(mm: number): ClasseMadeira {
-  if (mm >= 2150) return "OTIMO";
+  if (mm >= 2100) return "OTIMO";
   if (mm >= 1650) return "BOM";
   return "REGULAR";
 }

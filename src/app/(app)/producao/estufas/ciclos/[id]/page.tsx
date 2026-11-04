@@ -1,3 +1,4 @@
+import { TabelaFicha } from "@/components/producao/TabelaFicha";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,7 +16,7 @@ import {
 } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
-import { ACLIMATACAO_HORAS, STATUS_CICLO, fmtM3, fmtNum, formatarDia } from "@/lib/producao";
+import { ACLIMATACAO_HORAS, STATUS_CICLO, fmtM3, fmtNum, formatarDia, linhasParaTabela } from "@/lib/producao";
 import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Ciclo de secagem" };
@@ -33,7 +34,7 @@ export default async function CicloPage({
       estufa: true,
       responsavel: { select: { nome: true } },
       plantaoUsuario: { select: { nome: true } },
-      cargas: { orderBy: [{ espessura: "asc" }, { comprimento: "asc" }] },
+      cargas: { orderBy: [{ linha: "asc" }, { espessura: "asc" }, { comprimento: "desc" }] },
       checklist: {
         orderBy: { ordem: "asc" },
         include: { marcadoPor: { select: { nome: true } } },
@@ -47,12 +48,13 @@ export default async function CicloPage({
   const lancar = podeProducao(eu, "lancar");
   const m3 = c.cargas.reduce((s, x) => s + x.m3, 0);
   const grades = c.cargas.reduce((s, x) => s + x.grades, 0);
+  const pecas = c.cargas.reduce((s, x) => s + (x.pecas ?? 0), 0);
   const liberada = c.saida
     ? new Date(c.saida.getTime() + ACLIMATACAO_HORAS * 3.6e6)
     : null;
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-6xl">
       <Titulo
         subtitulo={
           <>
@@ -104,7 +106,7 @@ export default async function CicloPage({
             ativo ? "Tempo decorrido" : "Duração",
             formatarDuracao(minutosEntre(c.entrada, c.saida)),
           ],
-          ["Volume", `${fmtM3(m3, 2)} · ${grades} grades`],
+          ["Volume", `${fmtM3(m3, 2)}${pecas ? ` · ${fmtNum(pecas)} peças` : ""}${grades ? ` · ${grades} grades` : ""}`],
           [
             "Umidade final",
             c.umidadeFinal != null ? `${fmtNum(c.umidadeFinal, 1)}%` : "—",
@@ -167,50 +169,13 @@ export default async function CicloPage({
         </p>
       )}
 
+      <section className="cartao mb-6 overflow-hidden p-0">
+        <h2 className="border-b border-stone-100 px-4 py-3 font-semibold">Madeira carregada</h2>
+        <TabelaFicha linhas={linhasParaTabela(c.cargas.map((x) => ({ ...x, larguras: x.largura })))} gradesUmidas />
+      </section>
+
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="min-w-0 space-y-6 lg:col-span-2">
-          <section className="cartao overflow-hidden p-0">
-            <h2 className="border-b border-stone-100 px-4 py-3 font-semibold">
-              Madeira na estufa
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[300px] text-sm">
-                <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Esp.</th>
-                    <th className="px-3 py-2 font-semibold">Largura</th>
-                    <th className="px-3 py-2 text-right font-semibold">
-                      Comp.
-                    </th>
-                    <th className="px-3 py-2 text-right font-semibold">
-                      Grades
-                    </th>
-                    <th className="px-3 py-2 text-right font-semibold">m³</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {c.cargas.map((x) => (
-                    <tr key={x.id}>
-                      <td className="px-3 py-2 tabular-nums">
-                        {x.espessura} mm
-                      </td>
-                      <td className="px-3 py-2">{x.largura}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {fmtNum(x.comprimento, 2)} m
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {x.grades}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {fmtNum(x.m3, 3)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
           {ativo && lancar && (
             <section className="cartao">
               <h2 className="mb-3 font-semibold">Concluir ciclo</h2>

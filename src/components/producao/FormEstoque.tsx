@@ -4,10 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CloudOff } from "lucide-react";
 import { salvarLevantamento, type Resultado } from "@/app/actions/producao";
-import { SeletorEspessura } from "@/components/producao/ApontamentoSerraria";
-import { GradeBitolas, chaveCelula, itensDaGrade, type ValoresGrade } from "@/components/producao/GradeBitolas";
+import { FichaMadeira, linhaVazia, linhasPreenchidas, validarFicha } from "@/components/producao/FichaMadeira";
 import { enviarOuGuardar } from "@/lib/fila-offline";
-import { LOCAL_ESTOQUE, hojeSP } from "@/lib/producao";
+import { LOCAL_ESTOQUE, hojeSP, type LinhaFicha } from "@/lib/producao";
 import type { LocalEstoque } from "@/generated/prisma/enums";
 
 export type LevantamentoInicial = {
@@ -15,12 +14,11 @@ export type LevantamentoInicial = {
   data: string;
   local: LocalEstoque | null;
   estufaId: string | null;
-  espessura: number | null;
   observacoes: string | null;
-  itens: { largura: number; comprimento: number; pecas: number }[];
+  linhas: LinhaFicha[];
 };
 
-/** Inventário do dia: onde está a madeira, a espessura e a grade de peças (Largura × Comprimento). */
+/** Inventário do dia: onde está a madeira e a ficha (espessura, larguras e peças por comprimento). */
 export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial; estufas: { id: string; nome: string }[] }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -29,28 +27,26 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
   const [data, setData] = useState(inicial.data);
   const [local, setLocal] = useState<LocalEstoque | null>(inicial.local);
   const [estufaId, setEstufaId] = useState(inicial.estufaId ?? estufas[0]?.id ?? "");
-  const [espessura, setEspessura] = useState<number | null>(inicial.espessura);
   const [obs, setObs] = useState(inicial.observacoes ?? "");
-  const [valores, setValores] = useState<ValoresGrade>(() =>
-    Object.fromEntries(inicial.itens.map((i) => [chaveCelula(i.largura, i.comprimento), String(i.pecas)])),
-  );
-  const itens = itensDaGrade(valores);
+  const [linhas, setLinhas] = useState<LinhaFicha[]>(inicial.linhas.length ? inicial.linhas : [linhaVazia()]);
+  const cheias = linhasPreenchidas(linhas);
 
   function enviar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
     setAviso(null);
     if (!local) return setErro("Escolha onde está a madeira");
-    if (!espessura) return setErro("Escolha a espessura");
-    if (!itens.length) return setErro("Preencha a quantidade de peças em pelo menos uma medida");
+    const invalida = validarFicha(linhas);
+    if (invalida) return setErro(invalida);
+    const esp = [...new Set(cheias.map((l) => l.espessura))].join("/");
     const onde = local === "ESTUFA" ? (estufas.find((x) => x.id === estufaId)?.nome ?? "Estufa") : LOCAL_ESTOQUE[local];
-    const dados = { id: inicial.id ?? null, data, local, estufaId: local === "ESTUFA" ? estufaId : null, espessura, observacoes: obs, itens };
+    const dados = { id: inicial.id ?? null, data, local, estufaId: local === "ESTUFA" ? estufaId : null, observacoes: obs, linhas: cheias };
     iniciar(async () => {
       const salvar = (d: Record<string, unknown>) => salvarLevantamento(d as Parameters<typeof salvarLevantamento>[0]);
-      const r = inicial.id ? await salvar(dados) : await enviarOuGuardar("estoque", `Inventário: ${onde} · ${espessura} mm`, dados, salvar);
+      const r = inicial.id ? await salvar(dados) : await enviarOuGuardar("estoque", `Inventário: ${onde} · ${esp} mm`, dados, salvar);
       if ("guardado" in r) {
-        setAviso({ guardado: true, texto: `${onde} · ${espessura} mm guardado no aparelho; será enviado quando a internet voltar.` });
-        setValores({});
+        setAviso({ guardado: true, texto: `${onde} · ${esp} mm guardado no aparelho; será enviado quando a internet voltar.` });
+        setLinhas([linhaVazia()]);
         return;
       }
       const res = r as Resultado;
@@ -60,8 +56,8 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
         router.refresh();
         return;
       }
-      setAviso({ guardado: false, texto: `${onde} · ${espessura} mm registrado. Escolha outra espessura ou local para continuar.` });
-      setValores({});
+      setAviso({ guardado: false, texto: `${onde} · ${esp} mm registrado. Escolha outro local para continuar.` });
+      setLinhas([linhaVazia()]);
       router.refresh();
     });
   }
@@ -107,11 +103,9 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
         </section>
 
         <section className="cartao">
-          <div className="mb-4 w-full max-w-sm">
-            <span className="mb-1.5 block text-sm font-medium text-stone-700">Espessura *</span>
-            <SeletorEspessura valor={espessura} onChange={setEspessura} />
-          </div>
-          <GradeBitolas espessura={espessura} valores={valores} onChange={setValores} />
+          <h2 className="mb-1 font-semibold">Madeira</h2>
+          <p className="mb-4 text-sm text-stone-500">Uma linha por medida: espessura, larguras e as peças em cada comprimento.</p>
+          <FichaMadeira linhas={linhas} onChange={setLinhas} />
         </section>
 
         <section className="cartao">

@@ -2,19 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Plus, Trash2 } from "lucide-react";
 import { salvarCiclo } from "@/app/actions/producao";
 import { SeletorMultiplo } from "@/components/producao/SeletorMultiplo";
-import { fmtM3 } from "@/lib/producao";
-
-type Carga = {
-  k: number;
-  espessura: string;
-  largura: string;
-  comprimento: string;
-  grades: string;
-  m3: string;
-};
+import { FichaMadeira, linhaVazia, linhasPreenchidas, validarFicha } from "@/components/producao/FichaMadeira";
+import type { LinhaFicha } from "@/lib/producao";
 
 export type CicloInicial = {
   id?: string;
@@ -25,19 +16,10 @@ export type CicloInicial = {
   plantaoId: string | null;
   proximaCarga: string | null;
   observacoes: string | null;
-  cargas: {
-    espessura: number;
-    largura: string;
-    comprimento: number;
-    grades: number;
-    m3: number;
-  }[];
+  linhas: LinhaFicha[];
   boletimIds: string[];
 };
 
-let seq = 0;
-const chave = () => ++seq;
-const num = (s: string) => Number(s.replace(",", "."));
 const txt = (v: number | string | null | undefined) =>
   v == null ? "" : String(v);
 
@@ -65,29 +47,8 @@ export function FormCiclo({
     proximaCarga: inicial.proximaCarga ?? "",
     observacoes: inicial.observacoes ?? "",
   });
-  const [cargas, setCargas] = useState<Carga[]>(() =>
-    inicial.cargas.length
-      ? inicial.cargas.map((c) => ({
-          k: chave(),
-          espessura: String(c.espessura),
-          largura: c.largura,
-          comprimento: String(c.comprimento),
-          grades: String(c.grades),
-          m3: String(c.m3),
-        }))
-      : [
-          {
-            k: chave(),
-            espessura: "",
-            largura: "",
-            comprimento: "",
-            grades: "",
-            m3: "",
-          },
-        ],
-  );
+  const [linhas, setLinhas] = useState<LinhaFicha[]>(inicial.linhas.length ? inicial.linhas : [linhaVazia()]);
   const [boletimIds, setBoletimIds] = useState<string[]>(inicial.boletimIds);
-  const total = cargas.reduce((s, c) => s + (num(c.m3) || 0), 0);
   const set =
     (campo: keyof typeof f) =>
     (
@@ -96,26 +57,17 @@ export function FormCiclo({
       >,
     ) =>
       setF((x) => ({ ...x, [campo]: e.target.value }));
-  const mudar = (k: number, campo: keyof Carga, v: string) =>
-    setCargas((l) => l.map((c) => (c.k === k ? { ...c, [campo]: v } : c)));
-
   function enviar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
+    const invalida = validarFicha(linhas);
+    if (invalida) return setErro(invalida);
     iniciar(async () => {
       const r = await salvarCiclo({
         id: inicial.id ?? null,
         ...f,
         boletimIds,
-        cargas: cargas
-          .filter((c) => c.espessura || c.m3 || c.grades)
-          .map((c) => ({
-            espessura: c.espessura,
-            largura: c.largura,
-            comprimento: c.comprimento.replace(",", "."),
-            grades: c.grades,
-            m3: c.m3.replace(",", "."),
-          })),
+        linhas: linhasPreenchidas(linhas),
       });
       if (r.erro) return setErro(r.erro);
       router.push(`/producao/estufas/ciclos/${r.id}`);
@@ -201,130 +153,11 @@ export function FormCiclo({
         </section>
 
         <section className="cartao">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Madeira na estufa</h2>
-            <span className="text-sm font-medium tabular-nums">
-              Total {fmtM3(total, 3)}
-            </span>
-          </div>
-          <ul className="space-y-3">
-            {cargas.map((c, n) => (
-              <li key={c.k} className="rounded-xl border border-stone-200 p-3">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  <div>
-                    <label htmlFor={`g-e-${c.k}`}>Espessura (mm)</label>
-                    <input
-                      id={`g-e-${c.k}`}
-                      inputMode="numeric"
-                      required
-                      value={c.espessura}
-                      onChange={(e) =>
-                        mudar(
-                          c.k,
-                          "espessura",
-                          e.target.value.replace(/\D/g, ""),
-                        )
-                      }
-                      className="campo"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor={`g-l-${c.k}`}>Largura</label>
-                    <input
-                      id={`g-l-${c.k}`}
-                      required
-                      placeholder="85-100-125"
-                      value={c.largura}
-                      onChange={(e) => mudar(c.k, "largura", e.target.value)}
-                      className="campo"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor={`g-c-${c.k}`}>Comprimento (m)</label>
-                    <input
-                      id={`g-c-${c.k}`}
-                      inputMode="decimal"
-                      required
-                      value={c.comprimento}
-                      onChange={(e) =>
-                        mudar(c.k, "comprimento", e.target.value)
-                      }
-                      className="campo"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor={`g-g-${c.k}`}>Grades</label>
-                    <input
-                      id={`g-g-${c.k}`}
-                      inputMode="numeric"
-                      required
-                      value={c.grades}
-                      onChange={(e) =>
-                        mudar(c.k, "grades", e.target.value.replace(/\D/g, ""))
-                      }
-                      className="campo"
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <label htmlFor={`g-m-${c.k}`}>Volume (m³)</label>
-                    <input
-                      id={`g-m-${c.k}`}
-                      inputMode="decimal"
-                      required
-                      value={c.m3}
-                      onChange={(e) => mudar(c.k, "m3", e.target.value)}
-                      className="campo"
-                    />
-                  </div>
-                </div>
-                <div className="mt-2 flex justify-end gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCargas((l) => [
-                        ...l,
-                        { ...c, k: chave(), grades: "", m3: "" },
-                      ])
-                    }
-                    className="btn-secundario px-2 py-1 text-xs"
-                  >
-                    <Copy className="h-3.5 w-3.5" /> Repetir
-                  </button>
-                  {cargas.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCargas((l) => l.filter((x) => x.k !== c.k))
-                      }
-                      className="btn-secundario px-2 py-1 text-xs text-rose-700"
-                      aria-label={`Remover linha ${n + 1}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={() =>
-              setCargas((l) => [
-                ...l,
-                {
-                  k: chave(),
-                  espessura: "",
-                  largura: "",
-                  comprimento: "",
-                  grades: "",
-                  m3: "",
-                },
-              ])
-            }
-            className="btn-secundario mt-3"
-          >
-            <Plus className="h-4 w-4" /> Adicionar bitola
-          </button>
+          <h2 className="mb-1 font-semibold">Madeira carregada</h2>
+          <p className="mb-4 text-sm text-stone-500">
+            Como na ficha da estufa: uma linha por espessura e larguras, com as peças em cada comprimento e as grades úmidas.
+          </p>
+          <FichaMadeira linhas={linhas} onChange={setLinhas} gradesUmidas />
         </section>
 
         <section className="cartao">

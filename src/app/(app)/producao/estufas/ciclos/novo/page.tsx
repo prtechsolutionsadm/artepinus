@@ -15,7 +15,7 @@ export default async function NovoCicloPage({ searchParams }: { searchParams: Pr
   const estufas = await estufasParaForm();
   const escolhida = estufas.find((e) => e.id === estufa && !e.ocupada)?.id ?? estufas.find((e) => !e.ocupada)?.id ?? "";
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-7xl">
       <Titulo subtitulo="O checklist da estufa é criado junto com o ciclo">Iniciar ciclo de secagem</Titulo>
       <FormCiclo
         usuarios={await usuariosAtivos()}
@@ -28,7 +28,7 @@ export default async function NovoCicloPage({ searchParams }: { searchParams: Pr
           plantaoId: eu.id,
           proximaCarga: null,
           observacoes: null,
-          cargas: [],
+          linhas: [],
           boletimIds: [],
         }}
         boletins={await boletinsParaForm()}

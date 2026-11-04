@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               <ClipboardCheck className="h-5 w-5 shrink-0 text-white" /> Cada pacote com QR Code e toda a sua história.
             </li>
             <li className="flex gap-3">
-              <Factory className="h-5 w-5 shrink-0 text-white" /> Aponte a serraria em grade, com etiqueta do lote na hora.
+              <Factory className="h-5 w-5 shrink-0 text-white" /> Aponte a serraria na ficha, com etiqueta do lote na hora.
             </li>
             <li className="flex gap-3">
               <Gauge className="h-5 w-5 shrink-0 text-white" /> Indicadores, OEE e comparativos mensais.

@@ -17,7 +17,9 @@ import {
   ESPESSURAS,
   LARGURAS,
   COMPRIMENTOS,
-  classeDoComprimento,
+  MISTA,
+  itensDaLinha,
+  rotuloLarguras,
 } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 import { codigoLote } from "@/lib/rastreio";
@@ -117,34 +119,62 @@ export async function salvarBoletim(entrada: DadosBoletim): Promise<Resultado> {
   }
 }
 
-// ============================ Lotes (grade da serraria) ============================
+// ============================ Ficha de madeira ============================
+
+const OPCOES_LARGURA = [MISTA, ...LARGURAS.map(String)];
+
+/** Uma linha da ficha: espessura, larguras marcadas e peças por comprimento (mm). */
+const linhaFichaSchema = z.object({
+  espessura: z.coerce.number({ message: "Escolha a espessura" }).int().refine((e) => (ESPESSURAS as readonly number[]).includes(e), "Escolha a espessura de cada linha"),
+  larguras: z
+    .array(z.string())
+    .min(1, "Marque a largura (ou Mista) de cada linha")
+    .refine((l) => l.every((x) => OPCOES_LARGURA.includes(x)), "Largura fora da ficha"),
+  pecas: z
+    .record(z.string(), z.coerce.number().int().min(0).max(100000))
+    .refine((p) => Object.keys(p).every((k) => COMPRIMENTOS.some((c) => String(c.mm) === k)), "Comprimento fora da ficha"),
+  gradesUmidas: opcional(z.coerce.number().int().min(0).max(10000)).optional(),
+});
+const fichaSchema = z
+  .array(linhaFichaSchema)
+  .max(40)
+  .transform((ls) => ls.filter((l) => Object.values(l.pecas).some((n) => n > 0)))
+  .refine((ls) => ls.length > 0, "Preencha as peças de pelo menos um comprimento");
+
+/** Linhas da ficha → itens gravados (um por comprimento), com a classe e o m³ calculados aqui. */
+function itensDaFicha(linhas: z.output<typeof fichaSchema>) {
+  return linhas.flatMap((l, n) =>
+    itensDaLinha({ espessura: l.espessura, larguras: l.larguras, pecas: Object.fromEntries(Object.entries(l.pecas).map(([k, v]) => [Number(k), v])) }).map((i, j) => ({
+      ...i,
+      espessura: l.espessura,
+      larguras: rotuloLarguras(l.larguras),
+      linha: n,
+      grades: j === 0 ? (l.gradesUmidas ?? 0) : 0,
+    })),
+  );
+}
+
+// ============================ Lotes (ficha da serraria) ============================
 
 const loteSchema = z.object({
   chaveOffline: opcional(z.string().uuid()),
   data: dia,
   pedidoId: z.string().min(1, "Escolha o pedido"),
-  espessura: z.coerce.number().int().refine((e) => (ESPESSURAS as readonly number[]).includes(e), "Escolha a espessura"),
-  itens: z
-    .array(
-      z.object({
-        largura: z.coerce.number().int().refine((l) => (LARGURAS as readonly number[]).includes(l), "Largura fora da grade"),
-        comprimento: z.coerce.number().int().refine((c) => COMPRIMENTOS.some((x) => x.mm === c), "Comprimento fora da grade"),
-        pecas: z.coerce.number().int().positive().max(100000),
-      }),
-    )
-    .min(1, "Preencha a quantidade de peças em pelo menos uma medida")
-    .max(60),
+  linhas: fichaSchema,
 });
 
 export type DadosLote = z.input<typeof loteSchema>;
 
-/** Lança uma grade (pedido + espessura) no boletim do dia e gera o lote com etiqueta. */
+/** Lança a ficha da serraria (um pedido) no boletim do dia e gera o lote com etiqueta. */
 export async function lancarLote(entrada: DadosLote): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("lancar");
   if (!ok) return { erro: "Sem permissão" };
   const parse = loteSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { chaveOffline, data, pedidoId, espessura, itens } = parse.data;
+  const { chaveOffline, data, pedidoId } = parse.data;
+  const itens = itensDaFicha(parse.data.linhas);
+  const espessuras = [...new Set(itens.map((i) => i.espessura))];
+  const espessura = espessuras.length === 1 ? espessuras[0] : null;
   if (data > hojeSP()) return { erro: "A data não pode ser futura" };
   if (chaveOffline) {
     const ja = await db.lote.findUnique({ where: { chaveOffline } });
@@ -167,12 +197,14 @@ export async function lancarLote(entrada: DadosLote): Promise<Resultado> {
   }
   const linhas = itens.map((i) => ({
     boletimId: boletim.id,
-    espessura,
+    espessura: i.espessura,
     largura: i.largura,
+    larguras: i.larguras,
     comprimento: i.comprimento,
     pecas: i.pecas,
-    classe: classeDoComprimento(i.comprimento),
-    m3: m3Pecas(espessura, i.largura, i.comprimento, i.pecas),
+    classe: i.classe,
+    linha: i.linha,
+    m3: i.m3,
   }));
   const volume = arred(linhas.reduce((t, l) => t + l.m3, 0), 3);
   const lote = await db.lote.create({
@@ -183,7 +215,7 @@ export async function lancarLote(entrada: DadosLote): Promise<Resultado> {
     acao: "boletim.lote",
     entidade: "Lote",
     entidadeId: lote.id,
-    resumo: `Lote ${codigoLote(lote.numero)}: ${espessura} mm, ${linhas.reduce((t, l) => t + l.pecas, 0)} peças, ${volume} m³ — pedido ${pedido.numero}`,
+    resumo: `Lote ${codigoLote(lote.numero)}: ${espessuras.join("/")} mm, ${linhas.reduce((t, l) => t + l.pecas, 0)} peças, ${volume} m³ — pedido ${pedido.numero}`,
   });
   revalidatePath("/producao", "layout");
   return { id: lote.id, numero: lote.numero };
@@ -354,14 +386,6 @@ export async function salvarMeta(_: EstadoForm, form: FormData): Promise<EstadoF
 
 // ============================ Estufas: ciclos de secagem ============================
 
-const cargaSchema = z.object({
-  espessura: positivo("Espessura inválida").int(),
-  largura: z.string().trim().min(1, "Informe a largura").max(40),
-  comprimento: positivo("Comprimento inválido"),
-  grades: positivo("Informe as grades").int(),
-  m3: positivo("Informe o volume em m³"),
-});
-
 const cicloSchema = z.object({
   id: opcional(z.string()),
   estufaId: z.string().min(1, "Escolha a estufa"),
@@ -372,7 +396,8 @@ const cicloSchema = z.object({
   plantaoId: opcional(z.string()),
   proximaCarga: opcional(z.string().trim().max(300)),
   observacoes: opcional(z.string().trim().max(2000)),
-  cargas: z.array(cargaSchema).min(1, "Informe a madeira que entrou na estufa").max(60),
+  /** Ficha da madeira carregada (mesmo formato do papel da estufa). */
+  linhas: fichaSchema,
   /** Dias de serraria cuja madeira entrou no ciclo (rastreabilidade). */
   boletimIds: z.array(z.string()).max(60).default([]),
 });
@@ -384,7 +409,16 @@ export async function salvarCiclo(entrada: DadosCiclo): Promise<Resultado> {
   if (!ok) return { erro: "Sem permissão" };
   const parse = cicloSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, cargas, boletimIds, ...c } = parse.data;
+  const { id, linhas, boletimIds, ...c } = parse.data;
+  const cargas = itensDaFicha(linhas).map((i) => ({
+    espessura: i.espessura,
+    largura: i.larguras,
+    comprimento: i.comprimento / 1000,
+    pecas: i.pecas,
+    grades: i.grades,
+    linha: i.linha,
+    m3: i.m3,
+  }));
   const dados = {
     ...c,
     entrada: dataLocalParaDate(c.entrada),
@@ -584,13 +618,9 @@ const levantamentoSchema = z.object({
   data: dia,
   local: z.enum(["GRADE", "PACOTE", "ESTUFA", "VERDE"], { message: "Escolha onde está a madeira" }),
   estufaId: opcional(z.string()),
-  espessura: z.coerce.number().int().refine((e) => (ESPESSURAS as readonly number[]).includes(e), "Espessura inválida"),
   observacoes: opcional(z.string().trim().max(1000)),
-  /** Grade: peças por largura × comprimento (mm). */
-  itens: z
-    .array(z.object({ largura: z.coerce.number().int().positive(), comprimento: z.coerce.number().int().positive(), pecas: z.coerce.number().int().positive() }))
-    .min(1, "Preencha a quantidade em pelo menos uma medida")
-    .max(60),
+  /** Ficha: linhas com espessura, larguras e peças por comprimento. */
+  linhas: fichaSchema,
 });
 
 export type DadosLevantamento = z.input<typeof levantamentoSchema>;
@@ -600,7 +630,7 @@ export async function salvarLevantamento(entrada: DadosLevantamento): Promise<Re
   if (!ok) return { erro: "Sem permissão" };
   const parse = levantamentoSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, chaveOffline, itens, ...c } = parse.data;
+  const { id, chaveOffline, linhas: ficha, ...c } = parse.data;
   if (c.data > hojeSP()) return { erro: "A data não pode ser futura" };
   if (c.local === "ESTUFA" && !c.estufaId) return { erro: "Escolha a estufa" };
   if (c.local !== "ESTUFA") c.estufaId = null;
@@ -608,15 +638,10 @@ export async function salvarLevantamento(entrada: DadosLevantamento): Promise<Re
     const ja = await db.levantamentoEstoque.findUnique({ where: { chaveOffline } });
     if (ja) return { id: ja.id };
   }
-  const linhas = itens.map((i) => ({
-    espessura: c.espessura,
-    largura: String(i.largura),
-    comprimento: i.comprimento / 1000,
-    pecas: i.pecas,
-    m3: m3Pecas(c.espessura, i.largura, i.comprimento, i.pecas),
-  }));
+  const linhas = itensDaFicha(ficha).map((i) => ({ espessura: i.espessura, largura: i.larguras, comprimento: i.comprimento / 1000, pecas: i.pecas, linha: i.linha, m3: i.m3 }));
   const volume = arred(linhas.reduce((t, l) => t + l.m3, 0), 2);
-  const dados = { ...c, data: diaParaDate(c.data) };
+  const espessuras = [...new Set(linhas.map((l) => l.espessura))];
+  const dados = { ...c, espessura: espessuras.length === 1 ? espessuras[0] : null, data: diaParaDate(c.data) };
   const onde = c.local === "ESTUFA" ? (await db.estufa.findUnique({ where: { id: c.estufaId! } }))?.nome ?? "estufa" : c.local.toLowerCase();
 
   if (id) {
@@ -627,12 +652,12 @@ export async function salvarLevantamento(entrada: DadosLevantamento): Promise<Re
       db.itemEstoque.deleteMany({ where: { levantamentoId: id } }),
       db.levantamentoEstoque.update({ where: { id }, data: { ...dados, itens: { create: linhas } } }),
     ]);
-    await auditar({ usuarioId: eu.id, acao: "estoque.editar", entidade: "LevantamentoEstoque", entidadeId: id, resumo: `Editou o inventário de ${formatarDia(dados.data)} (${onde}, ${c.espessura} mm, ${volume} m³)` });
+    await auditar({ usuarioId: eu.id, acao: "estoque.editar", entidade: "LevantamentoEstoque", entidadeId: id, resumo: `Editou o inventário de ${formatarDia(dados.data)} (${onde}, ${espessuras.join("/")} mm, ${volume} m³)` });
     revalidatePath("/producao", "layout");
     return { id };
   }
   const novo = await db.levantamentoEstoque.create({ data: { ...dados, chaveOffline, responsavelId: eu.id, itens: { create: linhas } } });
-  await auditar({ usuarioId: eu.id, acao: "estoque.criar", entidade: "LevantamentoEstoque", entidadeId: novo.id, resumo: `Inventário de ${formatarDia(dados.data)}: ${onde}, ${c.espessura} mm, ${volume} m³` });
+  await auditar({ usuarioId: eu.id, acao: "estoque.criar", entidade: "LevantamentoEstoque", entidadeId: novo.id, resumo: `Inventário de ${formatarDia(dados.data)}: ${onde}, ${espessuras.join("/")} mm, ${volume} m³` });
   revalidatePath("/producao", "layout");
   return { id: novo.id };
 }

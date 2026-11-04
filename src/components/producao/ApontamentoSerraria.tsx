@@ -5,32 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CloudOff, Printer, Tag } from "lucide-react";
 import { lancarLote, type Resultado } from "@/app/actions/producao";
-import { GradeBitolas, itensDaGrade, type ValoresGrade } from "@/components/producao/GradeBitolas";
+import { FichaMadeira, linhaVazia, linhasPreenchidas, validarFicha } from "@/components/producao/FichaMadeira";
 import { enviarOuGuardar } from "@/lib/fila-offline";
-import { ESPESSURAS, fmtNum, hojeSP } from "@/lib/producao";
+import { fmtNum, hojeSP, rotuloLarguras, type LinhaFicha } from "@/lib/producao";
 import { codigoLote } from "@/lib/rastreio";
 
 type Pedido = { id: string; numero: string; cliente: string; destino: string | null };
-
-/** Seletor de espessura em botões (23, 25, 32, 38). */
-export function SeletorEspessura({ valor, onChange }: { valor: number | null; onChange: (e: number) => void }) {
-  return (
-    <div className="grid grid-cols-4 overflow-hidden rounded-md border border-stone-300" role="radiogroup" aria-label="Espessura">
-      {ESPESSURAS.map((e, i) => (
-        <button
-          key={e}
-          type="button"
-          role="radio"
-          aria-checked={valor === e}
-          onClick={() => onChange(e)}
-          className={`py-2.5 text-sm font-semibold tabular-nums transition ${i > 0 ? "border-l border-stone-300" : ""} ${valor === e ? "bg-marca-700 text-white" : "bg-white text-stone-700 hover:bg-stone-50"}`}
-        >
-          {e} mm
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export function ApontamentoSerraria({
   pedidos,
@@ -47,22 +27,23 @@ export function ApontamentoSerraria({
   const [pendente, iniciar] = useTransition();
   const [data, setData] = useState(dataInicial);
   const [pedidoId, setPedidoId] = useState(pedidos.length === 1 ? pedidos[0].id : "");
-  const [espessura, setEspessura] = useState<number | null>(null);
-  const [valores, setValores] = useState<ValoresGrade>({});
+  const [linhas, setLinhas] = useState<LinhaFicha[]>([linhaVazia()]);
   const [erro, setErro] = useState<string | null>(null);
   const [lancados, setLancados] = useState<{ numero?: number; guardado?: boolean; resumo: string }[]>([]);
   const pedido = pedidos.find((p) => p.id === pedidoId);
-  const itens = itensDaGrade(valores);
+  const cheias = linhasPreenchidas(linhas);
 
   function lancar() {
     setErro(null);
     if (!pedidoId) return setErro("Escolha o pedido");
-    if (!espessura) return setErro("Escolha a espessura");
-    if (!itens.length) return setErro("Preencha a quantidade de peças em pelo menos uma medida");
-    const resumo = `${espessura} mm · ${fmtNum(itens.reduce((t, i) => t + i.pecas, 0))} peças · pedido ${pedido?.numero}`;
+    const invalida = validarFicha(linhas);
+    if (invalida) return setErro(invalida);
+    const pecas = cheias.reduce((t, l) => t + Object.values(l.pecas).reduce((x, n) => x + n, 0), 0);
+    const medidas = [...new Set(cheias.map((l) => `${l.espessura} mm ${rotuloLarguras(l.larguras)}`))].join(", ");
+    const resumo = `${medidas} · ${fmtNum(pecas)} peças · pedido ${pedido?.numero}`;
     iniciar(async () => {
       try {
-        const r = await enviarOuGuardar("lote", `Serraria: ${resumo}`, { data, pedidoId, espessura, itens }, (d) => lancarLote(d as Parameters<typeof lancarLote>[0]));
+        const r = await enviarOuGuardar("lote", `Serraria: ${resumo}`, { data, pedidoId, linhas: cheias }, (d) => lancarLote(d as Parameters<typeof lancarLote>[0]));
         if ("guardado" in r) {
           setLancados((l) => [{ guardado: true, resumo }, ...l]);
         } else {
@@ -71,7 +52,7 @@ export function ApontamentoSerraria({
           setLancados((l) => [{ numero: res.numero, resumo }, ...l]);
           router.refresh();
         }
-        setValores({});
+        setLinhas([linhaVazia(cheias[cheias.length - 1])]);
       } catch {
         setErro("Não foi possível lançar. Tente de novo.");
       }
@@ -136,14 +117,9 @@ export function ApontamentoSerraria({
       </section>
 
       <section className="cartao">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div className="w-full max-w-sm">
-            <span className="mb-1.5 block text-sm font-medium text-stone-700">Espessura *</span>
-            <SeletorEspessura valor={espessura} onChange={setEspessura} />
-          </div>
-          <p className="text-xs text-stone-500">Digite as peças em cada medida. Enter passa para a próxima.</p>
-        </div>
-        <GradeBitolas espessura={espessura} valores={valores} onChange={setValores} />
+        <h2 className="mb-1 font-semibold">Madeira serrada</h2>
+        <p className="mb-4 text-sm text-stone-500">Uma linha por medida: espessura, larguras e as peças em cada comprimento.</p>
+        <FichaMadeira linhas={linhas} onChange={setLinhas} />
       </section>
 
       {erro && (
@@ -152,9 +128,9 @@ export function ApontamentoSerraria({
         </p>
       )}
       <div className="flex flex-wrap items-center justify-end gap-3">
-        {itens.length > 0 && (
-          <button type="button" onClick={() => setValores({})} className="btn-secundario">
-            Limpar grade
+        {cheias.length > 0 && (
+          <button type="button" onClick={() => setLinhas([linhaVazia()])} className="btn-secundario">
+            Limpar ficha
           </button>
         )}
         <button type="button" onClick={lancar} disabled={pendente} className="btn-primario">
