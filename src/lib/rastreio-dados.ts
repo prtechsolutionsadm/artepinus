@@ -147,7 +147,7 @@ export async function diasComLotes() {
 }
 
 /**
- * Origem de um conjunto de pacotes (ex.: os de um romaneio), para o certificado:
+ * Origem de um conjunto de pacotes (ex.: os de um romaneio), para a declaração de origem:
  * florestas, período de recebimento das toras e de serragem, e os ciclos de estufa.
  */
 export async function origemDosPacotes(pacoteIds: string[]) {

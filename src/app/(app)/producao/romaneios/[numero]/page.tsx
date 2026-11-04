@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { BotaoPdfRomaneio } from "@/components/producao/BotaoPdfRomaneio";
 import {
-  BotaoCertificado,
-  type DadosCertificado,
-} from "@/components/producao/BotaoCertificado";
+  BotaoDeclaracaoOrigem,
+  type DadosDeclaracaoOrigem,
+} from "@/components/producao/BotaoDeclaracaoOrigem";
 import { urlBase } from "@/lib/qr";
 import { origemDosPacotes } from "@/lib/rastreio-dados";
 import { formatarData } from "@/lib/constantes";
@@ -63,10 +63,10 @@ export default async function RomaneioPage({
     largura: number;
     comprimento: number;
   }) => `${p.espessura} × ${p.largura} × ${p.comprimento}`;
-  // Certificado de origem: origem florestal, serragem e secagem dos pacotes da carga
+  // Declaração de origem: origem florestal, serragem e secagem dos pacotes da carga
   const origem = await origemDosPacotes(r.pacotes.map((p) => p.id));
   const base = await urlBase();
-  const certificado: DadosCertificado = {
+  const declaracao: DadosDeclaracaoOrigem = {
     romaneio: codigoRomaneio(r.numero),
     data: r.criadoEm.toISOString(),
     notaFiscal: r.notaFiscal,
@@ -123,8 +123,8 @@ export default async function RomaneioPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <BotaoCertificado dados={certificado} lang="pt" />
-          <BotaoCertificado dados={certificado} lang="en" />
+          <BotaoDeclaracaoOrigem dados={declaracao} lang="pt" />
+          <BotaoDeclaracaoOrigem dados={declaracao} lang="en" />
           <BotaoPdfRomaneio
             dados={{
               codigo: codigoRomaneio(r.numero),

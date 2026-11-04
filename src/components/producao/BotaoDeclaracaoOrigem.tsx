@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Award } from "lucide-react";
+import { FileCheck } from "lucide-react";
 import { CINZA, TEXTO, VERDE, cabecalho, novoPdf, rodape } from "@/lib/pdf-cliente";
 
-export type DadosCertificado = {
+export type DadosDeclaracaoOrigem = {
   romaneio: string;
   data: string; // ISO
   notaFiscal: string | null;
@@ -19,11 +19,11 @@ export type DadosCertificado = {
 
 const TXT = {
   pt: {
-    arquivo: "certificado",
-    botao: "Certificado (PT)",
-    titulo: "Certificado de origem e rastreabilidade",
+    arquivo: "declaracao-origem",
+    botao: "Declaração de origem (PT)",
+    titulo: "Declaração de origem e rastreabilidade",
     intro: (n: number, m3: string) =>
-      `Certificamos que os ${n} pacote(s) de madeira serrada de pinus desta carga (${m3} m³) foram produzidos pela Artepinus a partir de toras de florestas plantadas, com a origem, a serragem e a secagem registradas a seguir. Cada pacote tem etiqueta com QR Code para consulta da sua rastreabilidade.`,
+      `Declaramos que os ${n} pacote(s) de madeira serrada de pinus desta carga (${m3} m³) foram produzidos pela Artepinus a partir de toras de florestas plantadas, com a origem, a serragem e a secagem registradas a seguir. Cada pacote tem etiqueta com QR Code para consulta da sua rastreabilidade.`,
     embarque: "Embarque",
     cliente: "Cliente",
     destino: "Destino",
@@ -58,13 +58,14 @@ const TXT = {
     ate: "a",
     h: "h",
     pend: "em secagem",
+    aviso: "Declaração emitida pela Artepinus com base nos seus registros internos de produção. Não substitui documentos oficiais fiscais, ambientais ou fitossanitários.",
   },
   en: {
-    arquivo: "certificate",
-    botao: "Certificate (EN)",
-    titulo: "Certificate of origin and traceability",
+    arquivo: "origin-statement",
+    botao: "Origin statement (EN)",
+    titulo: "Statement of origin and traceability",
     intro: (n: number, m3: string) =>
-      `We certify that the ${n} package(s) of sawn pine timber in this shipment (${m3} m³) were produced by Artepinus from logs of planted forests, with the origin, sawing and drying recorded below. Each package carries a QR Code label for traceability lookup.`,
+      `We declare that the ${n} package(s) of sawn pine timber in this shipment (${m3} m³) were produced by Artepinus from logs of planted forests, with the origin, sawing and drying recorded below. Each package carries a QR Code label for traceability lookup.`,
     embarque: "Shipment",
     cliente: "Customer",
     destino: "Destination",
@@ -99,11 +100,12 @@ const TXT = {
     ate: "to",
     h: "h",
     pend: "drying",
+    aviso: "Statement issued by Artepinus based on its internal production records. It does not replace official tax, environmental or phytosanitary documents.",
   },
 } as const;
 
-/** Certificado de origem da carga (romaneio) em PDF, em português ou inglês, com o QR de cada pacote. */
-export function BotaoCertificado({ dados, lang }: { dados: DadosCertificado; lang: "pt" | "en" }) {
+/** Declaração de origem da carga (romaneio) em PDF, em português ou inglês, com o QR de cada pacote. */
+export function BotaoDeclaracaoOrigem({ dados, lang }: { dados: DadosDeclaracaoOrigem; lang: "pt" | "en" }) {
   const [gerando, setGerando] = useState(false);
   const t = TXT[lang];
   const local = lang === "en" ? "en-GB" : "pt-BR";
@@ -193,6 +195,11 @@ export function BotaoCertificado({ dados, lang }: { dados: DadosCertificado; lan
       });
       y = fim() + 5;
       doc.setFont("helvetica", "italic").setFontSize(8).setTextColor(...CINZA).text(t.qr, 12, y);
+      // Deixa claro que é uma declaração da empresa, não um documento oficial
+      const aviso = doc.splitTextToSize(t.aviso, larg - 24);
+      y += 5;
+      doc.setFont("helvetica", "normal").setFontSize(7.5).text(aviso, 12, y);
+      y += aviso.length * 3.5;
 
       // Assinatura
       y += 22;
@@ -213,7 +220,7 @@ export function BotaoCertificado({ dados, lang }: { dados: DadosCertificado; lan
 
   return (
     <button type="button" onClick={gerar} disabled={gerando} className="btn-secundario">
-      <Award className="h-4 w-4" /> {gerando ? "Gerando…" : t.botao}
+      <FileCheck className="h-4 w-4" /> {gerando ? "Gerando…" : t.botao}
     </button>
   );
 }
