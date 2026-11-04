@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fotosDoForm } from "@/lib/fotos";
 import { criarRequisicaoCompleta, novaRequisicaoSchema } from "@/lib/requisicoes";
+import { temModulo } from "@/lib/permissoes";
 import { usuarioAtual } from "@/lib/session";
 
 /** Recebe as requisições que ficaram na fila do aparelho enquanto estava sem internet. */
 export async function POST(req: NextRequest) {
   const eu = await usuarioAtual();
   if (!eu || eu.trocarSenha) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+  if (!temModulo(eu, "manutencao")) return NextResponse.json({ erro: "Sem acesso à manutenção" }, { status: 403 });
 
   const form = await req.formData();
   const dados = novaRequisicaoSchema.safeParse(Object.fromEntries([...form.entries()].filter(([k]) => k !== "fotos")));

@@ -7,6 +7,8 @@ export type Sessao = {
   userId: string;
   nome: string;
   perfil: Perfil;
+  /** versaoSessao do usuário quando entrou: se a senha mudar, a sessão deixa de valer */
+  versao: number;
 };
 
 function chave() {
@@ -31,6 +33,7 @@ export async function lerSessao(token: string | undefined): Promise<Sessao | nul
       userId: payload.userId as string,
       nome: payload.nome as string,
       perfil: payload.perfil as Perfil,
+      versao: typeof payload.versao === "number" ? payload.versao : 0,
     };
   } catch {
     return null;

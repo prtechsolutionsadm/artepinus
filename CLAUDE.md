@@ -24,6 +24,7 @@ Next.js 16 (App Router) + Prisma 7 (client gerado em `src/generated/prisma`) + P
 - Certificado de origem por romaneio (PT/EN): `BotaoCertificado` com dados de `origemDosPacotes()`.
 - Zerar movimento de teste: `zerarMovimento()` (só ADMIN, Cadastros → Configuração) faz TRUNCATE ... RESTART IDENTITY nas tabelas de movimento (`MOVIMENTO` em `src/app/actions/cadastros.ts`); mantenha a lista atualizada ao criar tabelas de movimento.
 - Roteiros por função para imprimir: `src/lib/roteiros.ts` → `/ajuda/roteiros`.
+- Segurança: login limitado por `src/lib/limite-tentativas.ts` (5 erros por login / 20 por IP em 15 min, tabela `TentativaLogin`); login inexistente gasta o mesmo tempo (bcrypt com hash falso). Sessão JWT leva `versao` = `Usuario.versaoSessao` — trocar/redefinir senha ou desativar incrementa e derruba as outras sessões; sessão inválida passa por `/sair` (apaga o cookie). Toda Server Action precisa checar o usuário (podem ser chamadas de qualquer página, inclusive públicas). Cabeçalhos de segurança em `next.config.ts`; crons conferem o segredo com `cronAutorizado()`.
 - Textos: não use a palavra "Produção" em rótulos/títulos da interface (pedido do cliente); a pasta/rotas `/producao` continuam.
 - KPIs só por `calcularKpis()` (`src/lib/producao.ts`); OEE = Disponibilidade × Produtividade (sem Qualidade); m³ das bitolas é calculado no servidor (mm → m³). Datas de boletim são `@db.Date` ("AAAA-MM-DD" via `diaParaDate`/`dateParaDia`).
 - Mudanças de status sempre geram um registro em `HistoricoStatus`.

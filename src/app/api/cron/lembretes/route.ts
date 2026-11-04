@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronAutorizado } from "@/lib/cron";
 import { db } from "@/lib/db";
 import { formatarData, numeroRequisicao } from "@/lib/constantes";
 import { idsPorPerfil, notificar } from "@/lib/notificacoes";
@@ -11,8 +12,7 @@ import { verificarAlertas } from "@/lib/alertas-serraria";
  * Chamado pelo Cron da Vercel (vercel.json), que envia "Authorization: Bearer $CRON_SECRET".
  */
 export async function GET(req: NextRequest) {
-  const segredo = process.env.CRON_SECRET;
-  if (!segredo || req.headers.get("authorization") !== `Bearer ${segredo}`) {
+  if (!cronAutorizado(req.headers.get("authorization"))) {
     return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
   }
 

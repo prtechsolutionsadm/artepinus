@@ -26,7 +26,7 @@ const usuarioSchema = z.object({
     .regex(LOGIN_REGEX, "Login deve ser no formato nome.sobrenome (sem acentos ou espaços)"),
   perfil: z.enum(["ADMIN", "GERENTE", "SUPERVISOR", "MANUTENTOR", "OPERADOR", "SEM_ACESSO"]),
   perfilProducao: z.preprocess(vazioParaNull, z.enum(["SUPERVISOR", "APONTADOR", "CONSULTA"]).nullable()),
-  senha: z.preprocess(vazioParaNull, z.string().min(6, "Senha com no mínimo 6 caracteres").nullable()),
+  senha: z.preprocess(vazioParaNull, z.string().min(8, "Senha com no mínimo 8 caracteres").max(200).nullable()),
   ativo: z.preprocess((v) => v === "on", z.boolean()),
   trocarSenha: z.preprocess((v) => v === "on", z.boolean()),
 });
@@ -57,7 +57,12 @@ export async function salvarUsuario(_: EstadoForm, form: FormData): Promise<Esta
     if (id && existente) {
       await db.usuario.update({
         where: { id },
-        data: { ...resto, ...(senha ? { senhaHash: await bcrypt.hash(senha, 10), trocarSenha } : {}) },
+        data: {
+          ...resto,
+          ...(senha ? { senhaHash: await bcrypt.hash(senha, 10), trocarSenha } : {}),
+          // Senha redefinida ou usuário desativado: as sessões abertas dele deixam de valer
+          ...(senha || (existente.ativo && !resto.ativo) ? { versaoSessao: { increment: 1 } } : {}),
+        },
       });
       const mudou = diferencas(existente, resto, ["nome", "login", "perfil", "perfilProducao", "ativo"]);
       if (senha) mudou.senha = { de: null, para: "redefinida" };

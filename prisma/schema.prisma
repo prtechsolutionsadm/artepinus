@@ -56,6 +56,8 @@ model Usuario {
   id             String          @id @default(cuid())
   nome           String
   login          String          @unique // nome.sobrenome
+  /// muda quando a senha é trocada/redefinida: derruba as sessões abertas em outros aparelhos
+  versaoSessao   Int             @default(0)
   trocarSenha    Boolean         @default(false) // obriga a trocar a senha no próximo acesso
   senhaHash      String
   perfil         Perfil          @default(OPERADOR) // papel no módulo de Manutenção
@@ -866,4 +868,14 @@ model ConfigSerraria {
   horasDia       Float
   rendimentoMeta Float?
   atualizadoEm   DateTime @updatedAt
+}
+
+/// Tentativas de login sem sucesso (limite contra programas que testam senhas).
+model TentativaLogin {
+  id       String   @id @default(cuid())
+  /// "login:nome.sobrenome", "ip:1.2.3.4" ou "senha:<usuarioId>"
+  chave    String
+  criadoEm DateTime @default(now())
+
+  @@index([chave, criadoEm])
 }

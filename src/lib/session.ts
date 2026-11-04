@@ -31,15 +31,17 @@ export const usuarioAtual = cache(async () => {
   if (!sessao) return null;
   const usuario = await db.usuario.findUnique({
     where: { id: sessao.userId },
-    select: { id: true, nome: true, login: true, perfil: true, perfilProducao: true, ativo: true, trocarSenha: true },
+    select: { id: true, nome: true, login: true, perfil: true, perfilProducao: true, ativo: true, trocarSenha: true, versaoSessao: true },
   });
-  if (!usuario?.ativo) return null;
+  // Desativado, ou senha trocada/redefinida depois que esta sessão foi aberta
+  if (!usuario?.ativo || usuario.versaoSessao !== sessao.versao) return null;
   return usuario;
 });
 
 export async function exigirUsuario(perfis?: Perfil[]) {
   const usuario = await usuarioAtual();
-  if (!usuario) redirect("/login");
+  // Com cookie mas sem usuário válido: a sessão expirou por troca de senha/desativação
+  if (!usuario) redirect((await cookies()).has(SESSION_COOKIE) ? "/sair" : "/login");
   if (usuario.trocarSenha) redirect("/trocar-senha");
   if (perfis && !perfis.includes(usuario.perfil)) redirect("/sistema");
   return usuario;

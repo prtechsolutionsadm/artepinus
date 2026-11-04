@@ -14,6 +14,10 @@ import { COOKIE_MODULO, iniciais, menusDoUsuario, moduloSalvo } from "@/lib/menu
 import { temModulo } from "@/lib/permissoes";
 import { exigirUsuario, inicioDe } from "@/lib/session";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const eu = await exigirUsuario();
   const menus = menusDoUsuario(eu);

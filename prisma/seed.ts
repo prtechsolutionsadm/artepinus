@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 // Dados iniciais. Seguro para rodar várias vezes (roda a cada deploy na Vercel):
 // só cria o que ainda não existe e nunca altera usuários ou senhas existentes.
 // Uso: npm run db:seed   (SEED_DEMO=1 também cria usuários/requisições de exemplo)
@@ -12,8 +13,13 @@ const db = new PrismaClient({ adapter: criarAdaptador() });
 
 const SETORES = ["Administrativo", "Produção", "Serraria", "Acabamento", "Expedição", "Manutenção"];
 
-// Administrador inicial. A senha provisória precisa ser trocada no primeiro acesso.
-const ADMIN = { login: "pablo.ribas", nome: "Pablo Ribas", senha: "123456" };
+// Administrador inicial (só em banco novo). A senha provisória vem de ADMIN_SENHA_INICIAL ou é
+// sorteada e mostrada no log — nunca uma senha fixa conhecida — e precisa ser trocada no primeiro acesso.
+const ADMIN = {
+  login: "pablo.ribas",
+  nome: "Pablo Ribas",
+  senha: process.env.ADMIN_SENHA_INICIAL || randomBytes(9).toString("base64url"),
+};
 
 async function main() {
   console.log(`Banco: conectado via ${new URL(process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://x").hostname.endsWith("prisma.io") ? "Prisma Postgres (serverless)" : "TCP"}, ${await db.usuario.count()} usuário(s)`);
@@ -32,7 +38,7 @@ async function main() {
         trocarSenha: true,
       },
     });
-    console.log(`Admin criado: ${ADMIN.login} (troca de senha obrigatória no primeiro acesso)`);
+    console.log(`Admin criado: ${ADMIN.login} · senha provisória: ${process.env.ADMIN_SENHA_INICIAL ? "(a de ADMIN_SENHA_INICIAL)" : ADMIN.senha} (troca obrigatória no primeiro acesso)`);
   }
 
   await catalogoProducao();

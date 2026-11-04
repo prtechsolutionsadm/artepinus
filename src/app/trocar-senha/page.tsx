@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Defina sua senha" };
 export default async function TrocarSenhaPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
   const eu = await usuarioAtual();
-  if (!eu) redirect("/login");
+  if (!eu) redirect("/sair");
   if (!eu.trocarSenha) redirect("/perfil");
 
   return (
