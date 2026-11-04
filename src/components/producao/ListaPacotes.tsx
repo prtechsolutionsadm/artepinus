@@ -25,27 +25,19 @@ export type LinhaPacote = {
 export function ListaPacotes({ linhas, podeExpedir }: { linhas: LinhaPacote[]; podeExpedir: boolean }) {
   const router = useRouter();
   const [sel, setSel] = useState<number[]>([]);
-  const [expedindo, setExpedindo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const selecionados = linhas.filter((l) => sel.includes(l.numero));
   const expediveis = selecionados.filter((l) => l.status === "VERDE" || l.status === "SECO");
   const alternar = (n: number) => setSel((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]));
 
-  function expedir(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
+  function expedir() {
+    if (!confirm(`Registrar a saída de ${expediveis.length} pacote(s)?`)) return;
     setErro(null);
     iniciar(async () => {
-      const r = await expedirPacotes({
-        numeros: expediveis.map((l) => l.numero),
-        cliente: String(f.get("cliente") ?? ""),
-        notaFiscal: String(f.get("notaFiscal") ?? ""),
-        destino: String(f.get("destino") ?? ""),
-      });
+      const r = await expedirPacotes({ numeros: expediveis.map((l) => l.numero) });
       if (r.erro) return setErro(r.erro);
       setSel([]);
-      setExpedindo(false);
       router.refresh();
     });
   }
@@ -63,8 +55,8 @@ export function ListaPacotes({ linhas, podeExpedir }: { linhas: LinhaPacote[]; p
                 <Printer className="h-4 w-4" /> Etiquetas
               </Link>
               {podeExpedir && expediveis.length > 0 && (
-                <button type="button" onClick={() => setExpedindo((x) => !x)} className="btn-primario px-3 py-1.5 text-sm">
-                  <Truck className="h-4 w-4" /> Expedir {expediveis.length}
+                <button type="button" onClick={expedir} disabled={pendente} className="btn-primario px-3 py-1.5 text-sm">
+                  <Truck className="h-4 w-4" /> {pendente ? "Registrando…" : `Registrar saída de ${expediveis.length}`}
                 </button>
               )}
               <button type="button" onClick={() => setSel([])} className="btn-secundario px-3 py-1.5 text-sm">
@@ -72,32 +64,11 @@ export function ListaPacotes({ linhas, podeExpedir }: { linhas: LinhaPacote[]; p
               </button>
             </span>
           </div>
-          {expedindo && (
-            <form onSubmit={expedir} className="mt-3 grid gap-2 sm:grid-cols-4 sm:items-end">
-              <fieldset disabled={pendente} className="contents">
-                <div>
-                  <label htmlFor="ex-cli">Cliente *</label>
-                  <input id="ex-cli" name="cliente" required className="campo" />
-                </div>
-                <div>
-                  <label htmlFor="ex-nf">Nota fiscal</label>
-                  <input id="ex-nf" name="notaFiscal" className="campo" />
-                </div>
-                <div>
-                  <label htmlFor="ex-dest">Destino</label>
-                  <input id="ex-dest" name="destino" className="campo" />
-                </div>
-                <button className="btn-primario">{pendente ? "Expedindo…" : "Confirmar expedição"}</button>
-              </fieldset>
-              {selecionados.length > expediveis.length && (
-                <p className="text-xs text-stone-500 sm:col-span-4">Pacotes na estufa, expedidos ou cancelados ficam de fora.</p>
-              )}
-              {erro && (
-                <p role="alert" className="text-sm text-rose-700 sm:col-span-4">
-                  {erro}
-                </p>
-              )}
-            </form>
+          {selecionados.length > expediveis.length && <p className="mt-2 text-xs text-stone-500">Pacotes na estufa, expedidos ou cancelados ficam de fora da saída.</p>}
+          {erro && (
+            <p role="alert" className="mt-2 text-sm text-rose-700">
+              {erro}
+            </p>
           )}
         </div>
       )}

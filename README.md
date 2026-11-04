@@ -1,31 +1,29 @@
-# Artepinus · Site e sistema de produção
+# Artepinus · Site e sistema
 
 - **Site institucional** público em `/` (`src/app/(site)`): empresa, processo, produtos, rastreabilidade
   e contato, com o botão **Acessar sistema** (`/sistema` → login → módulo do usuário).
   Contatos (telefone, WhatsApp, e-mail, endereço) ficam em `src/lib/empresa.ts` — o site só mostra o que
   estiver preenchido.
 - **Sistema (PWA)** em módulos:
-  - **Produção** — boletim diário da serraria, estufas, toras, estoque, indicadores (OEE) e
-    **rastreabilidade dos pacotes com QR Code**, da floresta à expedição.
+  - **Serraria** (rotas `/producao`) — toras, apontamento em grade com etiqueta de lote, estufas,
+    pacotes com QR Code, inventário, indicadores (OEE) e pedidos, funcionando também sem internet.
   - **Manutenção** — requisições de manutenção. **Desligada por enquanto** (`MODULOS_ATIVOS` em
     `src/lib/permissoes.ts`): código e dados continuam, só some do menu e do acesso.
 
 ## Rastreabilidade (da floresta ao pacote)
 
 ```
-Floresta → Colheita (COL-0001) → Carga de toras (CT-00001) → Boletim do dia ⇄ Ciclo de estufa → Pacote (PCT-000001) → Expedição
+Carga de toras (CT-00001: floresta, fornecedor, motorista) → Boletim do dia (lotes LOT-000001 por pedido) ⇄ Ciclo de estufa → Pacote (PCT-000001) → Saída
 ```
 
-- Cada ligação é registrada onde a coisa acontece: a carga escolhe a colheita; o boletim marca as cargas
-  serradas no dia; o ciclo marca os dias de serraria cuja madeira entrou na estufa; o pacote nasce de um
-  ciclo (seco) ou de um dia (verde). A origem é por lote: a madeira se mistura, então o pacote mostra
-  o conjunto de cargas/colheitas que entraram na sua produção (`src/lib/rastreio-dados.ts`).
-- Etiqueta A4 (8 por folha) com QR para `/p/<número>` → `/producao/pacotes/<número>`: a história
-  completa e as ações (enviar para estufa, expedir, mover, observação). Cada ação vira um
-  `EventoPacote`. Ao concluir um ciclo, os pacotes que estavam nele passam a Seco.
-- `/producao/escanear` lê o QR pela câmera (BarcodeDetector) ou pelo código digitado.
-- Painel: pacotes formados/expedidos, estoque por situação, % rastreado até a floresta e tempo até a
-  expedição.
+- Cada ligação é registrada onde a coisa acontece: a carga escolhe floresta, fornecedor e motorista
+  (placas do caminhão e da julieta vêm do cadastro); o boletim marca as cargas serradas no dia; cada lote
+  da serraria pertence a um **pedido** (nº, cliente, destino); o ciclo marca os dias de serraria cuja
+  madeira entrou na estufa; o pacote nasce da madeira de um ciclo (seco) ou de um lote (verde).
+  Colheita/talhão ficam só nos dados antigos.
+- Etiquetas: lote com **QR + código de barras (Code 128)** e pacote com QR para `/p/<n>`. A saída
+  (expedição) é só a baixa física — cliente e destino vêm do pedido. Cada ação vira um `EventoPacote`.
+- `/producao/escanear` lê QR ou código de barras (pacote ou lote) pela câmera ou pelo código digitado.
 
 **Stack:** Next.js 16 (Node.js) · Prisma ORM 7 · Prisma Postgres · Tailwind CSS 4 · hospedagem na Vercel.
 
@@ -36,31 +34,29 @@ regras em `src/lib/permissoes.ts`: `temModulo`, `pode`, `podeProducao`). Quem s�
 com *Sem acesso* na Manutenção. Admin e Gerente têm acesso total aos dois. Quem usa os dois troca de
 módulo no topo do menu.
 
-| Produção | Supervisor | Apontador | Consulta |
+| Serraria | Supervisor | Apontador | Consulta |
 |---|:-:|:-:|:-:|
-| Painel, boletins, estufas, toras, estoque e Excel | ✓ | ✓ | ✓ |
-| Lançar boletim, ciclo de estufa, carga de toras e levantamento | ✓ | ✓ | |
+| Painel, boletins, estufas, toras, inventário e Excel | ✓ | ✓ | ✓ |
+| Apontar lotes, ciclo de estufa, carga de toras e inventário | ✓ | ✓ | |
 | Corrigir lançamentos de outra pessoa e excluir | ✓ | | |
-| Cadastros: metas do mês, estufas e motivos de parada | ✓ | | |
+| Cadastros: pedidos, florestas, fornecedores, motoristas, estufas, motivos e configuração | ✓ | | |
 
-## Produção
+## Serraria
 
-- **Boletim da serraria** (um por dia, no fim do turno): produção por bitola (E × L × C em mm, peças →
-  m³ calculado) separada em bom / aproveitamento / refugo e mercado; paradas com o motivo pelo código da
-  planilha (53 motivos importados de `prisma/dados/serraria.json`), centro MEC/ELE/OPE, equipamento,
-  ocorrências e minutos; toras consumidas (para o rendimento). Parada mecânica/elétrica vira requisição
-  de manutenção com um toque.
-- **Indicadores** (mesmas fórmulas da planilha, sobre os totais do período): Disponibilidade =
-  (tempo programado − paradas) ÷ tempo programado · Produtividade = produção ÷ meta · Qualidade =
-  1 − refugo ÷ produção · **OEE** = D × P × Q · Rendimento = produção ÷ m³ de toras. Painel com
-  produção diária × meta, paradas por centro, Pareto, paradas por equipamento e comparativo mensal;
-  exportação em **Excel** (comparativo, boletins, bitolas, paradas e Pareto).
-- **Estufas**: ciclos de secagem (madeira por bitola, entrada/previsão/saída, umidade), checklist da
-  planilha da estufa (OK / não conforme com observação) e aviso de aclimatação de 48 h.
-- **Toras**: cargas recebidas por diâmetro, com volume estimado. **Estoque**: levantamentos da madeira
-  verde e da seca empacotada (partindo do anterior).
-- **Cadastros**: meta do mês (pré-preenche o boletim), estufas e motivos de parada. O seed cria os
-  21 equipamentos da linha da serraria, os motivos e as 6 estufas (só o que faltar).
+- **Apontamento em grade**: escolhe o pedido e a espessura (23/25/32/38) e digita as peças em
+  largura (50/85/101/125/135) × comprimento (2,50/2,15 Ótimo · 1,65 Bom · 1,30/1,00/0,70 Regular).
+  Cada lançamento vira um **lote** com etiqueta. Meta e horas do boletim vêm da **Configuração**
+  (somente leitura). No boletim do dia ficam ainda paradas (motivo pelo código da planilha, centro
+  MEC/ELE/OPE, equipamento, minutos) e toras consumidas.
+- **Indicadores**: Disponibilidade = (tempo programado − paradas) ÷ tempo programado · Produtividade =
+  serrado ÷ meta · **OEE** = D × P (a Qualidade saiu) · Rendimento = serrado ÷ m³ de toras. Serrado por
+  classe × meta, paradas por centro, Pareto, comparativo mensal e **Excel**.
+- **Estufas**: ciclos de secagem com plantão escolhido entre os usuários, checklist e aviso de
+  aclimatação de 48 h.
+- **Toras**: carga com floresta, fornecedor, motorista, comprimento médio, diâmetro (Fina/Média/Grossa)
+  e peso (t). **Inventário diário**: madeira em Grade / Pacote / Estufa / Verde, na mesma grade da serraria.
+- **Sem internet**: carga, lote e inventário ficam guardados no aparelho (IndexedDB) e são enviados
+  sozinhos quando a conexão volta (`src/lib/fila-offline.ts` → `/api/offline`).
 
 ## Manutenção
 

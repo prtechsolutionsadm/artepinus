@@ -6,7 +6,7 @@ import { SeletorMes } from "@/components/SeletorMes";
 import { formatarDuracao } from "@/lib/constantes";
 import { painelProducao } from "@/lib/indicadores-producao";
 import { podeProducao } from "@/lib/permissoes";
-import { CENTRO, TIPO_ESTOQUE, fmtM3, fmtNum, fmtPct, formatarDia, hojeSP, mesDe, nomeMes, nomeMesLongo, type Kpis } from "@/lib/producao";
+import { CENTRO, LOCAL_ESTOQUE, CLASSE_DIAMETRO, fmtM3, fmtNum, fmtPct, formatarDia, hojeSP, mesDe, nomeMes, nomeMesLongo, type Kpis } from "@/lib/producao";
 import { mesesComBoletim } from "@/lib/producao-dados";
 import { STATUS_EM_ESTOQUE, STATUS_PACOTE } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
@@ -22,12 +22,17 @@ const ABAS = [
 ] as const;
 type Aba = (typeof ABAS)[number]["id"];
 
-type Indice = "oee" | "disponibilidade" | "produtividade" | "qualidade";
+const SERIES_CLASSE = [
+  { chave: "otimo", rotulo: "Ótimo" },
+  { chave: "bom", rotulo: "Bom" },
+  { chave: "regular", rotulo: "Regular" },
+];
+
+type Indice = "oee" | "disponibilidade" | "produtividade";
 const INDICES: { chave: Indice; rotulo: string; formula: string }[] = [
-  { chave: "oee", rotulo: "OEE", formula: "Disponibilidade × Produtividade × Qualidade" },
+  { chave: "oee", rotulo: "OEE", formula: "Disponibilidade × Produtividade" },
   { chave: "disponibilidade", rotulo: "Disponibilidade", formula: "Tempo produzindo ÷ tempo programado" },
-  { chave: "produtividade", rotulo: "Produtividade", formula: "Produção ÷ meta" },
-  { chave: "qualidade", rotulo: "Qualidade", formula: "1 − refugo ÷ produção" },
+  { chave: "produtividade", rotulo: "Produtividade", formula: "Serrado ÷ meta" },
 ];
 
 /** Diferença em pontos percentuais contra o mês anterior. */
@@ -73,12 +78,12 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
       </span>
       <h2 className="mt-4 text-lg font-semibold first-letter:uppercase">Nenhum boletim em {nomeMesLongo(mes)}</h2>
       <p className="mt-1 max-w-md text-sm text-stone-500">
-        Os indicadores (OEE, disponibilidade, produtividade, qualidade e paradas) são calculados a partir dos boletins da serraria lançados no mês.
+        Os indicadores (OEE, disponibilidade, produtividade e paradas) são calculados a partir dos boletins da serraria lançados no mês.
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         {podeProducao(eu, "lancar") && mes === atual && (
           <Link href="/producao/boletins/novo" className="btn-primario">
-            <Plus className="h-4 w-4" /> Lançar boletim
+            <Plus className="h-4 w-4" /> Apontar serraria
           </Link>
         )}
         {ultimoComDados && (
@@ -95,7 +100,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
       {/* Cabeçalho: título, mês e exportação */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Indicadores da produção</h1>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Indicadores</h1>
           <p className="text-sm text-stone-500">
             Serraria · {p.diasLancados ? `${p.diasLancados} dia(s) lançado(s)` : "nenhum dia lançado"}
           </p>
@@ -161,12 +166,12 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
             <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-stone-200 bg-stone-200 lg:grid-cols-4">
               {[
                 {
-                  r: "Produção",
+                  r: "Serrado",
                   v: fmtM3(k.producaoM3, 1),
                   d: k.metaM3 ? `${fmtPct(k.producaoM3 / k.metaM3)} da meta de ${fmtM3(k.metaM3, 0)}` : "sem meta definida",
                 },
                 { r: "Tempo parado", v: formatarDuracao(k.minutosParados), d: `${fmtPct(k.minutosProgramados ? k.minutosParados / k.minutosProgramados : null)} do tempo programado` },
-                { r: "Refugo", v: fmtM3(k.refugoM3, 1), d: `${fmtPct(k.producaoM3 ? k.refugoM3 / k.producaoM3 : null)} da produção` },
+                { r: "Classe Ótimo", v: fmtM3(k.porClasse.OTIMO, 1), d: `${fmtPct(k.producaoM3 ? k.porClasse.OTIMO / k.producaoM3 : null)} do serrado (2,50 e 2,15 m)` },
                 { r: "Rendimento", v: fmtPct(k.rendimento), d: k.torasM3 ? `sobre ${fmtM3(k.torasM3, 0)} de toras` : "informe as toras no boletim" },
               ].map((x) => (
                 <div key={x.r} className="min-w-0 bg-white px-5 py-3.5">
@@ -178,15 +183,11 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
             </dl>
 
             <div className="grid gap-5 lg:grid-cols-3">
-              <Secao titulo="Produção diária (m³)" subtitulo="Por tipo, com a meta de cada dia" className="lg:col-span-2">
+              <Secao titulo="Serrado por dia (m³)" subtitulo="Por classe, com a meta de cada dia" className="lg:col-span-2">
                 <ColunasEmpilhadas
-                  titulo="Produção diária por tipo, com a meta do dia"
-                  dados={p.diario.map((d) => ({ rotulo: d.dia.slice(8), bom: d.bom, aproveitamento: d.aproveitamento, refugo: d.refugo, meta: d.metaM3 }))}
-                  series={[
-                    { chave: "bom", rotulo: "Bom" },
-                    { chave: "aproveitamento", rotulo: "Aproveitamento" },
-                    { chave: "refugo", rotulo: "Refugo" },
-                  ]}
+                  titulo="Serrado por dia e classe, com a meta do dia"
+                  dados={p.diario.map((d) => ({ rotulo: d.dia.slice(8), otimo: d.otimo, bom: d.bom, regular: d.regular, meta: d.metaM3 }))}
+                  series={SERIES_CLASSE}
                   meta={{ chave: "meta", rotulo: "Meta" }}
                 />
               </Secao>
@@ -281,29 +282,27 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <TreePine className="h-4 w-4 text-marca-600" /> Toras recebidas no mês
               </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums">{fmtNum(p.toras.quantidade)}</div>
-              <div className="text-sm text-stone-500">
-                em {p.toras.cargas} carga(s){p.toras.m3 > 0 && ` · ≈ ${fmtM3(p.toras.m3, 1)}`}
+              <div className="mt-2 text-2xl font-semibold tabular-nums">{fmtNum(p.toras.pesoT, 1)} t</div>
+              <div className="text-sm text-stone-500">em {p.toras.cargas} carga(s)</div>
+              <div className="mt-2 text-xs text-stone-500">
+                {p.toras.cargas
+                  ? (["FINA", "MEDIA", "GROSSA"] as const)
+                      .filter((c) => p.toras.porClasse[c] > 0)
+                      .map((c) => `${CLASSE_DIAMETRO[c]} ${fmtNum(p.toras.porClasse[c], 1)} t`)
+                      .join(" · ") || "Sem peso informado"
+                  : "Sem cargas no mês"}
               </div>
-              <div className="mt-2 text-xs text-stone-500">{p.toras.diametroMedio != null ? `Diâmetro médio ${fmtNum(p.toras.diametroMedio, 1)} cm` : "Sem cargas no mês"}</div>
             </Link>
             <Link href="/producao/estoque" className="cartao block hover:border-marca-300">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <Boxes className="h-4 w-4 text-[#2a78d6]" /> Último levantamento de estoque
+                <Boxes className="h-4 w-4 text-[#2a78d6]" /> Último inventário
+                {p.estoque && <span className="font-normal text-stone-400">{formatarDia(p.estoque.data, { day: "2-digit", month: "2-digit" })}</span>}
               </div>
               <ul className="mt-2 space-y-1 text-sm">
-                {p.estoque.map((e, i) => (
-                  <li key={i} className="flex justify-between gap-2">
-                    <span className="text-stone-500">{TIPO_ESTOQUE[i === 0 ? "VERDE" : "EMPACOTADA"].split(" (")[0]}</span>
-                    <span className="tabular-nums">
-                      {e ? (
-                        <>
-                          {fmtM3(e.m3, 1)} <span className="text-xs text-stone-400">em {formatarDia(e.data, { day: "2-digit", month: "2-digit" })}</span>
-                        </>
-                      ) : (
-                        "—"
-                      )}
-                    </span>
+                {(Object.keys(LOCAL_ESTOQUE) as (keyof typeof LOCAL_ESTOQUE)[]).map((l) => (
+                  <li key={l} className="flex justify-between gap-2">
+                    <span className="text-stone-500">{LOCAL_ESTOQUE[l]}</span>
+                    <span className="tabular-nums">{p.estoque?.porLocal[l] != null ? fmtM3(p.estoque.porLocal[l]!, 1) : "—"}</span>
                   </li>
                 ))}
               </ul>
@@ -317,21 +316,17 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
           vazio
         ) : (
           <>
-            <Secao titulo="Produção por mês (m³)" subtitulo="Meses com lançamento (até 12), com a meta acumulada">
+            <Secao titulo="Serrado por mês (m³)" subtitulo="Meses com lançamento (até 12), com a meta acumulada">
               <ColunasEmpilhadas
-                titulo="Produção por mês"
+                titulo="Serrado por mês"
                 dados={p.comparativo.slice(Math.max(0, p.comparativo.findIndex((c) => c.dias > 0))).map((c) => ({
                   rotulo: nomeMes(c.mes),
-                  bom: Math.round(c.kpis.bomM3),
-                  aproveitamento: Math.round(c.kpis.aproveitamentoM3),
-                  refugo: Math.round(c.kpis.refugoM3),
+                  otimo: Math.round(c.kpis.porClasse.OTIMO),
+                  bom: Math.round(c.kpis.porClasse.BOM),
+                  regular: Math.round(c.kpis.porClasse.REGULAR),
                   meta: Math.round(c.kpis.metaM3),
                 }))}
-                series={[
-                  { chave: "bom", rotulo: "Bom" },
-                  { chave: "aproveitamento", rotulo: "Aproveitamento" },
-                  { chave: "refugo", rotulo: "Refugo" },
-                ]}
+                series={SERIES_CLASSE}
                 meta={{ chave: "meta", rotulo: "Meta" }}
               />
             </Secao>
@@ -340,7 +335,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
                 <table className="w-full min-w-[760px] text-sm">
                   <thead className="border-b border-stone-200 text-left text-xs uppercase tracking-wide text-stone-500">
                     <tr>
-                      {["Mês", "Dias", "Produção", "Meta", "Refugo", "Parado", "Disp.", "Prod.", "Qual.", "OEE", "Rend."].map((c, i) => (
+                      {["Mês", "Dias", "Serrado", "Meta", "Ótimo", "Parado", "Disp.", "Prod.", "OEE", "Rend."].map((c, i) => (
                         <th key={c} className={`px-4 py-3 font-semibold ${i > 0 ? "text-right" : ""}`}>
                           {c}
                         </th>
@@ -361,11 +356,10 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
                           <td className="px-4 py-2.5 text-right tabular-nums">{c.dias}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{fmtNum(c.kpis.producaoM3, 1)}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{fmtNum(c.kpis.metaM3, 1)}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtNum(c.kpis.refugoM3, 1)}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtPct(c.kpis.producaoM3 ? c.kpis.porClasse.OTIMO / c.kpis.producaoM3 : null)}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{formatarDuracao(c.kpis.minutosParados)}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{fmtPct(c.kpis.disponibilidade)}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{fmtPct(c.kpis.produtividade)}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtPct(c.kpis.qualidade)}</td>
                           <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-marca-800">{fmtPct(c.kpis.oee)}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{fmtPct(c.kpis.rendimento)}</td>
                         </tr>
@@ -373,7 +367,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
                   </tbody>
                 </table>
               </div>
-              <p className="border-t border-stone-100 px-4 py-2 text-xs text-stone-500">Produção, meta e refugo em m³. Índices calculados sobre os totais de cada mês.</p>
+              <p className="border-t border-stone-100 px-4 py-2 text-xs text-stone-500">Serrado e meta em m³; Ótimo = % do serrado nas peças de 2,50 e 2,15 m. Índices calculados sobre os totais de cada mês.</p>
             </section>
           </>
         ))}

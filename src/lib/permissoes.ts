@@ -49,7 +49,7 @@ export type UsuarioComPerfis = { perfil: Perfil; perfilProducao: PerfilProducao 
 
 export const MODULOS: Record<Modulo, { nome: string; inicio: string }> = {
   manutencao: { nome: "Manutenção", inicio: "/manutencao" },
-  producao: { nome: "Produção", inicio: "/producao" },
+  producao: { nome: "Serraria", inicio: "/producao" },
 };
 
 /**

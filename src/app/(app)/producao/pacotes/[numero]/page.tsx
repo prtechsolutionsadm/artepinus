@@ -6,8 +6,8 @@ import { AcoesPacote } from "@/components/producao/AcoesPacote";
 import { Badge } from "@/components/ui";
 import { formatarData, formatarDuracao, minutosEntre } from "@/lib/constantes";
 import { podeProducao } from "@/lib/permissoes";
-import { MERCADO, calcularKpis, fmtM3, fmtNum, formatarDia } from "@/lib/producao";
-import { STATUS_PACOTE, TIPO_EVENTO, TIPO_ORIGEM, bitola, codigoCarga, codigoColheita, codigoPacote } from "@/lib/rastreio";
+import { CLASSE_DIAMETRO, MERCADO, calcularKpis, fmtM3, fmtNum, formatarDia } from "@/lib/producao";
+import { STATUS_PACOTE, TIPO_EVENTO, bitola, codigoCarga, codigoPacote } from "@/lib/rastreio";
 import { ciclosAtivos, rastrearPacote } from "@/lib/rastreio-dados";
 import { exigirProducao } from "@/lib/session";
 
@@ -67,13 +67,13 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
   if (!Number.isInteger(numero) || numero <= 0) notFound();
   const r = await rastrearPacote(numero);
   if (!r) notFound();
-  const { pacote: p, dias, cargas, colheitas } = r;
+  const { pacote: p, dias, cargas, florestas } = r;
   const lancar = podeProducao(eu, "lancar");
   const ciclos = lancar && p.status === "VERDE" ? await ciclosAtivos() : [];
   const st = STATUS_PACOTE[p.status];
   const conformes = p.ciclo?.checklist.filter((i) => i.conforme === true).length ?? 0;
   const naoConformes = p.ciclo?.checklist.filter((i) => i.conforme === false).length ?? 0;
-  const totalToras = cargas.reduce((s, c) => s + c.itens.reduce((x, i) => x + i.quantidade, 0), 0);
+  const totalPeso = cargas.reduce((t, c) => t + (c.pesoT ?? 0), 0);
   const expedido = p.eventos.find((e) => e.tipo === "EXPEDIDO");
 
   return (
@@ -100,8 +100,8 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
             ["Volume", fmtM3(p.m3, 3)],
             ["Classe", p.classe ?? "—"],
             ["Mercado", MERCADO[p.mercado].replace("Mercado ", "")],
-            ["Umidade", p.umidade != null ? `${fmtNum(p.umidade, 1)}%` : "—"],
-            ["Local", p.localizacao ?? "—"],
+            ["Pedido", p.pedido ? `${p.pedido.numero} · ${p.pedido.cliente}` : "—"],
+            ["Destino", p.pedido?.destino ?? "—"],
             ["Formado em", formatarData(p.criadoEm, true)],
           ].map(([rot, v]) => (
             <div key={rot} className="min-w-0">
@@ -113,65 +113,52 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
         {p.observacoes && <p className="mt-3 text-sm text-stone-600">{p.observacoes}</p>}
       </section>
 
-      {lancar && <AcoesPacote numero={p.numero} status={p.status} ciclos={ciclos} podeGerir={podeProducao(eu, "gerir")} />}
+      {lancar && <AcoesPacote numero={p.numero} status={p.status} ciclos={ciclos} podeGerir={podeProducao(eu, "gerir")} pedido={p.pedido ? `${p.pedido.numero} · ${p.pedido.cliente}` : null} />}
 
       <section className="cartao">
         <h2 className="mb-1 font-semibold">Da floresta ao pacote</h2>
         <p className="mb-5 text-sm text-stone-500">
-          A madeira de vários dias e cargas se mistura no processo: a origem mostra todos os lotes que entraram na produção deste pacote.
+          A madeira de vários dias e cargas se mistura no processo: a origem mostra todos os lotes que formaram este pacote.
         </p>
         <ol>
-          <Etapa
-            Icone={TreePine}
-            titulo="Floresta e colheita"
-            cor="#177009"
-            vazio={colheitas.length === 0 && (cargas.length ? "As cargas de toras não estão ligadas a uma colheita." : "Sem cargas de toras ligadas ao dia de serraria.")}
-          >
-            {colheitas.map((c) => (
-              <div key={c.id}>
-                <div className="mb-1 text-sm font-medium">
-                  {c.origem.nome} · <span className="font-mono text-stone-500">{codigoColheita(c.numero)}</span>
-                </div>
-                <Dados
-                  itens={[
-                    ["Tipo", TIPO_ORIGEM[c.origem.tipo]],
-                    ["Proprietário / fornecedor", c.origem.proprietario],
-                    ["Local", [c.origem.municipio, c.origem.uf].filter(Boolean).join("/") || null],
-                    ["Espécie", c.origem.especie],
-                    ["Plantio", c.origem.anoPlantio],
-                    ["Talhão", c.talhao],
-                    ["Derrubada", `${formatarDia(c.inicio)}${c.fim ? ` a ${formatarDia(c.fim)}` : " (em andamento)"}`],
-                    ["Idade", c.idadeAnos ? `${c.idadeAnos} anos` : null],
-                    ["Equipe", c.equipe],
-                    ["Documento", c.documento],
-                  ]}
-                />
-              </div>
+          <Etapa Icone={TreePine} titulo="Floresta" cor="#177009" vazio={florestas.length === 0 && (cargas.length ? "As cargas não têm floresta cadastrada." : "Sem cargas de toras ligadas ao dia de serraria.")}>
+            {florestas.map((f) => (
+              <Dados
+                key={f.id}
+                itens={[
+                  ["Floresta", f.nome],
+                  ["Local", [f.municipio, f.uf].filter(Boolean).join("/") || null],
+                  ["Espécie", f.especie],
+                ]}
+              />
             ))}
           </Etapa>
 
-          <Etapa Icone={Truck} titulo="Transporte e recebimento das toras" cor="#8a5a2b" vazio={cargas.length === 0 && "Nenhuma carga de toras ligada aos dias de serraria."}>
+          <Etapa Icone={Truck} titulo="Recebimento das toras" cor="#8a5a2b" vazio={cargas.length === 0 && "Nenhuma carga de toras ligada aos dias de serraria."}>
             <p className="text-sm text-stone-600">
-              {cargas.length} carga(s) · {fmtNum(totalToras)} toras
+              {cargas.length} carga(s){totalPeso ? ` · ${fmtNum(totalPeso, 1)} t` : ""}
             </p>
             <ul className="divide-y divide-stone-100 rounded-xl border border-stone-200 text-sm">
-              {cargas.map((c) => {
-                const qtd = c.itens.reduce((s, i) => s + i.quantidade, 0);
-                const diam = qtd ? c.itens.reduce((s, i) => s + i.diametro * i.quantidade, 0) / qtd : null;
-                return (
-                  <li key={c.id}>
-                    <Link href={`/producao/toras/${c.id}`} className="flex flex-wrap items-baseline gap-x-2 px-3 py-2 hover:bg-stone-50">
-                      <span className="font-mono text-xs text-stone-500">{codigoCarga(c.numero)}</span>
-                      <span className="font-medium">{formatarDia(c.data)}</span>
-                      <span className="text-stone-600">
-                        {c.origem}
-                        {c.talhao ? ` · talhão ${c.talhao}` : ""} · {qtd} toras{diam ? ` · Ø ${fmtNum(diam, 1)} cm` : ""}
-                        {c.placa ? ` · ${c.placa}` : ""}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
+              {cargas.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/producao/toras/${c.id}`} className="flex flex-wrap items-baseline gap-x-2 px-3 py-2 hover:bg-stone-50">
+                    <span className="font-mono text-xs text-stone-500">{codigoCarga(c.numero)}</span>
+                    <span className="font-medium">{formatarDia(c.data)}</span>
+                    <span className="text-stone-600">
+                      {[
+                        c.floresta?.nome ?? c.origem,
+                        c.fornecedor?.nome,
+                        c.pesoT ? `${fmtNum(c.pesoT, 1)} t` : null,
+                        c.classeDiametro ? CLASSE_DIAMETRO[c.classeDiametro] : null,
+                        c.motorista,
+                        [c.placa, c.placaJulieta].filter(Boolean).join(" + ") || null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           </Etapa>
 
@@ -207,7 +194,7 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
                     ["Entrada", formatarData(p.ciclo.entrada, true)],
                     ["Saída", p.ciclo.saida ? formatarData(p.ciclo.saida, true) : "em secagem"],
                     ["Duração", formatarDuracao(minutosEntre(p.ciclo.entrada, p.ciclo.saida))],
-                    ["Umidade", `${p.ciclo.umidadeInicial != null ? `${fmtNum(p.ciclo.umidadeInicial, 1)}%` : "—"} → ${p.ciclo.umidadeFinal != null ? `${fmtNum(p.ciclo.umidadeFinal, 1)}%` : "—"}`],
+                    ["Umidade final", p.ciclo.umidadeFinal != null ? `${fmtNum(p.ciclo.umidadeFinal, 1)}%` : null],
                     ["Checklist", p.ciclo.checklist.length ? `${conformes} OK${naoConformes ? ` · ${naoConformes} não conforme(s)` : ""} de ${p.ciclo.checklist.length}` : null],
                     ["Responsável", p.ciclo.responsavel.nome],
                   ]}
@@ -230,9 +217,9 @@ export default async function PacotePage({ params }: { params: Promise<{ numero:
           <Etapa Icone={Truck} titulo="Expedição" cor="#57534e" vazio={p.status !== "EXPEDIDO" && "Ainda na empresa."} ultima>
             <Dados
               itens={[
-                ["Cliente", p.cliente],
-                ["Nota fiscal", p.notaFiscal],
-                ["Destino", p.destino],
+                ["Pedido", p.pedido?.numero ?? null],
+                ["Cliente", p.pedido?.cliente ?? p.cliente],
+                ["Destino", p.pedido?.destino ?? p.destino],
                 ["Data", formatarData(p.expedidoEm, true)],
                 ["Por", expedido?.usuario?.nome],
               ]}

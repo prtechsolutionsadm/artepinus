@@ -20,7 +20,7 @@ function opcoesPerfil(atual?: Perfil): { valor: Perfil; rotulo: string }[] {
   if (atual === "ADMIN") return [{ valor: "ADMIN", rotulo: PERFIL.ADMIN }];
   if (MANUTENCAO_ATIVA) return PERFIS_ATRIBUIVEIS.map((k) => ({ valor: k, rotulo: PERFIL[k] }));
   const base: { valor: Perfil; rotulo: string }[] = [
-    { valor: "SEM_ACESSO", rotulo: "Usuário (acesso pelo perfil na Produção)" },
+    { valor: "SEM_ACESSO", rotulo: "Usuário (acesso pelo perfil no sistema)" },
     { valor: "GERENTE", rotulo: "Gerente (acesso total e usuários)" },
   ];
   // Mantém o perfil de manutenção de quem já tinha, para não perder ao salvar
@@ -59,7 +59,7 @@ function CamposUsuario({ u }: { u?: Usr }) {
           </select>
         </div>
         <div>
-          <label>Perfil na Produção</label>
+          <label>Perfil no sistema</label>
           {u?.perfil === "ADMIN" || u?.perfil === "GERENTE" ? (
             <p className="campo flex items-center bg-stone-50 text-stone-500">Acesso total (Admin/Gerente)</p>
           ) : (
@@ -125,7 +125,7 @@ export default async function UsuariosPage() {
                   <Badge cor="bg-marca-50 text-marca-700 ring-marca-100">Manutenção · {PERFIL[u.perfil]}</Badge>
                 )}
                 {u.perfilProducao && u.perfil !== "ADMIN" && u.perfil !== "GERENTE" && (
-                  <Badge cor="bg-amber-50 text-amber-800 ring-amber-100">Produção · {PERFIL_PRODUCAO[u.perfilProducao]}</Badge>
+                  <Badge cor="bg-amber-50 text-amber-800 ring-amber-100">{PERFIL_PRODUCAO[u.perfilProducao]}</Badge>
                 )}
                 {!u.ativo && <Badge cor="bg-stone-200 text-stone-700 ring-stone-300">Inativo</Badge>}
                 <Pencil className="ml-auto h-4 w-4 text-stone-400" />

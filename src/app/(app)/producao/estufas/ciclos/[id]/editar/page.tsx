@@ -6,6 +6,7 @@ import { dateParaDataLocal } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { estufasParaForm } from "@/lib/producao-estufas";
 import { boletinsParaForm } from "@/lib/rastreio-dados";
+import { usuariosAtivos } from "@/lib/producao-dados";
 import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Editar ciclo" };
@@ -20,6 +21,7 @@ export default async function EditarCicloPage({ params }: { params: Promise<{ id
     <div className="mx-auto max-w-4xl">
       <Titulo>Editar ciclo · {c.estufa.nome}</Titulo>
       <FormCiclo
+        usuarios={await usuariosAtivos()}
         estufas={await estufasParaForm()}
         inicial={{ ...c, entrada: dateParaDataLocal(c.entrada), previsaoSaida: dateParaDataLocal(c.previsaoSaida), boletimIds: c.boletins.map((b) => b.id) }}
         boletins={await boletinsParaForm(c.boletins.map((b) => b.id))}

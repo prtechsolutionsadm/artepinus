@@ -39,3 +39,28 @@ export async function mesesComCargas() {
   });
   return [...new Set(datas.map((d) => d.data.toISOString().slice(0, 7)))];
 }
+
+/** Configuração padrão da serraria (meta e horas do boletim). */
+export async function configSerraria() {
+  return (await db.configSerraria.findUnique({ where: { id: "padrao" } })) ?? { id: "padrao", metaDiariaM3: 60, horasDia: 8.8, rendimentoMeta: null, atualizadoEm: new Date(0) };
+}
+
+/** Florestas, fornecedores e motoristas ativos (e os já usados, ao editar). */
+export async function opcoesCarga(usados: { florestaId?: string | null; fornecedorId?: string | null; motoristaId?: string | null } = {}) {
+  const ou = (id?: string | null) => (id ? [{ id }] : []);
+  const [florestas, fornecedores, motoristas] = await Promise.all([
+    db.origemFlorestal.findMany({ where: { OR: [{ ativo: true }, ...ou(usados.florestaId)] }, orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
+    db.fornecedor.findMany({ where: { OR: [{ ativo: true }, ...ou(usados.fornecedorId)] }, orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
+    db.motorista.findMany({
+      where: { OR: [{ ativo: true }, ...ou(usados.motoristaId)] },
+      orderBy: { nome: "asc" },
+      select: { id: true, nome: true, placaCaminhao: true, placaJulieta: true },
+    }),
+  ]);
+  return { florestas, fornecedores, motoristas };
+}
+
+/** Usuários ativos (para escolher o responsável pelo plantão da estufa). */
+export async function usuariosAtivos() {
+  return db.usuario.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true } });
+}

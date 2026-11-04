@@ -109,9 +109,8 @@ const pacoteSchema = z
     pecas: positivo("Informe as peças do pacote").int().max(100000),
     quantidade: z.coerce.number().int().min(1, "Quantidade de pacotes inválida").max(50, "No máximo 50 pacotes de uma vez"),
     classe: opcional(z.string().trim().max(40)),
-    mercado: z.enum(["EXTERNO", "INTERNO"]),
-    umidade: opcional(z.coerce.number().min(0).max(200)),
-    localizacao: opcional(z.string().trim().max(80)),
+    mercado: z.enum(["EXTERNO", "INTERNO"]).default("EXTERNO"),
+    pedidoId: opcional(z.string()),
     observacoes: opcional(z.string().trim().max(500)),
   })
   .refine((d) => (d.origem === "boletim" ? !!d.boletimId : !!d.cicloId), { message: "Escolha de onde vem a madeira do pacote" });
@@ -150,7 +149,7 @@ export async function criarPacotes(entrada: DadosPacote): Promise<Resultado> {
           boletimId: origem === "boletim" ? boletimId : null,
           cicloId: origem === "ciclo" ? cicloId : null,
           criadoPorId: eu.id,
-          eventos: { create: { tipo: "CRIADO", descricao: `${descricao}${p.localizacao ? ` · local: ${p.localizacao}` : ""}`, usuarioId: eu.id } },
+          eventos: { create: { tipo: "CRIADO", descricao, usuarioId: eu.id } },
         },
         select: { id: true, numero: true },
       }),
@@ -207,11 +206,11 @@ export async function registrarEventoPacote(_: EstadoForm, form: FormData): Prom
       break;
     }
     case "expedir": {
+      // Só a baixa física: cliente e destino já vêm do pedido
       if (encerrado) return { erro: "Pacote já expedido ou cancelado" };
       if (pacote.status === "EM_ESTUFA") return { erro: "O pacote ainda está na estufa" };
-      if (!d.cliente) return { erro: "Informe o cliente" };
-      const desc = [`Expedido para ${d.cliente}`, d.notaFiscal && `NF ${d.notaFiscal}`, d.destino && `destino ${d.destino}`].filter(Boolean).join(" · ");
-      await evento("EXPEDIDO", desc, { status: "EXPEDIDO", cliente: d.cliente, notaFiscal: d.notaFiscal, destino: d.destino, expedidoEm: new Date() });
+      const pedido = pacote.pedidoId ? await db.pedido.findUnique({ where: { id: pacote.pedidoId } }) : null;
+      await evento("EXPEDIDO", pedido ? `Saída registrada (pedido ${pedido.numero} · ${pedido.cliente})` : "Saída registrada", { status: "EXPEDIDO", expedidoEm: new Date() });
       break;
     }
     case "local":
@@ -235,32 +234,28 @@ export async function registrarEventoPacote(_: EstadoForm, form: FormData): Prom
 
 const expedicaoSchema = z.object({
   numeros: z.array(z.coerce.number().int().positive()).min(1, "Selecione os pacotes").max(200),
-  cliente: z.string().trim().min(2, "Informe o cliente").max(120),
-  notaFiscal: opcional(z.string().trim().max(40)),
-  destino: opcional(z.string().trim().max(120)),
 });
 
-/** Expede vários pacotes de uma vez (carregamento de um caminhão). */
 export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("lancar");
   if (!ok) return { erro: "Sem permissão" };
   const parse = expedicaoSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { numeros, cliente, notaFiscal, destino } = parse.data;
+  const { numeros } = parse.data;
   const pacotes = await db.pacote.findMany({ where: { numero: { in: numeros } }, select: { id: true, numero: true, status: true } });
   const invalidos = pacotes.filter((p) => p.status !== "VERDE" && p.status !== "SECO");
   if (invalidos.length) return { erro: `Não dá para expedir: ${invalidos.map((p) => codigoPacote(p.numero)).join(", ")} (na estufa, expedido ou cancelado)` };
-  const descricao = [`Expedido para ${cliente}`, notaFiscal && `NF ${notaFiscal}`, destino && `destino ${destino}`].filter(Boolean).join(" · ");
+  const descricao = "Saída registrada";
   const agora = new Date();
   await db.$transaction([
-    db.pacote.updateMany({ where: { id: { in: pacotes.map((p) => p.id) } }, data: { status: "EXPEDIDO", cliente, notaFiscal, destino, expedidoEm: agora } }),
+    db.pacote.updateMany({ where: { id: { in: pacotes.map((p) => p.id) } }, data: { status: "EXPEDIDO", expedidoEm: agora } }),
     db.eventoPacote.createMany({ data: pacotes.map((p) => ({ pacoteId: p.id, tipo: "EXPEDIDO" as const, descricao, usuarioId: eu.id, criadoEm: agora })) }),
   ]);
   await auditar({
     usuarioId: eu.id,
     acao: "pacote.expedir",
     entidade: "Pacote",
-    resumo: `Expediu ${pacotes.length} pacote(s) para ${cliente}${notaFiscal ? ` (NF ${notaFiscal})` : ""}`,
+    resumo: `Registrou a saída de ${pacotes.length} pacote(s)`,
     detalhes: { pacotes: pacotes.map((p) => codigoPacote(p.numero)) },
   });
   revalidatePath("/producao", "layout");

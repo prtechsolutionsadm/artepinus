@@ -84,6 +84,8 @@ model Usuario {
   colheitas             Colheita[]
   pacotesCriados        Pacote[]
   eventosPacote         EventoPacote[]
+  lotes                 Lote[]
+  plantoes              CicloSecagem[]        @relation("PlantaoCiclo")
 }
 
 model Setor {
@@ -389,6 +391,7 @@ model BoletimProducao {
   /// Ciclos de estufa que receberam a madeira deste dia
   ciclos           CicloSecagem[]   @relation("MadeiraCiclo")
   pacotes          Pacote[]
+  lotes            Lote[]
 }
 
 enum TipoProduto {
@@ -407,7 +410,11 @@ model ItemProducao {
   id          String          @id @default(cuid())
   boletimId   String
   boletim     BoletimProducao @relation(fields: [boletimId], references: [id], onDelete: Cascade)
-  tipo        TipoProduto
+  /// Lote (lançamento na grade, com etiqueta) a que a peça pertence
+  loteId      String?
+  lote        Lote?           @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  classe      ClasseMadeira?
+  tipo        TipoProduto     @default(BOM)
   mercado     Mercado         @default(EXTERNO)
   espessura   Int
   largura     Int
@@ -416,6 +423,7 @@ model ItemProducao {
   m3          Float
 
   @@index([boletimId])
+  @@index([loteId])
 }
 
 model ParadaProducao {
@@ -440,14 +448,15 @@ model ParadaProducao {
 // ---------- Estufas ----------
 
 model Estufa {
-  id            String         @id @default(cuid())
-  numero        Int            @unique
+  id            String                @id @default(cuid())
+  numero        Int                   @unique
   nome          String
   capacidadeM3  Float?
-  equipamentoId String?        @unique // a mesma estufa no módulo de manutenção
-  equipamento   Equipamento?   @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
-  ativo         Boolean        @default(true)
+  equipamentoId String?               @unique // a mesma estufa no módulo de manutenção
+  equipamento   Equipamento?          @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
+  ativo         Boolean               @default(true)
   ciclos        CicloSecagem[]
+  levantamentos LevantamentoEstoque[]
 }
 
 enum StatusCiclo {
@@ -467,7 +476,9 @@ model CicloSecagem {
   saida          DateTime?
   umidadeInicial Float?
   umidadeFinal   Float?
-  plantao        String? // responsáveis pelo plantão
+  plantao        String? // (antigo, texto livre)
+  plantaoId      String?
+  plantaoUsuario Usuario?             @relation("PlantaoCiclo", fields: [plantaoId], references: [id], onDelete: SetNull)
   proximaCarga   String?
   observacoes    String?
   responsavelId  String
@@ -522,10 +533,20 @@ model CargaToras {
   colheita         Colheita?         @relation(fields: [colheitaId], references: [id], onDelete: SetNull)
   boletins         BoletimProducao[] @relation("ConsumoToras")
   data             DateTime
-  origem           String
-  talhao           String?
-  motorista        String?
-  placa            String?
+  florestaId       String?
+  floresta         OrigemFlorestal?  @relation(fields: [florestaId], references: [id], onDelete: SetNull)
+  fornecedorId     String?
+  fornecedor       Fornecedor?       @relation(fields: [fornecedorId], references: [id], onDelete: SetNull)
+  motoristaId      String?
+  motoristaCad     Motorista?        @relation(fields: [motoristaId], references: [id], onDelete: SetNull)
+  classeDiametro   ClasseDiametro?
+  pesoT            Float? // toneladas
+  chaveOffline     String?           @unique
+  origem           String? // nome da floresta/fornecedor no momento (histórico)
+  talhao           String? // (antigo)
+  motorista        String? // nome no momento da carga
+  placa            String? // placa do caminhão no momento da carga
+  placaJulieta     String?
   comprimentoMedio Float? // m — usado no volume estimado
   observacoes      String?
   responsavelId    String
@@ -556,7 +577,12 @@ enum TipoEstoque {
 model LevantamentoEstoque {
   id            String        @id @default(cuid())
   data          DateTime
-  tipo          TipoEstoque
+  tipo          TipoEstoque? // (antigo)
+  local         LocalEstoque?
+  estufaId      String?
+  estufa        Estufa?       @relation(fields: [estufaId], references: [id], onDelete: SetNull)
+  espessura     Int?
+  chaveOffline  String?       @unique
   observacoes   String?
   responsavelId String
   responsavel   Usuario       @relation(fields: [responsavelId], references: [id])
@@ -575,6 +601,7 @@ model ItemEstoque {
   comprimento    Float // m
   grades         Int?
   pacotes        Int?
+  pecas          Int?
   m3             Float
 
   @@index([levantamentoId])
@@ -590,9 +617,9 @@ enum TipoOrigem {
 
 /// Floresta / fazenda de onde vêm as toras.
 model OrigemFlorestal {
-  id           String     @id @default(cuid())
+  id           String       @id @default(cuid())
   nome         String
-  tipo         TipoOrigem @default(TERCEIRO)
+  tipo         TipoOrigem   @default(TERCEIRO)
   proprietario String? // proprietário ou fornecedor
   municipio    String?
   uf           String?
@@ -600,9 +627,10 @@ model OrigemFlorestal {
   anoPlantio   Int?
   areaHa       Float?
   observacoes  String?
-  ativo        Boolean    @default(true)
-  criadoEm     DateTime   @default(now())
+  ativo        Boolean      @default(true)
+  criadoEm     DateTime     @default(now())
   colheitas    Colheita[]
+  cargas       CargaToras[]
 }
 
 /// Derrubada (colheita) de um talhão: o começo da história de cada pacote.
@@ -651,6 +679,8 @@ model Pacote {
   id           String           @id @default(cuid())
   numero       Int              @unique @default(autoincrement())
   status       StatusPacote
+  pedidoId     String?
+  pedido       Pedido?          @relation(fields: [pedidoId], references: [id], onDelete: SetNull)
   boletimId    String? // dia em que a madeira foi serrada
   boletim      BoletimProducao? @relation(fields: [boletimId], references: [id], onDelete: SetNull)
   cicloId      String? // ciclo de estufa em que secou
@@ -693,4 +723,92 @@ model EventoPacote {
   criadoEm  DateTime   @default(now())
 
   @@index([pacoteId, criadoEm])
+}
+
+// ---------- Escopo v2: cadastros, pedidos e lotes da serraria ----------
+
+enum ClasseDiametro {
+  FINA
+  MEDIA
+  GROSSA
+}
+
+enum ClasseMadeira {
+  OTIMO
+  BOM
+  REGULAR
+}
+
+enum StatusPedido {
+  ABERTO
+  CONCLUIDO
+}
+
+enum LocalEstoque {
+  GRADE
+  PACOTE
+  ESTUFA
+  VERDE
+}
+
+model Fornecedor {
+  id        String       @id @default(cuid())
+  nome      String       @unique
+  documento String? // CNPJ/CPF
+  telefone  String?
+  ativo     Boolean      @default(true)
+  criadoEm  DateTime     @default(now())
+  cargas    CargaToras[]
+}
+
+model Motorista {
+  id            String       @id @default(cuid())
+  nome          String
+  placaCaminhao String
+  placaJulieta  String?
+  telefone      String?
+  ativo         Boolean      @default(true)
+  criadoEm      DateTime     @default(now())
+  cargas        CargaToras[]
+}
+
+/// Pedido do cliente: a produção da serraria é lançada já ligada a ele.
+model Pedido {
+  id          String       @id @default(cuid())
+  numero      String       @unique
+  cliente     String
+  destino     String?
+  observacoes String?
+  status      StatusPedido @default(ABERTO)
+  criadoEm    DateTime     @default(now())
+  lotes       Lote[]
+  pacotes     Pacote[]
+}
+
+/// Lançamento da grade da serraria (uma espessura, um pedido) — vira etiqueta com código de barras e QR.
+model Lote {
+  id           String          @id @default(cuid())
+  numero       Int             @unique @default(autoincrement())
+  boletimId    String
+  boletim      BoletimProducao @relation(fields: [boletimId], references: [id], onDelete: Cascade)
+  pedidoId     String
+  pedido       Pedido          @relation(fields: [pedidoId], references: [id])
+  espessura    Int
+  criadoPorId  String
+  criadoPor    Usuario         @relation(fields: [criadoPorId], references: [id])
+  criadoEm     DateTime        @default(now())
+  chaveOffline String?         @unique
+  itens        ItemProducao[]
+
+  @@index([boletimId])
+  @@index([pedidoId])
+}
+
+/// Configuração padrão da serraria (meta e horas que vêm preenchidas no boletim).
+model ConfigSerraria {
+  id             String   @id @default("padrao")
+  metaDiariaM3   Float
+  horasDia       Float
+  rendimentoMeta Float?
+  atualizadoEm   DateTime @updatedAt
 }

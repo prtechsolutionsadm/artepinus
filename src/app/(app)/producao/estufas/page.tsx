@@ -51,7 +51,7 @@ export default async function EstufasPage() {
       </Titulo>
 
       {estufas.length === 0 ? (
-        <Vazio>Nenhuma estufa cadastrada. Cadastre em Produção → Cadastros.</Vazio>
+        <Vazio>Nenhuma estufa cadastrada. Cadastre em Cadastros → Estufas.</Vazio>
       ) : (
         <ul className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {estufas.map((e) => {

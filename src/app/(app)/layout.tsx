@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const salvo = moduloSalvo((await cookies()).get(COOKIE_MODULO)?.value);
   const perfilLabel = [
     temModulo(eu, "manutencao") ? PERFIL[eu.perfil] : null,
-    eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? `Produção: ${PERFIL_PRODUCAO[eu.perfilProducao]}` : null,
+    eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? `Acesso: ${PERFIL_PRODUCAO[eu.perfilProducao]}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -41,7 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </header>
         <main className="mx-auto max-w-3xl px-4 pb-16 pt-6">
           <p role="status" className="mb-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
-            Seu usuário ainda não tem acesso ao sistema de produção. Fale com o gerente para liberar o seu perfil.
+            Seu usuário ainda não tem acesso ao sistema. Fale com o gerente para liberar o seu perfil.
           </p>
           {children}
           <Rodape className="mt-12 border-t border-stone-200/70 pt-6" />

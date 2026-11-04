@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, CameraOff, Search } from "lucide-react";
-import { numeroDoCodigo } from "@/lib/rastreio";
+import { lerCodigo } from "@/lib/rastreio";
+
+const destino = (c: { tipo: "pacote" | "lote"; numero: number }) => `/producao/${c.tipo === "lote" ? "lotes" : "pacotes"}/${c.numero}`;
 
 type Detector = { detect: (fonte: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 type DetectorCtor = new (opcoes: { formats: string[] }) => Detector;
 
 /**
- * Lê o QR da etiqueta pela câmera (BarcodeDetector, disponível no Chrome/Android).
+ * Lê o QR ou o código de barras da etiqueta (pacote ou lote) pela câmera (BarcodeDetector, disponível no Chrome/Android).
  * Onde não houver, a câmera nativa do celular lê o QR e abre o link; ou digita o código.
  */
 export function Escaner() {
@@ -35,14 +37,14 @@ export function Escaner() {
         video.current.srcObject = stream;
         await video.current.play();
         const Ctor = (window as unknown as { BarcodeDetector: DetectorCtor }).BarcodeDetector;
-        const detector = new Ctor({ formats: ["qr_code"] });
+        const detector = new Ctor({ formats: ["qr_code", "code_128"] });
         while (!parar) {
           const lidos = await detector.detect(video.current).catch(() => []);
-          const n = lidos.map((l) => numeroDoCodigo(l.rawValue)).find((x) => x);
-          if (n) {
+          const c = lidos.map((l) => lerCodigo(l.rawValue)).find((x) => x);
+          if (c) {
             parar = true;
             navigator.vibrate?.(80);
-            router.push(`/producao/pacotes/${n}`);
+            router.push(destino(c));
             break;
           }
           await new Promise((r) => setTimeout(r, 250));
@@ -60,9 +62,9 @@ export function Escaner() {
 
   function abrir(e: React.FormEvent) {
     e.preventDefault();
-    const n = numeroDoCodigo(codigo);
-    if (!n) return setErro("Código inválido. Ex.: PCT-000123 ou 123");
-    router.push(`/producao/pacotes/${n}`);
+    const c = lerCodigo(codigo);
+    if (!c) return setErro("Código inválido. Ex.: PCT-000123, LOT-000045 ou 123");
+    router.push(destino(c));
   }
 
   return (
@@ -82,25 +84,25 @@ export function Escaner() {
           ) : (
             <button type="button" onClick={() => (setErro(null), setLigada(true))} className="flex w-full flex-col items-center gap-2 px-6 py-10 text-marca-700">
               <Camera className="h-10 w-10" />
-              <span className="text-lg font-semibold">Abrir câmera e ler o QR</span>
-              <span className="text-sm text-stone-500">Aponte para a etiqueta do pacote</span>
+              <span className="text-lg font-semibold">Abrir câmera e ler a etiqueta</span>
+              <span className="text-sm text-stone-500">QR Code ou código de barras do pacote ou do lote</span>
             </button>
           )}
         </section>
       )}
       {suportado === false && (
         <p className="cartao text-sm text-stone-600">
-          Neste aparelho, use a <b>câmera do celular</b> direto na etiqueta: o QR abre a página do pacote. Ou digite o código abaixo.
+          Neste aparelho, use a <b>câmera do celular</b> direto na etiqueta: o QR abre a página do pacote ou do lote. Ou digite o código abaixo.
         </p>
       )}
       <form onSubmit={abrir} className="cartao">
-        <label htmlFor="codigo">Código do pacote</label>
+        <label htmlFor="codigo">Código do pacote ou lote</label>
         <div className="flex gap-2">
           <input
             id="codigo"
             value={codigo}
             onChange={(e) => setCodigo(e.target.value)}
-            placeholder="PCT-000123"
+            placeholder="PCT-000123 ou LOT-000045"
             autoCapitalize="characters"
             inputMode="text"
             className="campo font-mono"

@@ -57,9 +57,9 @@ export const MANUAL: Secao[] = [
           { tipo: "lista", itens: [
             "O sistema fica atrás do site da empresa: no site, toque em Acessar sistema (ou abra o app instalado).",
             "No computador: o menu fica na lateral esquerda; o sininho de notificações fica no topo.",
-            "A tela Início mostra o que precisa de atenção (boletim não lançado, estufa passando da previsão, pacotes por formar) e os botões para lançar cada etapa.",
-            "O menu segue a ordem do processo: 1 Florestas e colheitas → 2 Recebimento de toras → 3 Serraria → 4 Estufas → 5 Pacotes e expedição. Indicadores e estoque ficam em Gestão.",
-            "No celular: use a barra de baixo — Início, Pacotes, o botão do meio para ler o QR de um pacote, Estufas e Mais. Em Mais estão as demais telas e o botão Sair.",
+            "A tela Início mostra o que precisa de atenção (dia sem apontamento, estufa passando da previsão, pacotes por formar) e os botões para lançar cada etapa.",
+            "O menu segue a ordem do processo: 1 Recebimento de toras → 2 Serraria → 3 Estufas → 4 Pacotes e expedição. Indicadores e inventário ficam em Gestão; pedidos e demais cadastros, em Cadastros.",
+            "No celular: use a barra de baixo — Início, Pacotes, o botão do meio para ler a etiqueta de um pacote ou lote, Estufas e Mais. Em Mais estão as demais telas e o botão Sair.",
             "A busca do topo encontra requisições pelo número (ex.: 25 ou #00025), título ou código do equipamento.",
           ] },
         ],
@@ -352,7 +352,7 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "passos", itens: [
             "Vá em Usuários e abra Novo usuário.",
-            "Informe nome, login (nome.sobrenome, sem acentos), o perfil na Manutenção e o perfil na Produção.",
+            "Informe nome, login (nome.sobrenome, sem acentos), o perfil na Manutenção e o perfil no sistema.",
             "Defina uma senha inicial (mín. 6 caracteres) e deixe marcado Exigir troca da senha no primeiro acesso.",
             "Toque em Criar usuário e passe o login e a senha para a pessoa.",
           ] },
@@ -362,17 +362,17 @@ export const MANUAL: Secao[] = [
       {
         titulo: "Perfis de acesso",
         blocos: [
-          { tipo: "texto", texto: "Cada usuário tem um perfil por módulo. Quem só trabalha na produção fica com Sem acesso na Manutenção; quem não usa a produção fica com Sem acesso na Produção. Todo usuário precisa de pelo menos um módulo. O Gerente tem acesso total aos dois." },
+          { tipo: "texto", texto: "Cada usuário tem um perfil por módulo. Quem só trabalha na serraria fica com Sem acesso na Manutenção; quem não usa a serraria fica com Sem acesso nela. Todo usuário precisa de pelo menos um módulo. O Gerente tem acesso total aos dois." },
           { tipo: "termos", itens: [
             ["Gerente", "Acesso a tudo: requisições, cadastros, preventivas, indicadores, relatórios, usuários, setores e auditoria."],
             ["Supervisor", "Coordena a manutenção: atribui, agenda, cancela, cadastra equipamentos, preventivas e checklists, vê indicadores e relatórios."],
             ["Manutentor", "Executa: atualiza status, assume requisições, lança horas, marca checklist, anexa fotos do serviço e cadastra equipamentos."],
             ["Operador", "Abre requisições, comenta, envia fotos e acompanha."],
           ] },
-          { tipo: "texto", texto: "Na Produção:" },
+          { tipo: "texto", texto: "Na serraria (perfil no sistema):" },
           { tipo: "termos", itens: [
-            ["Supervisor", "Lança e corrige qualquer boletim, ciclo, carga ou levantamento, exclui lançamentos e cuida dos cadastros (metas, estufas e motivos de parada)."],
-            ["Apontador", "O encarregado: lança o boletim do turno, ciclos de estufa, cargas de toras e levantamentos de estoque, e corrige o que ele mesmo lançou."],
+            ["Supervisor", "Lança e corrige qualquer boletim, ciclo, carga ou levantamento, exclui lançamentos e cuida dos cadastros (pedidos, florestas, fornecedores, motoristas, estufas, motivos e configuração)."],
+            ["Apontador", "O encarregado: aponta os lotes da serraria, ciclos de estufa, cargas de toras e o inventário, e corrige o que ele mesmo lançou."],
             ["Consulta", "Vê painéis, boletins e relatórios, sem lançar nada."],
           ] },
         ],
@@ -389,78 +389,76 @@ export const MANUAL: Secao[] = [
   },
   {
     id: "producao-boletim",
-    titulo: "Boletim da serraria",
-    resumo: "Lançar a produção e as paradas no fim do turno",
+    titulo: "Serraria: apontamento em grade",
+    resumo: "Apontar os lotes por pedido, imprimir a etiqueta e lançar paradas e toras",
     modulo: "producao",
     paraProducao: "lancar",
     topicos: [
       {
-        titulo: "Lançar o boletim do dia",
+        titulo: "Apontar um lote",
         blocos: [
-          { tipo: "texto", texto: "O encarregado preenche um boletim por dia, no fim do turno. Ele substitui a planilha de controle de produção da serraria." },
+          { tipo: "texto", texto: "Cada lote é a madeira serrada de um pedido em uma espessura. O boletim do dia é criado sozinho no primeiro lote e junta todos os lotes do dia." },
           { tipo: "passos", itens: [
-            "Na Produção, toque em + Novo boletim.",
-            "Confira a data, a meta (m³) e as horas programadas — vêm preenchidas com a meta do mês.",
-            "Em Produção por bitola, toque em Adicionar bitola e informe tipo (Bom, Aproveitamento ou Refugo), mercado, espessura, largura e comprimento em milímetros e o número de peças. O m³ é calculado sozinho.",
-            "Use Repetir para lançar outra quantidade da mesma bitola sem digitar as medidas de novo.",
-            "Em Paradas da linha, toque em Adicionar parada, escolha o motivo (pelo código da planilha), confira o centro e o equipamento e informe quantas vezes parou e os minutos.",
-            "Se as toras consumidas forem conhecidas, abra Toras consumidas no dia e informe a quantidade e o volume — isso calcula o rendimento.",
-            "Confira o Resumo no fim da tela e toque em Lançar boletim.",
+            "Toque em Apontar serraria (no Início ou em Serraria).",
+            "Confira a data e escolha o Pedido. A meta e as horas do dia aparecem só para leitura (vêm da Configuração).",
+            "Escolha a espessura no alto: 23, 25, 32 ou 38 mm.",
+            "Na grade, cada linha é um comprimento e cada coluna uma largura (50, 85, 101, 125, 135). Digite as peças de cada cruzamento — Enter pula para a próxima célula; os botões − e + ajustam de uma em uma.",
+            "A classe sai sozinha pelo comprimento: 2,50 e 2,15 m Ótimo; 1,65 m Bom; 1,30, 1,00 e 0,70 m Regular. O m³ é calculado sozinho.",
+            "Toque em Lançar e gerar etiqueta. Imprima a etiqueta do lote (QR Code + código de barras LOT-000123) e prenda na madeira.",
           ] },
-          { tipo: "dica", texto: "Motivo que não está na lista? Deixe — Outro (descrever) — e explique na observação. Peça ao supervisor para cadastrar o motivo se ele se repetir." },
-          { tipo: "atencao", texto: "Existe um boletim por data. Se o dia já foi lançado, abra-o em Boletins e toque em Editar." },
+          { tipo: "dica", texto: "Sem internet? Pode apontar normalmente: o lote fica guardado no aparelho e é enviado sozinho quando a conexão voltar. A etiqueta é gerada após o envio." },
         ],
       },
       {
-        titulo: "Parada mecânica ou elétrica: abrir requisição",
+        titulo: "Paradas e toras do dia",
         blocos: [
-          { tipo: "texto", texto: "No boletim salvo, as paradas mecânicas e elétricas têm o botão Abrir requisição. Ele cria uma requisição corretiva de prioridade alta na Manutenção, já com o equipamento, a data e o tempo parado, e liga a requisição ao boletim." },
-          { tipo: "dica", texto: "O botão aparece para quem também tem acesso ao módulo de Manutenção." },
+          { tipo: "passos", itens: [
+            "Abra o boletim do dia em Serraria e toque em Paradas e toras.",
+            "Em Paradas da linha, escolha o motivo, confira o centro e o equipamento e informe quantas vezes parou e os minutos.",
+            "Em Toras serradas no dia, marque as cargas que foram serradas e, se souber, a quantidade e o volume de toras (para o rendimento).",
+          ] },
+          { tipo: "atencao", texto: "Existe um boletim por data. Meta e horas não são editadas no boletim: mudam só em Cadastros → Configuração (valem para os próximos dias)." },
         ],
       },
     ],
   },
   {
     id: "producao-rastreio",
-    titulo: "Pacotes e QR Code",
-    resumo: "Formar pacotes, imprimir etiquetas, ler o QR e ver a história da madeira",
+    titulo: "Pacotes, etiquetas e expedição",
+    resumo: "Formar pacotes a partir da estufa, ler etiquetas e registrar a saída",
     modulo: "producao",
     topicos: [
       {
         titulo: "Como a história do pacote é montada",
         blocos: [
-          { tipo: "texto", texto: "Cada etapa registrada no sistema liga a madeira à etapa anterior. Quanto mais ligações, mais completa fica a história do pacote:" },
           { tipo: "passos", itens: [
-            "Florestas e colheitas: cadastre a floresta e registre a colheita (derrubada) do talhão.",
-            "Recebimento de toras: na carga, escolha a colheita de onde vieram as toras.",
-            "Boletim da serraria: em Toras serradas no dia, marque as cargas que foram serradas.",
-            "Ciclo de estufa: em Madeira de quais dias?, marque os dias de serraria cuja madeira entrou na estufa.",
-            "Pacote: ao formar, escolha o ciclo de estufa (pacote seco) ou o dia de serraria (pacote verde).",
+            "Recebimento de toras: a carga já informa a floresta, o fornecedor e o motorista.",
+            "Serraria: no boletim, marque as cargas serradas no dia; cada lote fica ligado ao pedido.",
+            "Estufa: em Madeira de quais dias?, marque os dias de serraria cuja madeira entrou na estufa.",
+            "Pacote: ao formar, escolha a estufa (pacote seco) ou o dia de serraria (pacote verde).",
           ] },
-          { tipo: "dica", texto: "A madeira de vários dias e cargas se mistura no processo. Por isso a origem do pacote mostra o conjunto de cargas e colheitas que entraram na produção dele." },
+          { tipo: "dica", texto: "A madeira de vários dias e cargas se mistura no processo. Por isso a origem do pacote mostra o conjunto de cargas e florestas que formaram ele." },
         ],
       },
       {
-        titulo: "Formar pacotes e imprimir etiquetas",
+        titulo: "Formar pacotes",
         blocos: [
           { tipo: "passos", itens: [
-            "Em Pacotes, toque em Formar pacote (ou use o botão no ciclo de estufa concluído / no boletim do dia).",
-            "Escolha de onde vem a madeira, informe a bitola em mm, as peças, a classe e o local.",
-            "Para vários pacotes iguais, informe a quantidade — cada um ganha o seu código (PCT-000123).",
-            "Toque em Imprimir etiquetas e prenda a etiqueta no pacote.",
+            "Em Pacotes, toque em Formar pacote.",
+            "Escolha a estufa: aparece a madeira que está nela. Toque no material — bitola, peças e classe vêm preenchidas.",
+            "Confira o pedido (sugerido pelos lotes da serraria) e, para vários pacotes iguais, a quantidade.",
+            "Toque em Formar e imprima as etiquetas.",
           ] },
-          { tipo: "texto", texto: "Para reimprimir, abra o pacote e toque em Etiqueta, ou selecione vários na lista e toque em Etiquetas." },
         ],
       },
       {
-        titulo: "Ler o QR e registrar o que aconteceu",
+        titulo: "Ler a etiqueta e registrar a saída",
         blocos: [
           { tipo: "lista", itens: [
-            "Aponte a câmera do celular para a etiqueta, ou toque no botão do meio da barra de baixo (Ler QR). Também dá para digitar o código.",
-            "A tela mostra toda a história: floresta e colheita, cargas de toras, dias de serraria, estufa, formação e expedição.",
-            "Em Registrar: envie um pacote verde para a estufa, registre a expedição (cliente, nota e destino), mude o local ou anote uma observação.",
-            "Quando o ciclo de estufa é concluído, os pacotes que estavam nele passam sozinhos para Seco.",
-            "Para carregar um caminhão: em Pacotes, marque os pacotes e toque em Expedir.",
+            "Toque no botão do meio da barra de baixo (Ler etiqueta) e aponte para o QR Code ou para o código de barras — de pacote ou de lote. Também dá para digitar o código.",
+            "No pacote: envie para a estufa, registre a saída ou anote uma observação.",
+            "A expedição é só a baixa física: cliente e destino já vêm do pedido.",
+            "Para carregar um caminhão: em Pacotes, marque os pacotes e toque em Registrar saída.",
           ] },
         ],
       },
@@ -468,20 +466,20 @@ export const MANUAL: Secao[] = [
   },
   {
     id: "producao-indicadores",
-    titulo: "Indicadores de produção",
-    resumo: "OEE, disponibilidade, Pareto das paradas e comparativo mensal",
+    titulo: "Indicadores",
+    resumo: "OEE, disponibilidade, classes da madeira, paradas e comparativo mensal",
     modulo: "producao",
     topicos: [
       {
         titulo: "Como os índices são calculados",
         blocos: [
-          { tipo: "texto", texto: "São as mesmas fórmulas da planilha de controle da serraria. No mês, os índices são calculados sobre os totais (não é a média dos dias)." },
+          { tipo: "texto", texto: "No mês, os índices são calculados sobre os totais (não é a média dos dias)." },
           { tipo: "termos", itens: [
             ["Disponibilidade", "(tempo programado − tempo parado) ÷ tempo programado."],
-            ["Produtividade", "produção (m³) ÷ meta (m³)."],
-            ["Qualidade", "1 − refugo ÷ produção."],
-            ["OEE", "Disponibilidade × Produtividade × Qualidade."],
-            ["Rendimento", "produção (m³) ÷ m³ de toras consumidas (quando informado no boletim)."],
+            ["Produtividade", "serrado (m³) ÷ meta (m³)."],
+            ["OEE", "Disponibilidade × Produtividade."],
+            ["Rendimento", "serrado (m³) ÷ m³ de toras consumidas (quando informado no boletim)."],
+            ["Classe", "pelo comprimento: 2,50/2,15 m Ótimo; 1,65 m Bom; 1,30/1,00/0,70 m Regular."],
           ] },
         ],
       },
@@ -489,14 +487,11 @@ export const MANUAL: Secao[] = [
         titulo: "O que tem no painel",
         blocos: [
           { tipo: "lista", itens: [
-            "Em Gestão → Indicadores, escolha o mês no alto: as setas passam de mês em mês e, tocando no nome do mês, abre um calendário (os meses com lançamentos têm um ponto verde).",
-            "O painel tem abas: Visão geral (OEE e os índices, com a variação contra o mês anterior), Paradas, Pacotes e estoque e Comparativo mensal.",
-            "Produção diária por tipo (bom, aproveitamento e refugo) com a marca da meta de cada dia — toque em Ver tabela para os números.",
-            "Paradas por centro (mecânica, elétrica e operacional), o Pareto dos motivos e as paradas por equipamento.",
-            "Comparativo mensal com produção, meta, refugo, tempo parado e todos os índices.",
-            "Pacotes e expedição: formados e expedidos no mês, estoque de pacotes, % rastreados até a floresta e tempo médio até a expedição.",
-            "Resumo das estufas, das toras recebidas e do último levantamento de estoque.",
-            "O botão Excel baixa o mês completo: comparativo, boletins, produção por bitola, paradas e Pareto.",
+            "Em Gestão → Indicadores, escolha o mês no alto (as setas passam de mês em mês; tocando no nome abre um calendário).",
+            "Abas: Visão geral, Paradas, Pacotes e estoque e Comparativo mensal.",
+            "Serrado por dia, por classe (Ótimo, Bom, Regular), com a meta de cada dia.",
+            "Paradas por centro, Pareto dos motivos e paradas por equipamento.",
+            "O botão Excel baixa o mês completo: comparativo, boletins, bitolas (com lote e pedido), paradas e Pareto.",
           ] },
         ],
       },
@@ -505,7 +500,7 @@ export const MANUAL: Secao[] = [
   {
     id: "producao-estufas",
     titulo: "Estufas",
-    resumo: "Ciclos de secagem, checklist e aclimatação",
+    resumo: "Ciclos de secagem, plantão, checklist e aclimatação",
     modulo: "producao",
     topicos: [
       {
@@ -513,20 +508,19 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "passos", itens: [
             "Em Estufas, toque em Iniciar ciclo na estufa livre.",
-            "Informe o nº do ciclo, a entrada, a previsão de saída, a umidade inicial e o plantão.",
-            "Em Madeira na estufa, lance cada bitola: espessura, largura (ex.: 85-100-125), comprimento em metros, grades e volume em m³.",
-            "Toque em Iniciar ciclo. O checklist da estufa é criado junto.",
+            "Informe o nº do ciclo, a entrada, a previsão de saída e escolha o Plantão na lista de usuários.",
+            "Em Madeira na estufa, lance cada bitola: espessura, largura, comprimento em metros, grades e volume em m³.",
+            "Marque os dias de serraria cuja madeira entrou e toque em Iniciar ciclo.",
           ] },
-          { tipo: "texto", texto: "O painel das estufas mostra há quanto tempo cada uma está secando, o volume, a previsão de saída (fica vermelho se passar) e o andamento do checklist." },
         ],
       },
       {
         titulo: "Checklist e conclusão",
         blocos: [
           { tipo: "lista", itens: [
-            "No ciclo, marque cada item do checklist como OK (✓) ou Não conforme (✗). Para item não conforme, escreva a observação.",
+            "No ciclo, marque cada item do checklist como OK (✓) ou Não conforme (✗).",
             "Ao tirar a madeira, preencha a saída e a umidade final em Concluir ciclo.",
-            "O sistema mostra quando a madeira fica liberada: 24 h no pátio e mais 24 h na fábrica (medir os pacotes de novo).",
+            "O sistema mostra quando a madeira fica liberada: 24 h no pátio e mais 24 h na fábrica.",
           ] },
         ],
       },
@@ -534,8 +528,8 @@ export const MANUAL: Secao[] = [
   },
   {
     id: "producao-toras-estoque",
-    titulo: "Toras e estoque de madeira",
-    resumo: "Recebimento de cargas por diâmetro e levantamentos de estoque",
+    titulo: "Toras e inventário",
+    resumo: "Recebimento de cargas e inventário diário da madeira",
     modulo: "producao",
     topicos: [
       {
@@ -543,21 +537,20 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "passos", itens: [
             "Em Recebimento de toras, toque em Nova carga.",
-            "Informe data, origem/fornecedor, talhão, motorista, placa e o comprimento médio das toras.",
-            "Lance a quantidade de toras por diâmetro (cm). Adicionar diâmetro já sugere o próximo diâmetro.",
-            "Toque em Registrar carga.",
+            "Escolha a floresta, o fornecedor e o motorista — as placas do caminhão e da julieta vêm sozinhas do cadastro.",
+            "Informe o comprimento médio, o diâmetro (Fina, Média ou Grossa) e o peso em toneladas.",
+            "Toque em Registrar carga. Funciona também sem internet.",
           ] },
-          { tipo: "texto", texto: "O volume mostrado é uma estimativa (cilindro pelo diâmetro e comprimento médio), útil para comparar cargas e meses." },
         ],
       },
       {
-        titulo: "Levantamento de estoque",
+        titulo: "Inventário do dia",
         blocos: [
           { tipo: "passos", itens: [
-            "Em Estoque de madeira, toque em Novo levantamento.",
-            "Escolha o estoque: madeira verde (pátio) ou seca empacotada.",
-            "Lance cada bitola com grades ou pacotes e o volume em m³.",
-            "Para o próximo levantamento, abra o anterior e use Novo a partir deste: só ajuste o que mudou.",
+            "Em Inventário de madeira, toque em Novo inventário.",
+            "Em Madeira em, escolha Grade, Pacote, Estufa (e qual estufa) ou Verde.",
+            "Escolha a espessura e preencha a grade de peças por largura × comprimento, igual à da serraria.",
+            "Salve. Faça um lançamento por local e espessura; a tela de inventário soma o último dia.",
           ] },
         ],
       },
@@ -565,18 +558,19 @@ export const MANUAL: Secao[] = [
   },
   {
     id: "producao-cadastros",
-    titulo: "Cadastros da produção",
-    resumo: "Metas do mês, estufas e motivos de parada",
+    titulo: "Cadastros",
+    resumo: "Pedidos, florestas, fornecedores, motoristas, paradas, estufas e configuração",
     modulo: "producao",
     paraProducao: "gerir",
     topicos: [
       {
-        titulo: "Metas, estufas e motivos",
+        titulo: "O que fica em Cadastros",
         blocos: [
           { tipo: "lista", itens: [
-            "Meta de produção: defina a meta diária (m³), as horas por dia e o rendimento esperado de cada mês. Os boletins do mês já vêm com esses valores.",
-            "Estufas: número, nome, capacidade e o equipamento correspondente na Manutenção.",
-            "Motivos de parada: código, descrição, centro (mecânica, elétrica, operacional) e equipamento. Desative em vez de excluir, para manter o histórico.",
+            "Pedidos: nº, cliente e destino. A serraria aponta cada lote em um pedido aberto; conclua o pedido para tirá-lo da lista.",
+            "Florestas, fornecedores e motoristas (com placa do caminhão e da julieta) usados no recebimento de toras.",
+            "Motivos de parada e estufas. Desative em vez de excluir, para manter o histórico.",
+            "Configuração: meta diária (m³), horas por dia e rendimento esperado — viram a meta e as horas (somente leitura) de cada boletim novo.",
           ] },
         ],
       },
@@ -594,7 +588,7 @@ export const MANUAL: Secao[] = [
             ["Não recebo notificações no celular", "Ative em Meu perfil neste aparelho e permita no navegador. No iPhone, instale o app na tela de início e abra por ele. Confira também se o modo Não perturbe está desligado."],
             ["Abri a requisição errada", "Comente explicando. Se ainda estiver Aberta, cancele com o motivo; senão, peça ao supervisor."],
             ["A foto não foi enviada", "Fotos muito grandes ou em formatos incomuns podem falhar. Tente tirar a foto pelo botão Tirar foto do próprio sistema."],
-            ["A tela mostra 'Sem conexão'", "Você está sem internet. Ainda é possível abrir requisições pelo + Nova; elas serão enviadas quando a conexão voltar."],
+            ["A tela mostra 'Sem conexão'", "Você está sem internet. As telas de apontamento (serraria, toras e inventário) abrem mesmo assim, se já foram usadas neste aparelho; os lançamentos são enviados quando a conexão voltar."],
             ["Não consigo concluir a requisição", "Verifique se o Serviço realizado está preenchido e se todos os itens do checklist estão marcados."],
             ["O app está com aparência antiga", "Feche e abra o app de novo (ou atualize a página) para carregar a versão mais recente."],
           ] },

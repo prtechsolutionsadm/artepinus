@@ -6,7 +6,7 @@ import { CloudOff, CloudUpload, Trash2, X } from "lucide-react";
 import { EVENTO_FILA, descartarDaFila, listarFila, sincronizarFila, type ItemFila } from "@/lib/fila-offline";
 
 /**
- * Envia a fila de requisições feitas sem internet assim que a conexão volta,
+ * Envia a fila de lançamentos feitos sem internet assim que a conexão volta,
  * mantém as páginas offline atualizadas e mostra o que ainda está pendente.
  */
 export function SincronizadorOffline() {
@@ -60,7 +60,7 @@ export function SincronizadorOffline() {
   if (enviadas) {
     return (
       <div role="status" className="nao-imprimir mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800 ring-1 ring-emerald-200">
-        <CloudUpload className="h-4 w-4" /> {enviadas} requisiç{enviadas > 1 ? "ões feitas" : "ão feita"} sem internet {enviadas > 1 ? "foram enviadas" : "foi enviada"}.
+        <CloudUpload className="h-4 w-4" /> {enviadas} lançamento{enviadas > 1 ? "s feitos" : " feito"} sem internet {enviadas > 1 ? "foram enviados" : "foi enviado"}.
         <button onClick={() => setEnviadas(0)} className="ml-auto" aria-label="Fechar">
           <X className="h-4 w-4" />
         </button>
@@ -70,7 +70,7 @@ export function SincronizadorOffline() {
   if (!online && fila.length === 0) {
     return (
       <div className="nao-imprimir mb-4 flex items-center gap-2 rounded-xl bg-stone-100 px-3 py-2 text-sm text-stone-700 ring-1 ring-stone-200">
-        <CloudOff className="h-4 w-4" /> Sem internet. Você pode abrir requisições; elas serão enviadas quando a conexão voltar.
+        <CloudOff className="h-4 w-4" /> Sem internet. Continue apontando: os lançamentos ficam guardados e são enviados quando a conexão voltar.
       </div>
     );
   }
@@ -81,7 +81,7 @@ export function SincronizadorOffline() {
       <div className="flex flex-wrap items-center gap-2">
         <CloudOff className="h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1">
-          {fila.length} requisiç{fila.length > 1 ? "ões aguardando" : "ão aguardando"} {online ? "envio" : "internet"}
+          {fila.length} lançamento{fila.length > 1 ? "s aguardando" : " aguardando"} {online ? "envio" : "internet"}
         </span>
         <button onClick={() => setAberto(!aberto)} className="font-medium underline">
           {aberto ? "Ocultar" : "Ver"}
@@ -105,7 +105,7 @@ export function SincronizadorOffline() {
                 </span>
               </span>
               <button
-                onClick={() => confirm("Descartar esta requisição? Ela não será enviada.") && descartarDaFila(i.chave)}
+                onClick={() => confirm("Descartar este lançamento? Ele não será enviado.") && descartarDaFila(i.chave)}
                 aria-label="Descartar"
                 className="grid h-8 w-8 place-items-center rounded-full hover:bg-amber-100"
               >

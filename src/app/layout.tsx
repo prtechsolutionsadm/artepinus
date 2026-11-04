@@ -9,7 +9,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? EMPRESA.site;
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "Artepinus Madeiras", template: "%s · Artepinus Madeiras" },
-  description: "Artepinus: madeira serrada de pinus e sistema de produção",
+  description: "Artepinus: madeira serrada de pinus",
   applicationName: "Artepinus Madeiras",
   authors: [{ name: "PR Tech Solutions" }],
   creator: "PR Tech Solutions",

@@ -5,6 +5,16 @@ import type { StatusPacote, TipoEvento, TipoOrigem } from "@/generated/prisma/en
 export const codigoPacote = (n: number) => `PCT-${String(n).padStart(6, "0")}`;
 export const codigoCarga = (n: number) => `CT-${String(n).padStart(5, "0")}`;
 export const codigoColheita = (n: number) => `COL-${String(n).padStart(4, "0")}`;
+export const codigoLote = (n: number) => `LOT-${String(n).padStart(6, "0")}`;
+
+/** Código lido (código de barras, QR ou digitado) → pacote ou lote. */
+export function lerCodigo(texto: string): { tipo: "pacote" | "lote"; numero: number } | null {
+  const t = texto.trim();
+  const lote = t.match(/\/l\/(\d+)/i) ?? t.match(/^LOT[-\s]?0*(\d{1,9})$/i);
+  if (lote) return { tipo: "lote", numero: Number(lote[1]) };
+  const n = numeroDoCodigo(t);
+  return n ? { tipo: "pacote", numero: n } : null;
+}
 
 /** "PCT-000123", "pct123", "123" ou o link do QR → 123. */
 export function numeroDoCodigo(texto: string): number | null {

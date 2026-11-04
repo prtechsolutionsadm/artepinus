@@ -1,15 +1,16 @@
 import "server-only";
 import { db } from "@/lib/db";
+import type { LocalEstoque } from "@/generated/prisma/enums";
 import { arred, calcularKpis, dateParaDia, intervaloMes, m3Toras, mesesAntes, type Kpis } from "@/lib/producao";
 
 const incluirBoletim = {
-  itens: { select: { tipo: true, m3: true } },
+  itens: { select: { tipo: true, m3: true, comprimento: true } },
   paradas: { select: { centro: true, minutos: true, ocorrencias: true, motivoId: true, descricao: true, equipamentoId: true } },
 } as const;
 
 export type MesComparativo = { mes: string; dias: number; kpis: Kpis };
 
-/** Dados do painel de produção: o mês escolhido e a comparação com os meses anteriores. */
+/** Dados do painel de indicadores: o mês escolhido e a comparação com os meses anteriores. */
 export async function painelProducao(mes: string, mesesComparar = 6) {
   const inicioComparacao = mesesAntes(mes, mesesComparar - 1);
   const [boletins, motivos, equipamentos, ciclosAtivos, ciclosMes, cargasToras, ultimos] = await Promise.all([
@@ -26,11 +27,7 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
       select: { entrada: true, saida: true, cargas: { select: { m3: true } } },
     }),
     db.cargaToras.findMany({ where: { data: intervaloMes(mes) }, include: { itens: true } }),
-    Promise.all(
-      (["VERDE", "EMPACOTADA"] as const).map((tipo) =>
-        db.levantamentoEstoque.findFirst({ where: { tipo }, orderBy: { data: "desc" }, include: { itens: { select: { m3: true } } } }),
-      ),
-    ),
+    db.levantamentoEstoque.findFirst({ where: { local: { not: null } }, orderBy: { data: "desc" }, select: { data: true } }),
   ]);
 
   const doMes = boletins.filter((b) => dateParaDia(b.data).startsWith(mes));
@@ -44,15 +41,15 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
     comparativo.push({ mes: m, dias: lista.length, kpis: calcularKpis(lista) });
   }
 
-  // Produção diária do mês, por tipo
+  // Serrado por dia no mês, por classe (Ótimo/Bom/Regular)
   const diario = doMes.map((b) => {
     const k = calcularKpis([b]);
     return {
       dia: dateParaDia(b.data),
       id: b.id,
-      bom: arred(k.bomM3, 2),
-      aproveitamento: arred(k.aproveitamentoM3, 2),
-      refugo: arred(k.refugoM3, 2),
+      otimo: arred(k.porClasse.OTIMO, 2),
+      bom: arred(k.porClasse.BOM, 2),
+      regular: arred(k.porClasse.REGULAR, 2),
       metaM3: b.metaM3,
       kpis: k,
     };
@@ -99,29 +96,36 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
       acc.quantidade += qtd;
       if (c.comprimentoMedio) acc.m3 += c.itens.reduce((s, i) => s + m3Toras(i.diametro, c.comprimentoMedio!, i.quantidade), 0);
       acc.somaDiametro += c.itens.reduce((s, i) => s + i.diametro * i.quantidade, 0);
+      acc.pesoT += c.pesoT ?? 0;
+      if (c.classeDiametro) acc.porClasse[c.classeDiametro] += c.pesoT ?? 0;
       return acc;
     },
-    { cargas: 0, quantidade: 0, m3: 0, somaDiametro: 0 },
+    { cargas: 0, quantidade: 0, m3: 0, somaDiametro: 0, pesoT: 0, porClasse: { FINA: 0, MEDIA: 0, GROSSA: 0 } },
   );
 
   // Pacotes (rastreabilidade): formados e expedidos no mês, estoque atual
-  const temColheita = (b: { cargas: { colheitaId: string | null }[] } | null | undefined) => !!b?.cargas.some((c) => c.colheitaId);
+  type ComCargas = { cargas: { colheitaId: string | null; florestaId: string | null }[] } | null | undefined;
+  const temColheita = (b: ComCargas) => !!b?.cargas.some((c) => c.florestaId || c.colheitaId);
+  const selCargas = { select: { cargas: { select: { colheitaId: true, florestaId: true } } } } as const;
   const [formados, expedidos, emEstoque] = await Promise.all([
     db.pacote.findMany({
       where: { criadoEm: intervaloMesSP(mes), status: { not: "CANCELADO" } },
       select: {
         m3: true,
-        boletim: { select: { cargas: { select: { colheitaId: true } } } },
-        ciclo: { select: { boletins: { select: { cargas: { select: { colheitaId: true } } } } } },
+        boletim: selCargas,
+        ciclo: { select: { boletins: selCargas } },
       },
     }),
-    db.pacote.findMany({ where: { status: "EXPEDIDO", expedidoEm: intervaloMesSP(mes) }, select: { m3: true, criadoEm: true, expedidoEm: true, cliente: true } }),
+    db.pacote.findMany({ where: { status: "EXPEDIDO", expedidoEm: intervaloMesSP(mes) }, select: { m3: true, criadoEm: true, expedidoEm: true, cliente: true, pedido: { select: { cliente: true } } } }),
     db.pacote.groupBy({ by: ["status"], where: { status: { in: ["VERDE", "EM_ESTUFA", "SECO"] } }, _count: true, _sum: { m3: true } }),
   ]);
   const rastreados = formados.filter((p) => temColheita(p.boletim) || !!p.ciclo?.boletins.some(temColheita)).length;
   const diasEmEstoque = expedidos.map((p) => (p.expedidoEm!.getTime() - p.criadoEm.getTime()) / 864e5);
   const porCliente = new Map<string, number>();
-  for (const p of expedidos) porCliente.set(p.cliente ?? "—", (porCliente.get(p.cliente ?? "—") ?? 0) + p.m3);
+  for (const p of expedidos) {
+    const cli = p.pedido?.cliente ?? p.cliente ?? "—";
+    porCliente.set(cli, (porCliente.get(cli) ?? 0) + p.m3);
+  }
   const pacotes = {
     formados: formados.length,
     m3Formado: formados.reduce((s, p) => s + p.m3, 0),
@@ -133,7 +137,13 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
     porCliente: [...porCliente].map(([rotulo, m3]) => ({ rotulo, m3 })).sort((a, b) => b.m3 - a.m3),
   };
 
-  const estoque = ultimos.map((l) => (l ? { tipo: l.tipo, data: l.data, m3: l.itens.reduce((s, i) => s + i.m3, 0) } : null));
+  // Último inventário diário: m³ por local ("Madeira em")
+  const doDia = ultimos
+    ? await db.levantamentoEstoque.findMany({ where: { data: ultimos.data, local: { not: null } }, select: { local: true, itens: { select: { m3: true } } } })
+    : [];
+  const porLocal: Partial<Record<LocalEstoque, number>> = {};
+  for (const l of doDia) porLocal[l.local!] = (porLocal[l.local!] ?? 0) + l.itens.reduce((s, i) => s + i.m3, 0);
+  const estoque = ultimos ? { data: ultimos.data, porLocal } : null;
 
   return {
     kpis,

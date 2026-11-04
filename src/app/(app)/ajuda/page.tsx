@@ -17,7 +17,7 @@ export default async function AjudaPage() {
   );
   const perfis = [
     temModulo(eu, "manutencao") ? `Manutenção: ${PERFIL[eu.perfil]}` : null,
-    temModulo(eu, "producao") ? `Produção: ${eu.perfil === "ADMIN" || eu.perfil === "GERENTE" ? "acesso total" : PERFIL_PRODUCAO[eu.perfilProducao!]}` : null,
+    temModulo(eu, "producao") ? `Acesso: ${eu.perfil === "ADMIN" || eu.perfil === "GERENTE" ? "acesso total" : PERFIL_PRODUCAO[eu.perfilProducao!]}` : null,
   ].filter(Boolean);
 
   return (

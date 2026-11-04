@@ -1,12 +1,13 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { codigoLote } from "@/lib/rastreio";
 import ExcelJS from "exceljs";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { CREDITO, EMPRESA, direitos } from "@/lib/empresa";
 import { painelProducao } from "@/lib/indicadores-producao";
 import { podeProducao } from "@/lib/permissoes";
-import { CENTRO, MERCADO, TIPO_PRODUTO, calcularKpis, hojeSP, intervaloMes, mesDe, nomeMes } from "@/lib/producao";
+import { CENTRO, CLASSE_MADEIRA, MERCADO, calcularKpis, classeDoComprimento, hojeSP, intervaloMes, mesDe, nomeMes } from "@/lib/producao";
 import { usuarioAtual } from "@/lib/session";
 
 const VERDE = "FF177009";
@@ -19,7 +20,7 @@ const borda: Partial<ExcelJS.Borders> = {
 const PCT = "0.0%";
 const M3 = "#,##0.000";
 
-/** Exporta o mês da produção: resumo/comparativo, boletins, bitolas e paradas. */
+/** Exporta o mês da serraria: resumo/comparativo, boletins, bitolas e paradas. */
 export async function GET(req: NextRequest) {
   const eu = await usuarioAtual();
   if (!eu || eu.trocarSenha) return NextResponse.redirect(new URL("/login", req.url));
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
       orderBy: { data: "asc" },
       include: {
         responsavel: { select: { nome: true } },
-        itens: { orderBy: [{ tipo: "asc" }, { espessura: "asc" }, { largura: "asc" }] },
+        itens: { orderBy: [{ espessura: "asc" }, { largura: "asc" }, { comprimento: "desc" }], include: { lote: { select: { numero: true, pedido: { select: { numero: true } } } } } },
         paradas: { include: { motivo: true, equipamento: { select: { nome: true } } }, orderBy: { minutos: "desc" } },
       },
     }),
@@ -102,40 +103,42 @@ export async function GET(req: NextRequest) {
   const colKpi = [
     { header: "Mês", key: "mes", width: 12 },
     { header: "Dias", key: "dias", width: 7 },
-    { header: "Produção (m³)", key: "producao", width: 14, fmt: M3 },
+    { header: "Serrado (m³)", key: "producao", width: 14, fmt: M3 },
     { header: "Meta (m³)", key: "meta", width: 12, fmt: M3 },
-    { header: "Refugo (m³)", key: "refugo", width: 12, fmt: M3 },
+    { header: "Ótimo (m³)", key: "otimo", width: 11, fmt: M3 },
+    { header: "Bom (m³)", key: "bom", width: 10, fmt: M3 },
+    { header: "Regular (m³)", key: "regular", width: 12, fmt: M3 },
     { header: "Parado (min)", key: "parado", width: 12, fmt: "#,##0" },
     { header: "MEC (min)", key: "mec", width: 10, fmt: "#,##0" },
     { header: "ELE (min)", key: "ele", width: 10, fmt: "#,##0" },
     { header: "OPE (min)", key: "ope", width: 10, fmt: "#,##0" },
     { header: "Disponibilidade", key: "disp", width: 14, fmt: PCT },
     { header: "Produtividade", key: "prod", width: 13, fmt: PCT },
-    { header: "Qualidade", key: "qual", width: 11, fmt: PCT },
     { header: "OEE", key: "oee", width: 9, fmt: PCT },
     { header: "Rendimento", key: "rend", width: 11, fmt: PCT },
   ];
   const kpiLinha = (k: ReturnType<typeof calcularKpis>) => ({
     producao: k.producaoM3,
     meta: k.metaM3,
-    refugo: k.refugoM3,
+    otimo: k.porClasse.OTIMO,
+    bom: k.porClasse.BOM,
+    regular: k.porClasse.REGULAR,
     parado: Math.round(k.minutosParados),
     mec: Math.round(k.paradoPorCentro.MEC),
     ele: Math.round(k.paradoPorCentro.ELE),
     ope: Math.round(k.paradoPorCentro.OPE),
     disp: k.disponibilidade,
     prod: k.produtividade,
-    qual: k.qualidade,
     oee: k.oee,
     rend: k.rendimento,
   });
-  const comp = aba("Comparativo", colKpi, "Indicadores de produção");
+  const comp = aba("Comparativo", colKpi, "Indicadores da serraria");
   [...painel.comparativo].reverse().filter((c) => c.dias > 0 || c.mes === mes).forEach((c, i) => {
     const r = linha(comp, { mes: nomeMes(c.mes), dias: c.dias, ...kpiLinha(c.kpis) }, i);
     if (c.mes === mes) r.font = { bold: true };
   });
   comp.addRow([]);
-  comp.addRow(["Fórmulas: Disponibilidade = (tempo programado − paradas) ÷ tempo programado · Produtividade = produção ÷ meta · Qualidade = 1 − refugo ÷ produção · OEE = D × P × Q · Rendimento = produção ÷ m³ de toras"]).font = {
+  comp.addRow(["Fórmulas: Disponibilidade = (tempo programado − paradas) ÷ tempo programado · Produtividade = serrado ÷ meta · OEE = D × P · Rendimento = serrado ÷ m³ de toras · Classe: 2,50/2,15 m Ótimo, 1,65 m Bom, 1,30/1,00/0,70 m Regular"]).font = {
     size: 9,
     color: { argb: "FF57534E" },
   };
@@ -149,12 +152,14 @@ export async function GET(req: NextRequest) {
   });
   rodape(bol);
 
-  // Produção por bitola
+  // Serrado por bitola
   const prod = aba(
-    "Produção",
+    "Bitolas",
     [
       { header: "Data", key: "data", width: 12 },
-      { header: "Tipo", key: "tipo", width: 16 },
+      { header: "Lote", key: "lote", width: 12 },
+      { header: "Pedido", key: "pedido", width: 14 },
+      { header: "Classe", key: "tipo", width: 12 },
       { header: "Mercado", key: "mercado", width: 16 },
       { header: "Espessura (mm)", key: "e", width: 14 },
       { header: "Largura (mm)", key: "l", width: 13 },
@@ -162,16 +167,16 @@ export async function GET(req: NextRequest) {
       { header: "Peças", key: "pecas", width: 9, fmt: "#,##0" },
       { header: "m³", key: "m3", width: 11, fmt: "#,##0.0000" },
     ],
-    "Produção por bitola",
+    "Serrado por bitola",
   );
   let n = 0;
   for (const b of boletins) {
     for (const it of b.itens) {
-      const r = linha(prod, { data: b.data, tipo: TIPO_PRODUTO[it.tipo], mercado: MERCADO[it.mercado], e: it.espessura, l: it.largura, c: it.comprimento, pecas: it.pecas, m3: it.m3 }, n++);
+      const r = linha(prod, { data: b.data, lote: it.lote ? codigoLote(it.lote.numero) : "", pedido: it.lote?.pedido.numero ?? "", tipo: CLASSE_MADEIRA[it.classe ?? classeDoComprimento(it.comprimento)].label, mercado: MERCADO[it.mercado], e: it.espessura, l: it.largura, c: it.comprimento, pecas: it.pecas, m3: it.m3 }, n++);
       r.getCell("data").numFmt = "dd/mm/yyyy";
     }
   }
-  if (n) prod.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: 8 } };
+  if (n) prod.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: 10 } };
   rodape(prod);
 
   // Paradas
@@ -200,7 +205,7 @@ export async function GET(req: NextRequest) {
       r.getCell("data").numFmt = "dd/mm/yyyy";
     }
   }
-  if (n) par.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: 8 } };
+  if (n) par.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: 10 } };
   rodape(par);
 
   // Pareto

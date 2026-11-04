@@ -32,6 +32,7 @@ export default async function CicloPage({
     include: {
       estufa: true,
       responsavel: { select: { nome: true } },
+      plantaoUsuario: { select: { nome: true } },
       cargas: { orderBy: [{ espessura: "asc" }, { comprimento: "asc" }] },
       checklist: {
         orderBy: { ordem: "asc" },
@@ -105,14 +106,10 @@ export default async function CicloPage({
           ],
           ["Volume", `${fmtM3(m3, 2)} · ${grades} grades`],
           [
-            "Umidade inicial",
-            c.umidadeInicial != null ? `${fmtNum(c.umidadeInicial, 1)}%` : "—",
-          ],
-          [
             "Umidade final",
             c.umidadeFinal != null ? `${fmtNum(c.umidadeFinal, 1)}%` : "—",
           ],
-          ["Plantão", c.plantao ?? "—"],
+          ["Plantão", c.plantaoUsuario?.nome ?? c.plantao ?? "—"],
           ["Próxima carga", c.proximaCarga ?? "—"],
         ].map(([r, v]) => (
           <div key={r} className="cartao py-3">
@@ -165,7 +162,7 @@ export default async function CicloPage({
       {liberada && c.status === "CONCLUIDO" && (
         <p className="mb-6 rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900 ring-1 ring-sky-200">
           Aclimatação: 24 h no pátio e mais 24 h na fábrica (medir os pacotes de
-          novo). Madeira liberada para a produção a partir de{" "}
+          novo). Madeira liberada para uso a partir de{" "}
           <b>{formatarData(liberada, true)}</b>.
         </p>
       )}

@@ -24,3 +24,14 @@ export async function qrSvg(texto: string) {
 export async function linkPacote(numero: number) {
   return `${await urlBase()}/p/${numero}`;
 }
+
+/** Link do QR da etiqueta do lote da serraria. */
+export async function linkLote(numero: number) {
+  return `${await urlBase()}/l/${numero}`;
+}
+
+/** Código de barras Code 128 em SVG (para leitor de código de barras e identificação física). */
+export async function barrasSvg(texto: string) {
+  const { toSVG } = await import("bwip-js/node");
+  return toSVG({ bcid: "code128", text: texto, height: 12, scale: 3, includetext: false, paddingwidth: 2 });
+}

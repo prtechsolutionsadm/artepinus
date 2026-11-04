@@ -36,6 +36,8 @@ async function main() {
   }
 
   await catalogoProducao();
+  // Configuração padrão da serraria (meta e horas do boletim); ajustável em Cadastros
+  await db.configSerraria.upsert({ where: { id: "padrao" }, update: {}, create: { id: "padrao", metaDiariaM3: 60, horasDia: 8.8 } });
 
   if (process.env.SEED_DEMO === "1") {
     await demo();

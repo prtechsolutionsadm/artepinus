@@ -2,67 +2,76 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
-import { salvarCargaToras } from "@/app/actions/producao";
-import { fmtM3, fmtNum, hojeSP, m3Toras } from "@/lib/producao";
+import { CheckCircle2, CloudOff } from "lucide-react";
+import { salvarCargaToras, type Resultado } from "@/app/actions/producao";
+import { enviarOuGuardar } from "@/lib/fila-offline";
+import { CLASSE_DIAMETRO, hojeSP } from "@/lib/producao";
+import type { ClasseDiametro } from "@/generated/prisma/enums";
 
-type Linha = { k: number; diametro: string; quantidade: string };
+type Opcao = { id: string; nome: string };
+type MotoristaOpcao = Opcao & { placaCaminhao: string; placaJulieta: string | null };
+
 export type CargaInicial = {
   id?: string;
   data: string;
-  origem: string;
-  colheitaId: string | null;
-  talhao: string | null;
-  motorista: string | null;
-  placa: string | null;
+  florestaId: string | null;
+  fornecedorId: string | null;
+  motoristaId: string | null;
   comprimentoMedio: number | null;
+  classeDiametro: ClasseDiametro | null;
+  pesoT: number | null;
   observacoes: string | null;
-  itens: { diametro: number; quantidade: number }[];
 };
 
-let seq = 0;
-const chave = () => ++seq;
-const num = (s: string) => Number(s.replace(",", "."));
+const txt = (n: number | null | undefined) => (n == null ? "" : String(n));
 
-/** Colheita aberta para escolher na carga: liga a carga à floresta de origem. */
-export type ColheitaOpcao = { id: string; rotulo: string; origem: string; talhao: string | null };
-
-export function FormToras({ inicial, colheitas }: { inicial: CargaInicial; colheitas: ColheitaOpcao[] }) {
+/** Recebimento de uma carga de toras: floresta, fornecedor, motorista (placas automáticas), diâmetro e peso. */
+export function FormToras({
+  inicial,
+  florestas,
+  fornecedores,
+  motoristas,
+}: {
+  inicial: CargaInicial;
+  florestas: Opcao[];
+  fornecedores: Opcao[];
+  motoristas: MotoristaOpcao[];
+}) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
+  const [guardado, setGuardado] = useState(false);
   const [f, setF] = useState({
     data: inicial.data,
-    origem: inicial.origem,
-    colheitaId: inicial.colheitaId ?? "",
-    talhao: inicial.talhao ?? "",
-    motorista: inicial.motorista ?? "",
-    placa: inicial.placa ?? "",
-    comprimentoMedio: inicial.comprimentoMedio == null ? "" : String(inicial.comprimentoMedio),
+    florestaId: inicial.florestaId ?? "",
+    fornecedorId: inicial.fornecedorId ?? "",
+    motoristaId: inicial.motoristaId ?? "",
+    comprimentoMedio: txt(inicial.comprimentoMedio),
+    pesoT: txt(inicial.pesoT),
     observacoes: inicial.observacoes ?? "",
   });
-  const [linhas, setLinhas] = useState<Linha[]>(() =>
-    inicial.itens.length ? inicial.itens.map((i) => ({ k: chave(), diametro: String(i.diametro), quantidade: String(i.quantidade) })) : [{ k: chave(), diametro: "", quantidade: "" }],
-  );
-  const set = (c: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((x) => ({ ...x, [c]: e.target.value }));
-  const mudar = (k: number, c: "diametro" | "quantidade", v: string) => setLinhas((l) => l.map((x) => (x.k === k ? { ...x, [c]: v.replace(/\D/g, "") } : x)));
-
-  const comp = num(f.comprimentoMedio);
-  const qtd = linhas.reduce((s, l) => s + (num(l.quantidade) || 0), 0);
-  const m3 = comp > 0 ? linhas.reduce((s, l) => s + (num(l.diametro) && num(l.quantidade) ? m3Toras(num(l.diametro), comp, num(l.quantidade)) : 0), 0) : 0;
-  const diam = qtd ? linhas.reduce((s, l) => s + (num(l.diametro) || 0) * (num(l.quantidade) || 0), 0) / qtd : 0;
+  const [classe, setClasse] = useState<ClasseDiametro | null>(inicial.classeDiametro);
+  const set = (c: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF((x) => ({ ...x, [c]: e.target.value }));
+  const motorista = motoristas.find((m) => m.id === f.motoristaId);
 
   function enviar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
+    if (!classe) return setErro("Escolha o diâmetro");
+    const dados = { id: inicial.id ?? null, ...f, classeDiametro: classe, comprimentoMedio: f.comprimentoMedio.replace(",", "."), pesoT: f.pesoT.replace(",", ".") };
+    const floresta = florestas.find((x) => x.id === f.florestaId)?.nome ?? "";
     iniciar(async () => {
-      const r = await salvarCargaToras({
-        id: inicial.id ?? null,
-        ...f,
-        comprimentoMedio: f.comprimentoMedio.replace(",", "."),
-        itens: linhas.filter((l) => l.diametro || l.quantidade).map(({ diametro, quantidade }) => ({ diametro, quantidade })),
-      });
-      if (r.erro) return setErro(r.erro);
+      const salvar = (d: Record<string, unknown>) => salvarCargaToras(d as Parameters<typeof salvarCargaToras>[0]);
+      // Editar exige internet; uma carga nova pode ser guardada no aparelho
+      const r = inicial.id ? await salvar(dados) : await enviarOuGuardar("carga", `Toras: ${floresta} · ${f.pesoT} t`, dados, salvar);
+      if ("guardado" in r) {
+        setGuardado(true);
+        setF((x) => ({ ...x, motoristaId: "", pesoT: "", observacoes: "" }));
+        setClasse(null);
+        return;
+      }
+      const res = r as Resultado;
+      if (res.erro) return setErro(res.erro);
       router.push("/producao/toras");
       router.refresh();
     });
@@ -71,96 +80,95 @@ export function FormToras({ inicial, colheitas }: { inicial: CargaInicial; colhe
   return (
     <form onSubmit={enviar}>
       <fieldset disabled={pendente} className="min-w-0 space-y-6">
-        <section className="cartao grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="col-span-2 sm:col-span-3">
-            <label htmlFor="t-col">Colheita (de qual floresta/talhão vieram as toras)</label>
-            <select
-              id="t-col"
-              value={f.colheitaId}
-              onChange={(e) => {
-                const c = colheitas.find((x) => x.id === e.target.value);
-                setF((x) => ({ ...x, colheitaId: e.target.value, ...(c ? { origem: c.origem, talhao: c.talhao ?? x.talhao } : {}) }));
-              }}
-              className="campo"
-            >
-              <option value="">— Sem colheita cadastrada —</option>
-              {colheitas.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.rotulo}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-stone-500">É o que liga o pacote de madeira até a floresta. Cadastre as colheitas em Florestas e colheitas.</p>
-          </div>
+        {guardado && (
+          <p role="status" className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
+            <CloudOff className="h-4 w-4 shrink-0" /> Carga guardada no aparelho. Ela será enviada sozinha quando a internet voltar. Já pode lançar a próxima.
+          </p>
+        )}
+        <section className="cartao grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="t-data">Data *</label>
             <input id="t-data" type="date" required max={hojeSP()} value={f.data} onChange={set("data")} className="campo" />
           </div>
-          <div className="col-span-2 sm:col-span-2">
-            <label htmlFor="t-orig">Origem / fornecedor *</label>
-            <input id="t-orig" required value={f.origem} onChange={set("origem")} className="campo" />
+          <div>
+            <label htmlFor="t-flo">Floresta *</label>
+            <select id="t-flo" required value={f.florestaId} onChange={set("florestaId")} className="campo">
+              <option value="">{florestas.length ? "Escolha…" : "Cadastre as florestas em Cadastros"}</option>
+              {florestas.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.nome}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <label htmlFor="t-tal">Talhão</label>
-            <input id="t-tal" value={f.talhao} onChange={set("talhao")} className="campo" />
+            <label htmlFor="t-for">Fornecedor *</label>
+            <select id="t-for" required value={f.fornecedorId} onChange={set("fornecedorId")} className="campo">
+              <option value="">{fornecedores.length ? "Escolha…" : "Cadastre os fornecedores em Cadastros"}</option>
+              {fornecedores.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.nome}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <label htmlFor="t-mot">Motorista</label>
-            <input id="t-mot" value={f.motorista} onChange={set("motorista")} className="campo" />
+            <label htmlFor="t-mot">Motorista *</label>
+            <select id="t-mot" required value={f.motoristaId} onChange={set("motoristaId")} className="campo">
+              <option value="">{motoristas.length ? "Escolha…" : "Cadastre os motoristas em Cadastros"}</option>
+              {motoristas.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.nome} · {x.placaCaminhao}
+                </option>
+              ))}
+            </select>
           </div>
-          <div>
-            <label htmlFor="t-pla">Placa</label>
-            <input id="t-pla" value={f.placa} onChange={set("placa")} className="campo uppercase" />
-          </div>
-          <div>
-            <label htmlFor="t-comp">Comprimento médio (m)</label>
-            <input id="t-comp" inputMode="decimal" value={f.comprimentoMedio} onChange={set("comprimentoMedio")} className="campo" />
+          <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+            <div>
+              <span className="block text-sm font-medium text-stone-700">Placa do caminhão</span>
+              <span className="mt-1.5 block rounded-md bg-stone-100 px-3 py-2.5 font-mono font-semibold text-stone-700">{motorista?.placaCaminhao ?? "—"}</span>
+            </div>
+            <div>
+              <span className="block text-sm font-medium text-stone-700">Placa da julieta</span>
+              <span className="mt-1.5 block rounded-md bg-stone-100 px-3 py-2.5 font-mono font-semibold text-stone-700">{motorista ? (motorista.placaJulieta ?? "sem julieta") : "—"}</span>
+            </div>
           </div>
         </section>
 
-        <section className="cartao">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Toras por diâmetro</h2>
-            <span className="text-sm tabular-nums">
-              <b>{fmtNum(qtd)}</b> toras · Ø médio {diam ? fmtNum(diam, 1) : "—"} cm{m3 > 0 && <> · ≈ {fmtM3(m3, 2)}</>}
-            </span>
+        <section className="cartao grid gap-4 sm:grid-cols-3">
+          <div className="sm:col-span-3">
+            <span className="mb-1.5 block text-sm font-medium text-stone-700">Diâmetro *</span>
+            <div className="grid grid-cols-3 overflow-hidden rounded-md border border-stone-300" role="radiogroup" aria-label="Diâmetro">
+              {(Object.keys(CLASSE_DIAMETRO) as ClasseDiametro[]).map((c, i) => (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={classe === c}
+                  onClick={() => setClasse(c)}
+                  className={`flex items-center justify-center gap-1.5 py-3 text-sm font-semibold transition ${i > 0 ? "border-l border-stone-300" : ""} ${classe === c ? "bg-marca-700 text-white" : "bg-white text-stone-700 hover:bg-stone-50"}`}
+                >
+                  {classe === c && <CheckCircle2 className="h-4 w-4" />} {CLASSE_DIAMETRO[c]}
+                </button>
+              ))}
+            </div>
           </div>
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {linhas.map((l, n) => (
-              <li key={l.k} className="flex items-end gap-2">
-                <div className="flex-1">
-                  <label htmlFor={`d-${l.k}`}>Diâmetro (cm)</label>
-                  <input id={`d-${l.k}`} inputMode="numeric" required value={l.diametro} onChange={(e) => mudar(l.k, "diametro", e.target.value)} className="campo" />
-                </div>
-                <div className="flex-1">
-                  <label htmlFor={`q-${l.k}`}>Quantidade</label>
-                  <input id={`q-${l.k}`} inputMode="numeric" required value={l.quantidade} onChange={(e) => mudar(l.k, "quantidade", e.target.value)} className="campo" />
-                </div>
-                {linhas.length > 1 && (
-                  <button type="button" onClick={() => setLinhas((x) => x.filter((y) => y.k !== l.k))} className="btn-secundario mb-0.5 px-2 text-rose-700" aria-label={`Remover linha ${n + 1}`}>
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={() => setLinhas((x) => [...x, { k: chave(), diametro: x.length ? String((num(x[x.length - 1].diametro) || 0) + 2 || "") : "", quantidade: "" }])}
-            className="btn-secundario mt-3"
-          >
-            <Plus className="h-4 w-4" /> Adicionar diâmetro
-          </button>
-          <p className="mt-2 text-xs text-stone-500">Volume estimado como cilindro (diâmetro × comprimento médio); serve para comparação, não substitui a cubagem.</p>
-        </section>
-
-        <section className="cartao">
-          <label htmlFor="t-obs">Observações</label>
-          <textarea id="t-obs" rows={2} value={f.observacoes} onChange={set("observacoes")} className="campo" />
+          <div>
+            <label htmlFor="t-comp">Comprimento médio (m) *</label>
+            <input id="t-comp" inputMode="decimal" required value={f.comprimentoMedio} onChange={set("comprimentoMedio")} className="campo" />
+          </div>
+          <div>
+            <label htmlFor="t-peso">Peso (toneladas) *</label>
+            <input id="t-peso" inputMode="decimal" required value={f.pesoT} onChange={set("pesoT")} className="campo" />
+          </div>
+          <div className="sm:col-span-3">
+            <label htmlFor="t-obs">Observações</label>
+            <textarea id="t-obs" rows={2} value={f.observacoes} onChange={set("observacoes")} className="campo" />
+          </div>
         </section>
 
         {erro && (
-          <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800 ring-1 ring-rose-200">
+          <p role="alert" className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800 ring-1 ring-rose-200">
             {erro}
           </p>
         )}

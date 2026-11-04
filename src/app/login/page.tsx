@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-branco.svg" alt="Artepinus" className="h-24 w-auto" />
-          <div className="mt-2 text-sm font-medium uppercase tracking-[0.2em] text-marca-100">Sistema de produção</div>
+          <div className="mt-2 text-sm font-medium uppercase tracking-[0.2em] text-marca-100">Sistema Artepinus</div>
         </div>
         <div className="max-w-md space-y-8">
           <h2 className="text-4xl font-bold leading-tight">Da floresta ao pacote, sem papel.</h2>
@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               <ClipboardCheck className="h-5 w-5 shrink-0 text-white" /> Cada pacote com QR Code e toda a sua história.
             </li>
             <li className="flex gap-3">
-              <Factory className="h-5 w-5 shrink-0 text-white" /> Lance a produção e as paradas da serraria no fim do turno.
+              <Factory className="h-5 w-5 shrink-0 text-white" /> Aponte a serraria em grade, com etiqueta do lote na hora.
             </li>
             <li className="flex gap-3">
               <Gauge className="h-5 w-5 shrink-0 text-white" /> Indicadores, OEE e comparativos mensais.

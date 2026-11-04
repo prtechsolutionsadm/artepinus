@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PackagePlus, Pencil, Trash2, Wrench } from "lucide-react";
+import { PackagePlus, Pencil, Printer, Tag, Trash2, Wrench } from "lucide-react";
 import { abrirRequisicaoDaParada, excluirBoletim } from "@/app/actions/producao";
 import { BotaoAcao } from "@/components/producao/BotaoAcao";
 import { Badge, Titulo } from "@/components/ui";
 import { formatarData, formatarDuracao, numeroRequisicao } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { podeProducao, temModulo } from "@/lib/permissoes";
-import { CENTRO, MERCADO, TIPO_PRODUTO, calcularKpis, fmtM3, fmtNum, fmtPct, formatarDia } from "@/lib/producao";
-import { codigoCarga } from "@/lib/rastreio";
+import { CENTRO, calcularKpis, dateParaDia, fmtM3, fmtNum, fmtPct, formatarDia } from "@/lib/producao";
+import { codigoCarga, codigoLote } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
-import type { TipoProduto } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Boletim da serraria" };
 
@@ -22,12 +21,13 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
     where: { id },
     include: {
       responsavel: { select: { nome: true } },
-      itens: { orderBy: [{ tipo: "asc" }, { espessura: "asc" }, { largura: "asc" }, { comprimento: "asc" }] },
+      itens: { select: { tipo: true, m3: true, comprimento: true, pecas: true, loteId: true } },
+      lotes: { orderBy: { numero: "asc" }, include: { pedido: { select: { numero: true, cliente: true } }, itens: { select: { pecas: true, m3: true, comprimento: true } } } },
       paradas: {
         orderBy: { minutos: "desc" },
         include: { motivo: true, equipamento: { select: { nome: true } }, requisicao: { select: { id: true, status: true } } },
       },
-      cargas: { orderBy: { data: "asc" }, include: { itens: { select: { quantidade: true } }, colheita: { include: { origem: { select: { nome: true } } } } } },
+      cargas: { orderBy: { data: "asc" }, include: { floresta: { select: { nome: true } } } },
       ciclos: { select: { id: true, numero: true, estufa: { select: { nome: true } } } },
       pacotes: { select: { numero: true, m3: true, status: true } },
     },
@@ -46,10 +46,15 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
           </>
         }
         acao={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {podeProducao(eu, "lancar") && (
+              <Link href={`/producao/boletins/novo?data=${dateParaDia(b.data)}`} className="btn-primario">
+                <Tag className="h-4 w-4" /> Apontar lote
+              </Link>
+            )}
             {editar && (
               <Link href={`/producao/boletins/${b.id}/editar`} className="btn-secundario">
-                <Pencil className="h-4 w-4" /> Editar
+                <Pencil className="h-4 w-4" /> Paradas e toras
               </Link>
             )}
             {podeProducao(eu, "gerir") && (
@@ -65,14 +70,14 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
 
       <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          ["Produção", fmtM3(k.producaoM3), `meta ${fmtM3(k.metaM3)}`],
+          ["Serrado", fmtM3(k.producaoM3), `meta ${fmtM3(k.metaM3)}`],
           ["Disponibilidade", fmtPct(k.disponibilidade), `${formatarDuracao(k.minutosParados)} parado de ${fmtNum(b.horasProgramadas, 1)} h`],
-          ["Produtividade", fmtPct(k.produtividade), "produção ÷ meta"],
-          ["Qualidade", fmtPct(k.qualidade), `refugo ${fmtM3(k.refugoM3)}`],
-          ["OEE", fmtPct(k.oee), "disp. × prod. × qual."],
+          ["Produtividade", fmtPct(k.produtividade), "serrado ÷ meta"],
+          ["OEE", fmtPct(k.oee), "disponibilidade × produtividade"],
+          ["Ótimo", fmtM3(k.porClasse.OTIMO), "2,50 e 2,15 m"],
+          ["Bom", fmtM3(k.porClasse.BOM), "1,65 m"],
+          ["Regular", fmtM3(k.porClasse.REGULAR), "1,30 · 1,00 · 0,70 m"],
           ["Rendimento", fmtPct(k.rendimento), b.torasM3 ? `de ${fmtM3(b.torasM3)} em toras` : "toras não informadas"],
-          ["Toras", b.torasQtd ? fmtNum(b.torasQtd) : "—", b.diametroMedio ? `Ø médio ${fmtNum(b.diametroMedio, 1)} cm` : ""],
-          ["Aproveitamento", fmtM3(k.aproveitamentoM3), `bom ${fmtM3(k.bomM3)}`],
         ].map(([r, v, d]) => (
           <div key={r} className="cartao py-3">
             <dt className="text-xs text-stone-500">{r}</dt>
@@ -83,51 +88,38 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
       </dl>
 
       <section className="cartao mb-6 overflow-hidden p-0">
-        <h2 className="border-b border-stone-100 px-4 py-3 font-semibold">Produção por bitola</h2>
-        {b.itens.length === 0 ? (
-          <p className="px-4 py-4 text-sm text-stone-500">Sem produção lançada.</p>
+        <div className="flex items-center justify-between gap-2 border-b border-stone-100 px-4 py-3">
+          <h2 className="font-semibold">Lotes do dia</h2>
+          {b.lotes.length > 0 && (
+            <Link href={`/producao/lotes/etiquetas?n=${b.lotes.map((l) => l.numero).join(",")}`} className="inline-flex items-center gap-1 text-sm font-medium text-marca-700 hover:underline">
+              <Printer className="h-4 w-4" /> Etiquetas de todos
+            </Link>
+          )}
+        </div>
+        {b.lotes.length === 0 ? (
+          <p className="px-4 py-4 text-sm text-stone-500">Nenhum lote apontado neste dia.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-sm">
-              <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
-                <tr>
-                  <th className="px-4 py-2 font-semibold">Tipo</th>
-                  <th className="px-4 py-2 font-semibold">Mercado</th>
-                  <th className="px-4 py-2 text-right font-semibold">E × L × C (mm)</th>
-                  <th className="px-4 py-2 text-right font-semibold">Peças</th>
-                  <th className="px-4 py-2 text-right font-semibold">m³</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {b.itens.map((i) => (
-                  <tr key={i.id}>
-                    <td className="px-4 py-2">{TIPO_PRODUTO[i.tipo]}</td>
-                    <td className="px-4 py-2 text-stone-500">{MERCADO[i.mercado].replace("Mercado ", "")}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">
-                      {i.espessura} × {i.largura} × {i.comprimento}
-                    </td>
-                    <td className="px-4 py-2 text-right tabular-nums">{fmtNum(i.pecas)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{fmtNum(i.m3, 4)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-stone-50 font-semibold">
-                {(Object.keys(TIPO_PRODUTO) as TipoProduto[]).map((t) => {
-                  const s = b.itens.filter((i) => i.tipo === t);
-                  if (!s.length) return null;
-                  return (
-                    <tr key={t}>
-                      <td className="px-4 py-1.5" colSpan={3}>
-                        Total {TIPO_PRODUTO[t].toLowerCase()}
-                      </td>
-                      <td className="px-4 py-1.5 text-right tabular-nums">{fmtNum(s.reduce((x, i) => x + i.pecas, 0))}</td>
-                      <td className="px-4 py-1.5 text-right tabular-nums">{fmtNum(s.reduce((x, i) => x + i.m3, 0), 4)}</td>
-                    </tr>
-                  );
-                })}
-              </tfoot>
-            </table>
-          </div>
+          <ul className="divide-y divide-stone-100">
+            {b.lotes.map((l) => (
+              <li key={l.id}>
+                <Link href={`/producao/lotes/${l.numero}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-stone-50">
+                  <span className="font-mono text-sm font-semibold">{codigoLote(l.numero)}</span>
+                  <span className="text-sm">{l.espessura} mm</span>
+                  <span className="text-sm text-stone-600">
+                    {fmtNum(l.itens.reduce((t, i) => t + i.pecas, 0))} peças · {fmtM3(l.itens.reduce((t, i) => t + i.m3, 0), 3)}
+                  </span>
+                  <span className="text-sm text-stone-500">
+                    Pedido {l.pedido.numero} · {l.pedido.cliente}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {b.itens.some((i) => !i.loteId) && (
+          <p className="border-t border-stone-100 px-4 py-2 text-xs text-stone-500">
+            Este boletim também tem {fmtM3(b.itens.filter((i) => !i.loteId).reduce((t, i) => t + i.m3, 0), 2)} lançados no formato antigo (sem lote).
+          </p>
         )}
       </section>
 
@@ -200,8 +192,8 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
               <dd className="space-y-1">
                 {b.cargas.map((c) => (
                   <Link key={c.id} href={`/producao/toras/${c.id}`} className="block hover:underline">
-                    <span className="font-mono text-xs text-stone-500">{codigoCarga(c.numero)}</span> {c.colheita?.origem.nome ?? c.origem} ·{" "}
-                    {c.itens.reduce((s, i) => s + i.quantidade, 0)} toras
+                    <span className="font-mono text-xs text-stone-500">{codigoCarga(c.numero)}</span> {c.floresta?.nome ?? c.origem ?? "—"}
+                    {c.pesoT ? ` · ${fmtNum(c.pesoT, 1)} t` : ""}
                   </Link>
                 ))}
               </dd>

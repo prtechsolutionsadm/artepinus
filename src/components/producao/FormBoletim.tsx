@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 import { Copy, Plus, Trash2 } from "lucide-react";
 import { salvarBoletim, type DadosBoletim } from "@/app/actions/producao";
 import { SeletorMultiplo } from "@/components/producao/SeletorMultiplo";
-import { CENTRO, MERCADO, TIPO_PRODUTO, calcularKpis, fmtM3, fmtPct, hojeSP, m3Pecas, mesDe } from "@/lib/producao";
+import { CENTRO, fmtM3, fmtNum, fmtPct, hojeSP } from "@/lib/producao";
 import { formatarDuracao } from "@/lib/constantes";
-import type { CentroParada, Mercado, TipoProduto } from "@/generated/prisma/enums";
+import type { CentroParada } from "@/generated/prisma/enums";
 
 export type MotivoOpcao = { id: string; codigo: number; descricao: string; centro: CentroParada; equipamentoId: string | null };
 export type EquipamentoOpcao = { id: string; codigo: string; nome: string };
-type Meta = { metaDiariaM3: number; horasDia: number };
 
-type Item = { k: number; tipo: TipoProduto; mercado: Mercado; espessura: string; largura: string; comprimento: string; pecas: string };
 type Parada = {
   k: number;
   motivoId: string;
@@ -32,10 +30,7 @@ export type BoletimInicial = {
   horasProgramadas: number;
   torasQtd: number | null;
   torasM3: number | null;
-  diametroMedio: number | null;
-  comprimentoMedio: number | null;
   observacoes: string | null;
-  itens: { tipo: TipoProduto; mercado: Mercado; espessura: number; largura: number; comprimento: number; pecas: number }[];
   paradas: { motivoId: string | null; equipamentoId: string | null; centro: CentroParada; ocorrencias: number; minutos: number; descricao: string | null; requisicaoId: number | null }[];
   cargaIds: string[];
 };
@@ -45,50 +40,43 @@ const novaChave = () => ++seq;
 const num = (s: string) => (s.trim() === "" ? NaN : Number(s.replace(",", ".")));
 const txt = (n: number | null | undefined) => (n == null ? "" : String(n));
 
+/**
+ * Dados do dia na serraria: paradas, toras serradas e observações. A produção
+ * entra pelos lotes (Apontar serraria); meta e horas vêm da configuração padrão.
+ */
 export function FormBoletim({
   inicial,
   motivos,
   equipamentos,
-  metas,
   cargas,
   dataPadrao,
+  meta,
+  horasPadrao,
+  producaoM3 = 0,
 }: {
   inicial: BoletimInicial | null;
   /** Data já escolhida (ex.: vindo de uma pendência "boletim de ontem não lançado"). */
   dataPadrao?: string;
   motivos: MotivoOpcao[];
   equipamentos: EquipamentoOpcao[];
-  metas: Record<string, Meta>;
   cargas: { id: string; rotulo: string }[];
+  /** Meta e horas da configuração padrão (para um dia novo). */
+  meta: number;
+  horasPadrao: number;
+  /** Volume já lançado nos lotes do dia. */
+  producaoM3?: number;
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
-
-  const metaDe = (dia: string) => metas[mesDe(dia)] ?? null;
   const hoje = hojeSP();
   const [data, setData] = useState(inicial?.data ?? (dataPadrao && dataPadrao <= hoje ? dataPadrao : hoje));
-  const [metaM3, setMetaM3] = useState(txt(inicial?.metaM3 ?? metaDe(hoje)?.metaDiariaM3));
-  const [horas, setHoras] = useState(txt(inicial?.horasProgramadas ?? metaDe(hoje)?.horasDia ?? 8.8));
-  const [metaEditada, setMetaEditada] = useState(!!inicial);
+  const metaM3 = inicial?.metaM3 ?? meta;
+  const horas = inicial?.horasProgramadas ?? horasPadrao;
   const [torasQtd, setTorasQtd] = useState(txt(inicial?.torasQtd));
   const [torasM3, setTorasM3] = useState(txt(inicial?.torasM3));
-  const [diametro, setDiametro] = useState(txt(inicial?.diametroMedio));
-  const [comprimentoToras, setComprimentoToras] = useState(txt(inicial?.comprimentoMedio));
   const [obs, setObs] = useState(inicial?.observacoes ?? "");
   const [cargaIds, setCargaIds] = useState<string[]>(inicial?.cargaIds ?? []);
-
-  const [itens, setItens] = useState<Item[]>(() =>
-    (inicial?.itens ?? []).map((i) => ({
-      k: novaChave(),
-      tipo: i.tipo,
-      mercado: i.mercado,
-      espessura: String(i.espessura),
-      largura: String(i.largura),
-      comprimento: String(i.comprimento),
-      pecas: String(i.pecas),
-    })),
-  );
   const [paradas, setParadas] = useState<Parada[]>(() =>
     (inicial?.paradas ?? []).map((p) => ({
       k: novaChave(),
@@ -109,42 +97,11 @@ export function FormBoletim({
     return g;
   }, [motivos]);
 
-  const m3Item = (i: Item) => {
-    const v = [num(i.espessura), num(i.largura), num(i.comprimento), num(i.pecas)];
-    return v.every((x) => Number.isFinite(x) && x > 0) ? m3Pecas(v[0], v[1], v[2], v[3]) : 0;
-  };
-
-  const kpis = calcularKpis([
-    {
-      metaM3: num(metaM3) || 0,
-      horasProgramadas: num(horas) || 0,
-      torasM3: num(torasM3) || 0,
-      itens: itens.map((i) => ({ tipo: i.tipo, m3: m3Item(i) })),
-      paradas: paradas.map((p) => ({ centro: p.centro, minutos: num(p.minutos) || 0 })),
-    },
-  ]);
-
-  function trocarData(d: string) {
-    setData(d);
-    const m = metaDe(d);
-    if (!metaEditada && m) {
-      setMetaM3(String(m.metaDiariaM3));
-      setHoras(String(m.horasDia));
-    }
-  }
-
-  const mudarItem = (k: number, campo: keyof Item, v: string) => setItens((l) => l.map((i) => (i.k === k ? { ...i, [campo]: v } : i)));
+  const minutosParados = paradas.reduce((t, p) => t + (num(p.minutos) || 0), 0);
+  const disponibilidade = horas > 0 ? Math.max(0, (horas * 60 - minutosParados) / (horas * 60)) : null;
+  const produtividade = metaM3 > 0 ? producaoM3 / metaM3 : null;
+  const kpis = { minutosParados };
   const mudarParada = (k: number, mud: Partial<Parada>) => setParadas((l) => l.map((p) => (p.k === k ? { ...p, ...mud } : p)));
-
-  function addItem(base?: Item) {
-    const ultimo = base ?? itens[itens.length - 1];
-    setItens((l) => [
-      ...l,
-      ultimo
-        ? { ...ultimo, k: novaChave(), pecas: "" }
-        : { k: novaChave(), tipo: "BOM", mercado: "EXTERNO", espessura: "", largura: "", comprimento: "", pecas: "" },
-    ]);
-  }
 
   function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -152,17 +109,10 @@ export function FormBoletim({
     const payload: DadosBoletim = {
       id: inicial?.id ?? null,
       data,
-      metaM3,
-      horasProgramadas: horas.replace(",", "."),
       torasQtd,
       torasM3: torasM3.replace(",", "."),
-      diametroMedio: diametro.replace(",", "."),
-      comprimentoMedio: comprimentoToras.replace(",", "."),
       observacoes: obs,
       cargaIds,
-      itens: itens
-        .filter((i) => i.espessura || i.largura || i.comprimento || i.pecas)
-        .map(({ tipo, mercado, espessura, largura, comprimento, pecas }) => ({ tipo, mercado, espessura, largura, comprimento, pecas })),
       paradas: paradas
         .filter((p) => p.minutos || p.motivoId)
         .map((p) => ({
@@ -189,115 +139,36 @@ export function FormBoletim({
   return (
     <form onSubmit={enviar} className="space-y-6">
       <fieldset disabled={pendente} className="min-w-0 space-y-6">
-        <section className="cartao">
-          <h2 className="mb-3 font-semibold">Dia e meta</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="col-span-2 sm:col-span-1">
-              <label htmlFor="b-data">Data *</label>
-              <input id="b-data" type="date" required max={hoje} value={data} onChange={(e) => trocarData(e.target.value)} className="campo" />
-            </div>
-            <div>
-              <label htmlFor="b-meta">Meta (m³) *</label>
-              <input id="b-meta" inputMode="decimal" required value={metaM3} onChange={(e) => (setMetaM3(e.target.value), setMetaEditada(true))} className="campo" />
-            </div>
-            <div>
-              <label htmlFor="b-horas">Horas programadas *</label>
-              <input id="b-horas" inputMode="decimal" required value={horas} onChange={(e) => (setHoras(e.target.value), setMetaEditada(true))} className="campo" />
-            </div>
+        <section className="cartao grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="col-span-2 sm:col-span-1">
+            <label htmlFor="b-data">Data *</label>
+            <input id="b-data" type="date" required max={hoje} value={data} disabled={!!inicial?.id} onChange={(e) => setData(e.target.value)} className="campo" />
           </div>
-          <details className="mt-4" open={!!(torasQtd || torasM3)}>
-            <summary className="cursor-pointer text-sm font-medium text-marca-700">Toras consumidas no dia (para o rendimento)</summary>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div>
-                <label htmlFor="b-tq">Quantidade</label>
-                <input id="b-tq" inputMode="numeric" value={torasQtd} onChange={(e) => setTorasQtd(e.target.value)} className="campo" />
-              </div>
-              <div>
-                <label htmlFor="b-tm">Volume (m³)</label>
-                <input id="b-tm" inputMode="decimal" value={torasM3} onChange={(e) => setTorasM3(e.target.value)} className="campo" />
-              </div>
-              <div>
-                <label htmlFor="b-td">Diâmetro médio (cm)</label>
-                <input id="b-td" inputMode="decimal" value={diametro} onChange={(e) => setDiametro(e.target.value)} className="campo" />
-              </div>
-              <div>
-                <label htmlFor="b-tc">Comprimento médio (m)</label>
-                <input id="b-tc" inputMode="decimal" value={comprimentoToras} onChange={(e) => setComprimentoToras(e.target.value)} className="campo" />
-              </div>
-            </div>
-          </details>
+          <div>
+            <span className="block text-sm font-medium text-stone-700">Meta</span>
+            <span className="mt-1.5 block rounded-md bg-stone-100 px-3 py-2.5 font-semibold tabular-nums text-stone-600">{fmtNum(metaM3, 1)} m³</span>
+          </div>
+          <div>
+            <span className="block text-sm font-medium text-stone-700">Horas programadas</span>
+            <span className="mt-1.5 block rounded-md bg-stone-100 px-3 py-2.5 font-semibold tabular-nums text-stone-600">{fmtNum(horas, 1)} h</span>
+          </div>
+          <div>
+            <span className="block text-sm font-medium text-stone-700">Serrado no dia</span>
+            <span className="mt-1.5 block rounded-md bg-stone-100 px-3 py-2.5 font-semibold tabular-nums text-stone-600">{fmtM3(producaoM3, 2)}</span>
+          </div>
+          <p className="col-span-2 text-xs text-stone-500 sm:col-span-4">Meta e horas vêm da configuração padrão (Cadastros › Configuração). As peças entram por Apontar serraria.</p>
         </section>
 
-        <section className="cartao">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Produção por bitola</h2>
-            <span className="text-sm text-stone-500">Medidas em milímetros · m³ calculado</span>
+        <section className="cartao grid grid-cols-2 gap-3">
+          <h2 className="col-span-2 font-semibold">Toras consumidas no dia</h2>
+          <div>
+            <label htmlFor="b-tq">Quantidade</label>
+            <input id="b-tq" inputMode="numeric" value={torasQtd} onChange={(e) => setTorasQtd(e.target.value)} className="campo" />
           </div>
-          {itens.length === 0 && <p className="mb-3 text-sm text-stone-500">Nenhuma bitola lançada.</p>}
-          <ul className="space-y-3">
-            {itens.map((i, n) => (
-              <li key={i.k} className="rounded-xl border border-stone-200 p-3">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-12 sm:items-end">
-                  <div className="sm:col-span-2">
-                    <label htmlFor={`i-t-${i.k}`}>Tipo</label>
-                    <select id={`i-t-${i.k}`} value={i.tipo} onChange={(e) => mudarItem(i.k, "tipo", e.target.value)} className="campo">
-                      {(Object.keys(TIPO_PRODUTO) as TipoProduto[]).map((t) => (
-                        <option key={t} value={t}>
-                          {TIPO_PRODUTO[t]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label htmlFor={`i-m-${i.k}`}>Mercado</label>
-                    <select id={`i-m-${i.k}`} value={i.mercado} onChange={(e) => mudarItem(i.k, "mercado", e.target.value)} className="campo">
-                      {(Object.keys(MERCADO) as Mercado[]).map((m) => (
-                        <option key={m} value={m}>
-                          {m === "EXTERNO" ? "Externo" : "Interno"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {(
-                    [
-                      ["espessura", "Espessura"],
-                      ["largura", "Largura"],
-                      ["comprimento", "Comprimento"],
-                      ["pecas", "Peças"],
-                    ] as const
-                  ).map(([campo, rotulo]) => (
-                    <div key={campo} className="sm:col-span-2">
-                      <label htmlFor={`i-${campo}-${i.k}`}>{rotulo}</label>
-                      <input
-                        id={`i-${campo}-${i.k}`}
-                        inputMode="numeric"
-                        required
-                        value={i[campo]}
-                        onChange={(e) => mudarItem(i.k, campo, e.target.value.replace(/\D/g, ""))}
-                        className="campo"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 flex items-center justify-between gap-2 text-sm">
-                  <span className="font-medium tabular-nums text-stone-700">
-                    {n + 1}. {fmtM3(m3Item(i), 4)}
-                  </span>
-                  <span className="flex gap-1">
-                    <button type="button" onClick={() => addItem(i)} className="btn-secundario px-2 py-1 text-xs" title="Repetir esta bitola">
-                      <Copy className="h-3.5 w-3.5" /> Repetir
-                    </button>
-                    <button type="button" onClick={() => setItens((l) => l.filter((x) => x.k !== i.k))} className="btn-secundario px-2 py-1 text-xs text-rose-700" aria-label={`Remover bitola ${n + 1}`}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <button type="button" onClick={() => addItem()} className="btn-secundario mt-3">
-            <Plus className="h-4 w-4" /> Adicionar bitola
-          </button>
+          <div>
+            <label htmlFor="b-tm">Volume (m³) — para o rendimento</label>
+            <input id="b-tm" inputMode="decimal" value={torasM3} onChange={(e) => setTorasM3(e.target.value)} className="campo" />
+          </div>
         </section>
 
         <section className="cartao">
@@ -412,16 +283,12 @@ export function FormBoletim({
           <h2 className="mb-3 font-semibold">Resumo</h2>
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             {[
-              ["Produção", fmtM3(kpis.producaoM3)],
-              ["Refugo", fmtM3(kpis.refugoM3)],
-              ["Parado", formatarDuracao(kpis.minutosParados)],
-              ["Disponibilidade", fmtPct(kpis.disponibilidade)],
-              ["Produtividade", fmtPct(kpis.produtividade)],
-              ["Qualidade", fmtPct(kpis.qualidade)],
-              ["OEE", fmtPct(kpis.oee)],
-              ["Rendimento", fmtPct(kpis.rendimento)],
+              ["Serrado", fmtM3(producaoM3)],
+              ["Parado", formatarDuracao(minutosParados)],
+              ["Disponibilidade", fmtPct(disponibilidade)],
+              ["OEE", fmtPct(disponibilidade != null && produtividade != null ? disponibilidade * produtividade : null)],
             ].map(([r, v]) => (
-              <div key={r} className="rounded-xl bg-stone-50 px-3 py-2">
+              <div key={r} className="rounded-md bg-stone-50 px-3 py-2">
                 <dt className="text-xs text-stone-500">{r}</dt>
                 <dd className="font-semibold tabular-nums">{v}</dd>
               </div>
@@ -439,7 +306,7 @@ export function FormBoletim({
             Cancelar
           </button>
           <button type="submit" className="btn-primario">
-            {pendente ? "Salvando…" : inicial?.id ? "Salvar boletim" : "Lançar boletim"}
+            {pendente ? "Salvando…" : "Salvar o dia"}
           </button>
         </div>
       </fieldset>

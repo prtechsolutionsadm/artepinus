@@ -1,19 +1,21 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { formatarDia } from "@/lib/producao";
-import { codigoCarga, codigoColheita } from "@/lib/rastreio";
+import { codigoCarga, codigoColheita, codigoLote } from "@/lib/rastreio";
 
 const selCarga = {
   id: true,
   numero: true,
   data: true,
   origem: true,
-  talhao: true,
   placa: true,
+  placaJulieta: true,
   motorista: true,
   comprimentoMedio: true,
-  itens: { select: { diametro: true, quantidade: true } },
-  colheita: { include: { origem: true } },
+  classeDiametro: true,
+  pesoT: true,
+  floresta: true,
+  fornecedor: { select: { nome: true } },
 } as const;
 
 const selBoletim = {
@@ -35,6 +37,7 @@ export async function rastrearPacote(numero: number) {
     where: { numero },
     include: {
       criadoPor: { select: { nome: true } },
+      pedido: true,
       eventos: { orderBy: { criadoEm: "asc" }, include: { usuario: { select: { nome: true } } } },
       boletim: { select: selBoletim },
       ciclo: {
@@ -59,10 +62,10 @@ export async function rastrearPacote(numero: number) {
   for (const b of dias) for (const c of b.cargas) cargas.set(c.id, c);
   const listaCargas = [...cargas.values()].sort((a, b) => a.data.getTime() - b.data.getTime());
 
-  const colheitas = new Map<string, NonNullable<(typeof listaCargas)[number]["colheita"]>>();
-  for (const c of listaCargas) if (c.colheita) colheitas.set(c.colheita.id, c.colheita);
+  const florestas = new Map<string, NonNullable<(typeof listaCargas)[number]["floresta"]>>();
+  for (const c of listaCargas) if (c.floresta) florestas.set(c.floresta.id, c.floresta);
 
-  return { pacote, dias, cargas: listaCargas, colheitas: [...colheitas.values()] };
+  return { pacote, dias, cargas: listaCargas, florestas: [...florestas.values()] };
 }
 
 export type Rastreio = NonNullable<Awaited<ReturnType<typeof rastrearPacote>>>;
@@ -132,4 +135,42 @@ export async function ciclosParaForm() {
 export async function ciclosAtivos() {
   const lista = await db.cicloSecagem.findMany({ where: { status: "EM_SECAGEM" }, orderBy: { entrada: "desc" }, include: { estufa: { select: { nome: true } } } });
   return lista.map((c) => ({ id: c.id, rotulo: `${c.estufa.nome}${c.numero ? ` · ciclo nº ${c.numero}` : ""}` }));
+}
+
+/** Ciclos concluídos (90 dias) com a madeira que estava na estufa e os pedidos dos lotes que entraram nela. */
+export async function ciclosComMaterial() {
+  const lista = await db.cicloSecagem.findMany({
+    where: { status: "CONCLUIDO", saida: { gte: new Date(Date.now() - 90 * DIA) } },
+    orderBy: { saida: "desc" },
+    take: 40,
+    include: {
+      estufa: { select: { nome: true } },
+      cargas: { orderBy: [{ espessura: "asc" }, { comprimento: "desc" }] },
+      boletins: { select: { lotes: { select: { pedidoId: true } } } },
+      _count: { select: { pacotes: true } },
+    },
+  });
+  return lista.map((c) => ({
+    id: c.id,
+    rotulo: `${c.estufa.nome}${c.numero ? ` · ciclo nº ${c.numero}` : ""} · saiu ${c.saida ? formatarDia(c.saida, { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }) : "—"}`,
+    pacotesFormados: c._count.pacotes,
+    pedidoIds: [...new Set(c.boletins.flatMap((b) => b.lotes.map((l) => l.pedidoId)))],
+    materiais: c.cargas.map((m) => ({ id: m.id, espessura: m.espessura, largura: m.largura, comprimentoMm: Math.round(m.comprimento * 1000), grades: m.grades, m3: m.m3 })),
+  }));
+}
+
+/** Dias de serraria (30 dias) com os lotes lançados, para formar pacote verde. */
+export async function diasComLotes() {
+  const lista = await db.boletimProducao.findMany({
+    where: { data: { gte: new Date(Date.now() - 30 * DIA) }, lotes: { some: {} } },
+    orderBy: { data: "desc" },
+    include: { lotes: { orderBy: { numero: "asc" }, include: { itens: { orderBy: [{ comprimento: "desc" }, { largura: "asc" }] } } } },
+  });
+  return lista.map((b) => ({
+    id: b.id,
+    rotulo: formatarDia(b.data, { weekday: "short", day: "2-digit", month: "2-digit" }),
+    materiais: b.lotes.flatMap((l) =>
+      l.itens.map((i) => ({ id: i.id, lote: codigoLote(l.numero), pedidoId: l.pedidoId, espessura: l.espessura, largura: i.largura, comprimentoMm: i.comprimento, pecas: i.pecas })),
+    ),
+  }));
 }

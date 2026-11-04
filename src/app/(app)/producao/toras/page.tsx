@@ -5,9 +5,11 @@ import { SeletorMes } from "@/components/SeletorMes";
 import { BotaoLink, Titulo, Vazio } from "@/components/ui";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
-import { fmtM3, fmtNum, formatarDia, hojeSP, intervaloMes, m3Toras, mesDe, nomeMes } from "@/lib/producao";
+import { CLASSE_DIAMETRO, fmtNum, formatarDia, hojeSP, intervaloMes, mesDe, nomeMes } from "@/lib/producao";
 import { mesesComCargas } from "@/lib/producao-dados";
+import { codigoCarga } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
+import type { ClasseDiametro } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Recebimento de toras" };
 
@@ -19,30 +21,20 @@ export default async function TorasPage({ searchParams }: { searchParams: Promis
   const cargas = await db.cargaToras.findMany({
     where: { data: intervaloMes(mes) },
     orderBy: [{ data: "desc" }, { criadoEm: "desc" }],
-    include: { itens: true, responsavel: { select: { nome: true } } },
+    include: { floresta: { select: { nome: true } }, fornecedor: { select: { nome: true } } },
   });
-  const resumo = cargas.map((c) => {
-    const qtd = c.itens.reduce((s, i) => s + i.quantidade, 0);
-    return {
-      c,
-      qtd,
-      diam: qtd ? c.itens.reduce((s, i) => s + i.diametro * i.quantidade, 0) / qtd : null,
-      m3: c.comprimentoMedio ? c.itens.reduce((s, i) => s + m3Toras(i.diametro, c.comprimentoMedio!, i.quantidade), 0) : null,
-    };
-  });
-  const totalQtd = resumo.reduce((s, r) => s + r.qtd, 0);
-  const totalM3 = resumo.reduce((s, r) => s + (r.m3 ?? 0), 0);
-
-  // Distribuição por diâmetro no mês
-  const porDiametro = new Map<number, number>();
-  for (const c of cargas) for (const i of c.itens) porDiametro.set(i.diametro, (porDiametro.get(i.diametro) ?? 0) + i.quantidade);
-  const faixas = [...porDiametro].sort((a, b) => a[0] - b[0]);
-  const maior = Math.max(1, ...faixas.map((f) => f[1]));
+  const totalPeso = cargas.reduce((t, c) => t + (c.pesoT ?? 0), 0);
+  const porClasse = (Object.keys(CLASSE_DIAMETRO) as ClasseDiametro[]).map((k) => ({
+    k,
+    cargas: cargas.filter((c) => c.classeDiametro === k).length,
+    peso: cargas.filter((c) => c.classeDiametro === k).reduce((t, c) => t + (c.pesoT ?? 0), 0),
+  }));
+  const maior = Math.max(1, ...porClasse.map((x) => x.peso));
 
   return (
     <>
       <Titulo
-        subtitulo="Cargas recebidas no pátio, por diâmetro"
+        subtitulo="Cargas recebidas no pátio"
         acao={
           podeProducao(eu, "lancar") && (
             <BotaoLink href="/producao/toras/nova">
@@ -62,33 +54,32 @@ export default async function TorasPage({ searchParams }: { searchParams: Promis
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="min-w-0 space-y-4 lg:col-span-2">
-            <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <dl className="grid grid-cols-2 gap-3">
               {[
                 ["Cargas", fmtNum(cargas.length)],
-                ["Toras", fmtNum(totalQtd)],
-                ["Volume estimado", totalM3 ? fmtM3(totalM3, 1) : "—"],
-              ].map(([r, v], i) => (
-                <div key={r} className={`cartao min-w-0 py-3 ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}>
+                ["Peso recebido", `${fmtNum(totalPeso, 1)} t`],
+              ].map(([r, v]) => (
+                <div key={r} className="cartao min-w-0 py-3">
                   <dt className="text-xs text-stone-500">{r}</dt>
                   <dd className="text-lg font-semibold tabular-nums">{v}</dd>
                 </div>
               ))}
             </dl>
             <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200 bg-white">
-              {resumo.map(({ c, qtd, diam, m3 }) => (
+              {cargas.map((c) => (
                 <li key={c.id}>
                   <Link href={`/producao/toras/${c.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50">
                     <div className="w-14 shrink-0 font-semibold">{formatarDia(c.data, { day: "2-digit", month: "2-digit" })}</div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">
-                        {c.origem}
-                        {c.talhao && <span className="font-normal text-stone-500"> · talhão {c.talhao}</span>}
+                        {c.floresta?.nome ?? c.origem ?? "—"}
+                        {c.fornecedor && <span className="font-normal text-stone-500"> · {c.fornecedor.nome}</span>}
                       </div>
-                      <div className="text-sm text-stone-500">
-                        {fmtNum(qtd)} toras · Ø {diam ? fmtNum(diam, 1) : "—"} cm{m3 ? ` · ≈ ${fmtM3(m3, 1)}` : ""}
-                        {c.placa && ` · ${c.placa}`}
+                      <div className="truncate text-sm text-stone-500">
+                        {[c.pesoT ? `${fmtNum(c.pesoT, 1)} t` : null, c.classeDiametro ? CLASSE_DIAMETRO[c.classeDiametro] : null, c.motorista, c.placa].filter(Boolean).join(" · ")}
                       </div>
                     </div>
+                    <span className="hidden font-mono text-xs text-stone-400 sm:block">{codigoCarga(c.numero)}</span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-stone-300" />
                   </Link>
                 </li>
@@ -96,15 +87,19 @@ export default async function TorasPage({ searchParams }: { searchParams: Promis
             </ul>
           </div>
           <section className="cartao h-fit">
-            <h2 className="mb-3 font-semibold">Toras por diâmetro</h2>
-            <ul className="space-y-1.5">
-              {faixas.map(([d, n]) => (
-                <li key={d} className="flex items-center gap-2 text-xs">
-                  <span className="w-12 shrink-0 tabular-nums text-stone-500">{d} cm</span>
-                  <div className="h-3 flex-1">
-                    <div className="h-full rounded-r-[4px] bg-[#2a78d6]" style={{ width: `${Math.max(2, (n / maior) * 100)}%` }} />
+            <h2 className="mb-3 font-semibold">Peso por diâmetro</h2>
+            <ul className="space-y-2.5">
+              {porClasse.map((x) => (
+                <li key={x.k}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span>{CLASSE_DIAMETRO[x.k]}</span>
+                    <span className="tabular-nums">
+                      <b>{fmtNum(x.peso, 1)} t</b> <span className="text-stone-400">· {x.cargas} carga(s)</span>
+                    </span>
                   </div>
-                  <span className="w-10 shrink-0 text-right font-semibold tabular-nums">{n}</span>
+                  <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+                    <div className="h-full rounded-full bg-[#2a78d6]" style={{ width: `${(x.peso / maior) * 100}%` }} />
+                  </div>
                 </li>
               ))}
             </ul>

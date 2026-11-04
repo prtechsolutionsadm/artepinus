@@ -1,4 +1,4 @@
-import type { CentroParada, Mercado, StatusCiclo, TipoEstoque, TipoProduto } from "@/generated/prisma/enums";
+import type { CentroParada, ClasseDiametro, ClasseMadeira, LocalEstoque, Mercado, StatusCiclo, TipoEstoque, TipoProduto } from "@/generated/prisma/enums";
 
 // Funções puras do módulo de produção (usadas no servidor e nos formulários).
 
@@ -21,6 +21,40 @@ export const STATUS_CICLO: Record<StatusCiclo, { label: string; cor: string }> =
   CONCLUIDO: { label: "Concluído", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
   CANCELADO: { label: "Cancelado", cor: "bg-stone-100 text-stone-600 ring-stone-200" },
 };
+
+// ---------- Grade de apontamento (serraria e estoque) ----------
+
+export const ESPESSURAS = [23, 25, 32, 38] as const;
+export const LARGURAS = [50, 85, 101, 125, 135] as const;
+/** Comprimentos (mm) e a classe que cada um define. */
+export const COMPRIMENTOS: { mm: number; classe: ClasseMadeira }[] = [
+  { mm: 2500, classe: "OTIMO" },
+  { mm: 2150, classe: "OTIMO" },
+  { mm: 1650, classe: "BOM" },
+  { mm: 1300, classe: "REGULAR" },
+  { mm: 1000, classe: "REGULAR" },
+  { mm: 700, classe: "REGULAR" },
+];
+
+export const CLASSE_MADEIRA: Record<ClasseMadeira, { label: string; cor: string; hex: string }> = {
+  OTIMO: { label: "Ótimo", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200", hex: "#1baf7a" },
+  BOM: { label: "Bom", cor: "bg-sky-50 text-sky-800 ring-sky-200", hex: "#2a78d6" },
+  REGULAR: { label: "Regular", cor: "bg-amber-50 text-amber-800 ring-amber-200", hex: "#eb6834" },
+};
+
+/** Classe da madeira pelo comprimento (mm): 2,50 e 2,15 Ótimo; 1,65 Bom; abaixo, Regular. */
+export function classeDoComprimento(mm: number): ClasseMadeira {
+  if (mm >= 2150) return "OTIMO";
+  if (mm >= 1650) return "BOM";
+  return "REGULAR";
+}
+
+/** 2500 → "2,50 m". */
+export const fmtComprimento = (mm: number) => `${(mm / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+
+export const CLASSE_DIAMETRO: Record<ClasseDiametro, string> = { FINA: "Fina", MEDIA: "Média", GROSSA: "Grossa" };
+
+export const LOCAL_ESTOQUE: Record<LocalEstoque, string> = { GRADE: "Grade", PACOTE: "Pacote", ESTUFA: "Estufa", VERDE: "Verde" };
 
 export const TIPO_ESTOQUE: Record<TipoEstoque, string> = { VERDE: "Madeira verde (pátio)", EMPACOTADA: "Madeira seca empacotada" };
 
@@ -64,7 +98,7 @@ type BoletimBase = {
   metaM3: number;
   horasProgramadas: number;
   torasM3?: number | null;
-  itens: { tipo: TipoProduto; m3: number }[];
+  itens: { tipo?: TipoProduto; m3: number; comprimento?: number }[];
   paradas: { centro: CentroParada; minutos: number }[];
 };
 
@@ -73,6 +107,8 @@ export type Kpis = {
   bomM3: number;
   aproveitamentoM3: number;
   refugoM3: number;
+  /** m³ por classe (Ótimo/Bom/Regular), pelo comprimento das peças */
+  porClasse: Record<ClasseMadeira, number>;
   metaM3: number;
   minutosProgramados: number;
   minutosParados: number;
@@ -81,9 +117,9 @@ export type Kpis = {
   disponibilidade: number | null;
   /** produção ÷ meta */
   produtividade: number | null;
-  /** 1 − refugo ÷ produção */
+  /** 1 − refugo ÷ produção (só boletins antigos; não entra mais no OEE) */
   qualidade: number | null;
-  /** disponibilidade × produtividade × qualidade */
+  /** disponibilidade × produtividade */
   oee: number | null;
   /** produção ÷ m³ de toras consumidas */
   rendimento: number | null;
@@ -100,6 +136,7 @@ export function calcularKpis(boletins: BoletimBase[]): Kpis {
     bomM3: 0,
     aproveitamentoM3: 0,
     refugoM3: 0,
+    porClasse: { OTIMO: 0, BOM: 0, REGULAR: 0 },
     metaM3: 0,
     minutosProgramados: 0,
     minutosParados: 0,
@@ -117,7 +154,8 @@ export function calcularKpis(boletins: BoletimBase[]): Kpis {
     k.torasM3 += b.torasM3 ?? 0;
     for (const i of b.itens) {
       k.producaoM3 += i.m3;
-      if (i.tipo === "BOM") k.bomM3 += i.m3;
+      if (i.comprimento) k.porClasse[classeDoComprimento(i.comprimento)] += i.m3;
+      if (!i.tipo || i.tipo === "BOM") k.bomM3 += i.m3;
       else if (i.tipo === "APROVEITAMENTO") k.aproveitamentoM3 += i.m3;
       else k.refugoM3 += i.m3;
     }
@@ -129,7 +167,8 @@ export function calcularKpis(boletins: BoletimBase[]): Kpis {
   if (k.minutosProgramados > 0) k.disponibilidade = Math.max(0, (k.minutosProgramados - k.minutosParados) / k.minutosProgramados);
   if (k.metaM3 > 0) k.produtividade = k.producaoM3 / k.metaM3;
   if (k.producaoM3 > 0) k.qualidade = 1 - k.refugoM3 / k.producaoM3;
-  if (k.disponibilidade != null && k.produtividade != null && k.qualidade != null) k.oee = k.disponibilidade * k.produtividade * k.qualidade;
+  // OEE da serraria: Disponibilidade × Produtividade (a Qualidade saiu do cálculo)
+  if (k.disponibilidade != null && k.produtividade != null) k.oee = k.disponibilidade * k.produtividade;
   if (k.torasM3 > 0) k.rendimento = k.producaoM3 / k.torasM3;
   return k;
 }

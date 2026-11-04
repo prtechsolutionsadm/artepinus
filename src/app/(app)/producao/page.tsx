@@ -10,8 +10,8 @@ import {
   Link2,
   Package,
   QrCode,
-  TreePine,
   Truck,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 import { formatarData } from "@/lib/constantes";
@@ -38,38 +38,37 @@ const TAREFAS: {
 }[] = [
   {
     etapa: 1,
-    titulo: "Registrar colheita",
-    texto: "Derrubada do talhão",
-    href: "/producao/florestas",
-    Icone: TreePine,
-  },
-  {
-    etapa: 2,
     titulo: "Receber toras",
     texto: "Carga no pátio",
     href: "/producao/toras/nova",
     Icone: Truck,
   },
   {
-    etapa: 3,
-    titulo: "Lançar boletim",
-    texto: "Produção e paradas",
+    etapa: 2,
+    titulo: "Apontar serraria",
+    texto: "Lote com etiqueta",
     href: "/producao/boletins/novo",
     Icone: ClipboardPen,
   },
   {
-    etapa: 4,
+    etapa: 3,
     titulo: "Iniciar estufa",
     texto: "Novo ciclo",
     href: "/producao/estufas/ciclos/novo",
     Icone: Flame,
   },
   {
-    etapa: 5,
+    etapa: 4,
     titulo: "Formar pacote",
     texto: "Com etiqueta QR",
     href: "/producao/pacotes/novo",
     Icone: Package,
+  },
+  {
+    titulo: "Inventário do dia",
+    texto: "Grade, pacote, estufa, verde",
+    href: "/producao/estoque/novo",
+    Icone: Warehouse,
   },
 ];
 
@@ -131,7 +130,7 @@ function Tarefa({
   );
 }
 
-/** Tela inicial da produção: o que precisa de atenção, as tarefas do dia e a situação geral. */
+/** Tela inicial do sistema: o que precisa de atenção, as tarefas do dia e a situação geral. */
 export default async function InicioProducaoPage() {
   const eu = await exigirProducao();
   const lancar = podeProducao(eu, "lancar");
@@ -176,7 +175,7 @@ export default async function InicioProducaoPage() {
             {d.pendencias.length === 0 ? (
               <p className="flex items-center gap-3 px-4 py-5 text-sm text-stone-600 sm:px-5">
                 <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />{" "}
-                Tudo em dia. Nenhuma pendência na produção.
+                Tudo em dia. Nenhuma pendência.
               </p>
             ) : (
               <ul className="divide-y divide-stone-100 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
@@ -257,7 +256,7 @@ export default async function InicioProducaoPage() {
                       href="/producao/boletins/novo"
                       className="font-semibold text-marca-700 hover:underline"
                     >
-                      Lançar agora
+                      Apontar agora
                     </Link>
                   ) : (
                     <span className="text-stone-500">Ainda não</span>
@@ -297,7 +296,7 @@ export default async function InicioProducaoPage() {
 
           <section className="cartao shrink-0 py-3 sm:py-4">
             <div className="flex items-baseline justify-between gap-2">
-              <h2 className="font-semibold">Produção do mês</h2>
+              <h2 className="font-semibold">Serrado no mês</h2>
               <span className="text-xs text-stone-500">
                 {d.mes.dias} dia(s)
               </span>

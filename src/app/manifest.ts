@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Artepinus · Produção",
+    name: "Artepinus Madeiras",
     short_name: "Artepinus",
-    description: "Produção da Artepinus: boletins da serraria, estufas, pacotes com QR Code e indicadores",
+    description: "Sistema Artepinus: serraria, estufas, pacotes com QR Code e indicadores",
     lang: "pt-BR",
     start_url: "/sistema",
     display: "standalone",
@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Ler QR do pacote", url: "/producao/escanear" },
-      { name: "Novo boletim", url: "/producao/boletins/novo" },
+      { name: "Apontar serraria", url: "/producao/boletins/novo" },
     ],
   };
 }

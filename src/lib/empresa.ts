@@ -5,7 +5,7 @@ export const EMPRESA = {
   razaoSocial: "Artepinus Indústria e Comércio de Madeiras LTDA",
   cnpj: "76.848.506/0001-17",
   fundacao: "19/08/1983",
-  sistema: "Sistema de Produção",
+  sistema: "Sistema Artepinus",
   logo: "/logo.svg",
   logoBranco: "/logo-branco.svg",
   marca: "/marca.svg",

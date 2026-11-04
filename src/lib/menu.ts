@@ -26,7 +26,7 @@ export type IconeMenu =
   | "escanear"
   | "florestas";
 
-/** `etapa`: posição no processo (1 = floresta … 5 = pacote), mostrada no menu. */
+/** `etapa`: posição no processo (1 = toras … 4 = pacote), mostrada no menu. */
 export type ItemNav = { href: string; label: string; icone: IconeMenu; etapa?: number };
 export type GrupoNav = { titulo: string; itens: ItemNav[] };
 
@@ -80,28 +80,27 @@ function menuProducao(u: UsuarioComPerfis): GrupoNav[] {
   return [
     { titulo: "", itens: [{ href: "/producao", label: "Início", icone: "inicio" }] },
     {
-      // Na ordem do processo: da floresta ao pacote
+      // Na ordem do processo: da tora ao pacote
       titulo: "Operação",
       itens: [
-        { href: "/producao/florestas", label: "Florestas e colheitas", icone: "florestas", etapa: 1 },
-        { href: "/producao/toras", label: "Recebimento de toras", icone: "toras", etapa: 2 },
-        { href: "/producao/boletins", label: "Serraria (boletins)", icone: "boletins", etapa: 3 },
-        { href: "/producao/estufas", label: "Estufas", icone: "estufas", etapa: 4 },
-        { href: "/producao/pacotes", label: "Pacotes e expedição", icone: "pacotes", etapa: 5 },
-        { href: "/producao/escanear", label: "Ler QR do pacote", icone: "escanear" },
+        { href: "/producao/toras", label: "Recebimento de toras", icone: "toras", etapa: 1 },
+        { href: "/producao/boletins", label: "Serraria", icone: "boletins", etapa: 2 },
+        { href: "/producao/estufas", label: "Estufas", icone: "estufas", etapa: 3 },
+        { href: "/producao/pacotes", label: "Pacotes e expedição", icone: "pacotes", etapa: 4 },
+        { href: "/producao/escanear", label: "Ler etiqueta", icone: "escanear" },
       ],
     },
     {
       titulo: "Gestão",
       itens: [
         { href: "/producao/indicadores", label: "Indicadores", icone: "indicadores" },
-        { href: "/producao/estoque", label: "Estoque de madeira", icone: "estoque" },
+        { href: "/producao/estoque", label: "Inventário de madeira", icone: "estoque" },
       ],
     },
     {
       titulo: "Cadastros",
       itens: [
-        ...se(podeProducao(u, "gerir"), { href: "/producao/cadastros", label: "Motivos, estufas e metas", icone: "cadastrosProducao" }),
+        ...se(podeProducao(u, "gerir"), { href: "/producao/cadastros", label: "Pedidos e cadastros", icone: "cadastrosProducao" }),
         ...se(pode(u.perfil, "usuarios"), { href: "/usuarios", label: "Usuários", icone: "usuarios" }),
         ...se(pode(u.perfil, "auditoria"), { href: "/auditoria", label: "Auditoria", icone: "auditoria" }),
       ],

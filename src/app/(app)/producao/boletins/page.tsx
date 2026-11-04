@@ -32,11 +32,11 @@ export default async function BoletinsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <Titulo
-        subtitulo="Produção e paradas lançadas pelo encarregado no fim do turno"
+        subtitulo="Lotes apontados em grade, paradas e toras de cada dia"
         acao={
           podeProducao(eu, "lancar") && (
             <BotaoLink href="/producao/boletins/novo">
-              <Plus className="h-4 w-4" /> Novo boletim
+              <Plus className="h-4 w-4" /> Apontar serraria
             </BotaoLink>
           )
         }
@@ -51,7 +51,7 @@ export default async function BoletinsPage({ searchParams }: { searchParams: Pro
       {boletins.length > 0 && (
         <dl className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            ["Produção no mês", fmtM3(total.producaoM3)],
+            ["Serrado no mês", fmtM3(total.producaoM3)],
             ["Meta acumulada", fmtM3(total.metaM3)],
             ["Tempo parado", formatarDuracao(total.minutosParados)],
             ["OEE do mês", fmtPct(total.oee)],

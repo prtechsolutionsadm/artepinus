@@ -5,12 +5,11 @@ import { registrarEventoPacote } from "@/app/actions/rastreio";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
 import type { StatusPacote } from "@/generated/prisma/enums";
 
-type Acao = "estufa" | "expedir" | "local" | "observacao" | "cancelar";
+type Acao = "estufa" | "expedir" | "observacao" | "cancelar";
 
 const ROTULO: Record<Acao, string> = {
   estufa: "Enviar para estufa",
-  expedir: "Expedir",
-  local: "Mover",
+  expedir: "Registrar saída",
   observacao: "Observação",
   cancelar: "Cancelar pacote",
 };
@@ -21,17 +20,19 @@ export function AcoesPacote({
   status,
   ciclos,
   podeGerir,
+  pedido,
 }: {
   numero: number;
   status: StatusPacote;
   ciclos: { id: string; rotulo: string }[];
   podeGerir: boolean;
+  /** "Nº · cliente" do pedido do pacote, se houver. */
+  pedido?: string | null;
 }) {
   const encerrado = status === "EXPEDIDO" || status === "CANCELADO";
   const acoes: Acao[] = [
     ...(status === "VERDE" ? (["estufa"] as const) : []),
     ...(status === "VERDE" || status === "SECO" ? (["expedir"] as const) : []),
-    ...(!encerrado ? (["local"] as const) : []),
     "observacao" as const,
     ...(podeGerir && !encerrado ? (["cancelar"] as const) : []),
   ];
@@ -75,26 +76,9 @@ export function AcoesPacote({
             <p className="text-sm text-stone-500">Nenhuma estufa com ciclo em andamento. Inicie o ciclo em Estufas.</p>
           ))}
         {acao === "expedir" && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor="ev-cli">Cliente *</label>
-              <input id="ev-cli" name="cliente" required className="campo" />
-            </div>
-            <div>
-              <label htmlFor="ev-nf">Nota fiscal</label>
-              <input id="ev-nf" name="notaFiscal" className="campo" />
-            </div>
-            <div>
-              <label htmlFor="ev-dest">Destino</label>
-              <input id="ev-dest" name="destino" className="campo" />
-            </div>
-          </div>
-        )}
-        {acao === "local" && (
-          <div>
-            <label htmlFor="ev-loc">Novo local *</label>
-            <input id="ev-loc" name="localizacao" required placeholder="Ex.: Galpão 2, fila B" className="campo" />
-          </div>
+          <p className="text-sm text-stone-600">
+            Registra a saída física do pacote. Cliente e destino já vêm do pedido{pedido ? ` (${pedido})` : ""}.
+          </p>
         )}
         {(acao === "observacao" || acao === "cancelar") && (
           <div>

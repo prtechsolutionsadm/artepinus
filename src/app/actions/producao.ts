@@ -14,12 +14,18 @@ import {
   formatarDia,
   hojeSP,
   m3Pecas,
+  ESPESSURAS,
+  LARGURAS,
+  COMPRIMENTOS,
+  classeDoComprimento,
 } from "@/lib/producao";
+import { configSerraria } from "@/lib/producao-dados";
+import { codigoLote } from "@/lib/rastreio";
 import { criarRequisicaoCompleta } from "@/lib/requisicoes";
 import { exigirUsuario } from "@/lib/session";
 import type { EstadoForm } from "./auth";
 
-export type Resultado = { erro?: string; id?: string | number };
+export type Resultado = { erro?: string; id?: string | number; numero?: number };
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
 const opcional = <T extends z.ZodTypeAny>(t: T) => z.preprocess(vazioParaNull, t.nullable());
@@ -40,25 +46,9 @@ async function exigirAcao(acao: "lancar" | "gerir") {
 const boletimSchema = z.object({
   id: opcional(z.string()),
   data: dia,
-  metaM3: z.coerce.number().min(0, "Meta inválida"),
-  horasProgramadas: z.coerce.number().positive("Informe as horas programadas").max(24, "No máximo 24 horas"),
   torasQtd: opcional(z.coerce.number().int().min(0)),
   torasM3: opcional(z.coerce.number().min(0)),
-  diametroMedio: opcional(z.coerce.number().min(0)),
-  comprimentoMedio: opcional(z.coerce.number().min(0)),
   observacoes: opcional(z.string().trim().max(2000)),
-  itens: z
-    .array(
-      z.object({
-        tipo: z.enum(["BOM", "APROVEITAMENTO", "REFUGO"]),
-        mercado: z.enum(["EXTERNO", "INTERNO"]),
-        espessura: positivo("Espessura inválida").int(),
-        largura: positivo("Largura inválida").int(),
-        comprimento: positivo("Comprimento inválido").int(),
-        pecas: positivo("Informe as peças").int(),
-      }),
-    )
-    .max(200),
   paradas: z
     .array(
       z.object({
@@ -78,34 +68,29 @@ const boletimSchema = z.object({
 
 export type DadosBoletim = z.input<typeof boletimSchema>;
 
+/**
+ * Dados do dia (paradas, toras serradas, observações). A meta e as horas vêm da
+ * configuração padrão; a produção entra pelos lotes (grade).
+ */
 export async function salvarBoletim(entrada: DadosBoletim): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("lancar");
-  if (!ok) return { erro: "Sem permissão para lançar produção" };
+  if (!ok) return { erro: "Sem permissão" };
   const parse = boletimSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, itens, paradas, cargaIds, ...campos } = parse.data;
+  const { id, paradas, cargaIds, ...campos } = parse.data;
   if (campos.data > hojeSP()) return { erro: "A data do boletim não pode ser futura" };
-  if (itens.length === 0 && paradas.length === 0) return { erro: "Lance a produção ou as paradas do dia" };
-  const minutosParados = paradas.reduce((s, p) => s + p.minutos, 0);
-  if (minutosParados > campos.horasProgramadas * 60) {
-    return { erro: `As paradas somam ${formatarDuracao(minutosParados)}, mais que as ${campos.horasProgramadas} h programadas` };
-  }
+  const cfg = await configSerraria();
+  const antes = id ? await db.boletimProducao.findUnique({ where: { id } }) : null;
+  if (id && !antes) return { erro: "Boletim não encontrado" };
+  const horas = antes?.horasProgramadas ?? cfg.horasDia;
+  const minutosParados = paradas.reduce((t, p) => t + p.minutos, 0);
+  if (minutosParados > horas * 60) return { erro: `As paradas somam ${formatarDuracao(minutosParados)}, mais que as ${horas} h programadas` };
 
-  const dados = {
-    ...campos,
-    data: diaParaDate(campos.data),
-    itens: { create: itens.map((i) => ({ ...i, m3: m3Pecas(i.espessura, i.largura, i.comprimento, i.pecas) })) },
-    paradas: { create: paradas },
-  };
-  const totalM3 = arred(dados.itens.create.reduce((s, i) => s + i.m3, 0), 3);
-
+  const dados = { ...campos, data: diaParaDate(campos.data), paradas: { create: paradas } };
   try {
-    if (id) {
-      const antes = await db.boletimProducao.findUnique({ where: { id } });
-      if (!antes) return { erro: "Boletim não encontrado" };
-      if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor de produção edita boletins de outra pessoa" };
+    if (id && antes) {
+      if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor edita boletins de outra pessoa" };
       await db.$transaction([
-        db.itemProducao.deleteMany({ where: { boletimId: id } }),
         db.paradaProducao.deleteMany({ where: { boletimId: id } }),
         db.boletimProducao.update({ where: { id }, data: { ...dados, cargas: { set: cargaIds.map((c) => ({ id: c })) } } }),
       ]);
@@ -114,26 +99,104 @@ export async function salvarBoletim(entrada: DadosBoletim): Promise<Resultado> {
         acao: "boletim.editar",
         entidade: "BoletimProducao",
         entidadeId: id,
-        resumo: `Editou o boletim da serraria de ${formatarDia(dados.data)} (${totalM3} m³, ${paradas.length} parada(s))`,
-        detalhes: diferencas(antes, { ...campos, data: dados.data }, ["data", "metaM3", "horasProgramadas", "torasQtd", "torasM3", "observacoes"]),
+        resumo: `Editou o boletim de ${formatarDia(dados.data)} (${paradas.length} parada(s))`,
+        detalhes: diferencas(antes, { ...campos, data: dados.data }, ["data", "torasQtd", "torasM3", "observacoes"]),
       });
       revalidatePath("/producao", "layout");
       return { id };
     }
-    const novo = await db.boletimProducao.create({ data: { ...dados, responsavelId: eu.id, cargas: { connect: cargaIds.map((c) => ({ id: c })) } } });
-    await auditar({
-      usuarioId: eu.id,
-      acao: "boletim.criar",
-      entidade: "BoletimProducao",
-      entidadeId: novo.id,
-      resumo: `Lançou o boletim da serraria de ${formatarDia(novo.data)} (${totalM3} m³, ${paradas.length} parada(s))`,
+    const novo = await db.boletimProducao.create({
+      data: { ...dados, metaM3: cfg.metaDiariaM3, horasProgramadas: cfg.horasDia, responsavelId: eu.id, cargas: { connect: cargaIds.map((c) => ({ id: c })) } },
     });
+    await auditar({ usuarioId: eu.id, acao: "boletim.criar", entidade: "BoletimProducao", entidadeId: novo.id, resumo: `Abriu o boletim de ${formatarDia(novo.data)} (${paradas.length} parada(s))` });
     revalidatePath("/producao", "layout");
     return { id: novo.id };
   } catch (e) {
     if (erroUnico(e)) return { erro: "Já existe um boletim para esta data — abra-o na lista para editar" };
     throw e;
   }
+}
+
+// ============================ Lotes (grade da serraria) ============================
+
+const loteSchema = z.object({
+  chaveOffline: opcional(z.string().uuid()),
+  data: dia,
+  pedidoId: z.string().min(1, "Escolha o pedido"),
+  espessura: z.coerce.number().int().refine((e) => (ESPESSURAS as readonly number[]).includes(e), "Escolha a espessura"),
+  itens: z
+    .array(
+      z.object({
+        largura: z.coerce.number().int().refine((l) => (LARGURAS as readonly number[]).includes(l), "Largura fora da grade"),
+        comprimento: z.coerce.number().int().refine((c) => COMPRIMENTOS.some((x) => x.mm === c), "Comprimento fora da grade"),
+        pecas: z.coerce.number().int().positive().max(100000),
+      }),
+    )
+    .min(1, "Preencha a quantidade de peças em pelo menos uma medida")
+    .max(60),
+});
+
+export type DadosLote = z.input<typeof loteSchema>;
+
+/** Lança uma grade (pedido + espessura) no boletim do dia e gera o lote com etiqueta. */
+export async function lancarLote(entrada: DadosLote): Promise<Resultado> {
+  const { eu, ok } = await exigirAcao("lancar");
+  if (!ok) return { erro: "Sem permissão" };
+  const parse = loteSchema.safeParse(entrada);
+  if (!parse.success) return { erro: parse.error.issues[0].message };
+  const { chaveOffline, data, pedidoId, espessura, itens } = parse.data;
+  if (data > hojeSP()) return { erro: "A data não pode ser futura" };
+  if (chaveOffline) {
+    const ja = await db.lote.findUnique({ where: { chaveOffline } });
+    if (ja) return { id: ja.id, numero: ja.numero };
+  }
+  const pedido = await db.pedido.findUnique({ where: { id: pedidoId } });
+  if (!pedido) return { erro: "Pedido não encontrado" };
+
+  // Boletim do dia: usa o existente ou abre com a configuração padrão
+  const dia = diaParaDate(data);
+  let boletim = await db.boletimProducao.findUnique({ where: { data: dia } });
+  if (!boletim) {
+    const cfg = await configSerraria();
+    try {
+      boletim = await db.boletimProducao.create({ data: { data: dia, metaM3: cfg.metaDiariaM3, horasProgramadas: cfg.horasDia, responsavelId: eu.id } });
+    } catch (e) {
+      if (!erroUnico(e)) throw e;
+      boletim = await db.boletimProducao.findUniqueOrThrow({ where: { data: dia } });
+    }
+  }
+  const linhas = itens.map((i) => ({
+    boletimId: boletim.id,
+    espessura,
+    largura: i.largura,
+    comprimento: i.comprimento,
+    pecas: i.pecas,
+    classe: classeDoComprimento(i.comprimento),
+    m3: m3Pecas(espessura, i.largura, i.comprimento, i.pecas),
+  }));
+  const volume = arred(linhas.reduce((t, l) => t + l.m3, 0), 3);
+  const lote = await db.lote.create({
+    data: { boletimId: boletim.id, pedidoId, espessura, criadoPorId: eu.id, chaveOffline, itens: { create: linhas } },
+  });
+  await auditar({
+    usuarioId: eu.id,
+    acao: "boletim.lote",
+    entidade: "Lote",
+    entidadeId: lote.id,
+    resumo: `Lote ${codigoLote(lote.numero)}: ${espessura} mm, ${linhas.reduce((t, l) => t + l.pecas, 0)} peças, ${volume} m³ — pedido ${pedido.numero}`,
+  });
+  revalidatePath("/producao", "layout");
+  return { id: lote.id, numero: lote.numero };
+}
+
+export async function excluirLote(id: string): Promise<Resultado> {
+  const { eu, ok } = await exigirAcao("gerir");
+  if (!ok) return { erro: "Sem permissão" };
+  const l = await db.lote.delete({ where: { id } }).catch(() => null);
+  if (!l) return { erro: "Lote não encontrado" };
+  await auditar({ usuarioId: eu.id, acao: "boletim.lote.excluir", entidade: "Lote", entidadeId: id, resumo: `Excluiu o lote ${codigoLote(l.numero)}` });
+  revalidatePath("/producao", "layout");
+  return {};
 }
 
 export async function excluirBoletim(id: string): Promise<Resultado> {
@@ -305,8 +368,8 @@ const cicloSchema = z.object({
   numero: opcional(z.coerce.number().int().positive()),
   entrada: z.string().min(1, "Informe a entrada"),
   previsaoSaida: opcional(z.string()),
-  umidadeInicial: opcional(z.coerce.number().min(0).max(200)),
-  plantao: opcional(z.string().trim().max(200)),
+  /** Responsável pelo plantão (usuário do sistema). */
+  plantaoId: opcional(z.string()),
   proximaCarga: opcional(z.string().trim().max(300)),
   observacoes: opcional(z.string().trim().max(2000)),
   cargas: z.array(cargaSchema).min(1, "Informe a madeira que entrou na estufa").max(60),
@@ -446,18 +509,16 @@ export async function cancelarCiclo(id: string): Promise<Resultado> {
 
 const cargaTorasSchema = z.object({
   id: opcional(z.string()),
+  /** Chave gerada no aparelho (envio sem internet), para não duplicar. */
+  chaveOffline: opcional(z.string().uuid()),
   data: dia,
-  origem: z.string().trim().min(2, "Informe a origem/fornecedor").max(120),
-  colheitaId: opcional(z.string()),
-  talhao: opcional(z.string().trim().max(60)),
-  motorista: opcional(z.string().trim().max(80)),
-  placa: opcional(z.string().trim().toUpperCase().max(10)),
-  comprimentoMedio: opcional(z.coerce.number().positive().max(20)),
+  florestaId: z.string().min(1, "Escolha a floresta"),
+  fornecedorId: z.string().min(1, "Escolha o fornecedor"),
+  motoristaId: z.string().min(1, "Escolha o motorista"),
+  comprimentoMedio: positivo("Informe o comprimento médio").max(20),
+  classeDiametro: z.enum(["FINA", "MEDIA", "GROSSA"], { message: "Escolha o diâmetro" }),
+  pesoT: positivo("Informe o peso em toneladas").max(200),
   observacoes: opcional(z.string().trim().max(1000)),
-  itens: z
-    .array(z.object({ diametro: positivo("Diâmetro inválido").int().max(200), quantidade: positivo("Quantidade inválida").int() }))
-    .min(1, "Informe as toras por diâmetro")
-    .max(100),
 });
 
 export type DadosCargaToras = z.input<typeof cargaTorasSchema>;
@@ -467,30 +528,42 @@ export async function salvarCargaToras(entrada: DadosCargaToras): Promise<Result
   if (!ok) return { erro: "Sem permissão" };
   const parse = cargaTorasSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, itens, ...c } = parse.data;
+  const { id, chaveOffline, ...c } = parse.data;
   if (c.data > hojeSP()) return { erro: "A data não pode ser futura" };
-  // Diâmetros repetidos viram uma linha só
-  const porDiametro = new Map<number, number>();
-  for (const i of itens) porDiametro.set(i.diametro, (porDiametro.get(i.diametro) ?? 0) + i.quantidade);
-  const linhas = [...porDiametro].sort((a, b) => a[0] - b[0]).map(([diametro, quantidade]) => ({ diametro, quantidade }));
-  const total = linhas.reduce((s, i) => s + i.quantidade, 0);
-  const dados = { ...c, data: diaParaDate(c.data) };
+  if (chaveOffline) {
+    const ja = await db.cargaToras.findUnique({ where: { chaveOffline } });
+    if (ja) return { id: ja.id };
+  }
+  const [floresta, fornecedor, motorista] = await Promise.all([
+    db.origemFlorestal.findUnique({ where: { id: c.florestaId } }),
+    db.fornecedor.findUnique({ where: { id: c.fornecedorId } }),
+    db.motorista.findUnique({ where: { id: c.motoristaId } }),
+  ]);
+  if (!floresta || !fornecedor || !motorista) return { erro: "Floresta, fornecedor ou motorista não encontrado" };
+  // Guarda nome e placas do momento (histórico não muda se o cadastro mudar)
+  const dados = {
+    ...c,
+    data: diaParaDate(c.data),
+    origem: floresta.nome,
+    motorista: motorista.nome,
+    placa: motorista.placaCaminhao,
+    placaJulieta: motorista.placaJulieta,
+  };
+  const resumo = `${floresta.nome} · ${fornecedor.nome} · ${c.pesoT} t (${c.classeDiametro.toLowerCase()})`;
 
   if (id) {
     const antes = await db.cargaToras.findUnique({ where: { id } });
     if (!antes) return { erro: "Carga não encontrada" };
-    if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor de produção edita cargas de outra pessoa" };
-    await db.$transaction([
-      db.itemCargaToras.deleteMany({ where: { cargaId: id } }),
-      db.cargaToras.update({ where: { id }, data: { ...dados, itens: { create: linhas } } }),
-    ]);
-    await auditar({ usuarioId: eu.id, acao: "toras.editar", entidade: "CargaToras", entidadeId: id, resumo: `Editou a carga de toras de ${c.origem} (${total} toras)` });
-  } else {
-    const nova = await db.cargaToras.create({ data: { ...dados, responsavelId: eu.id, itens: { create: linhas } } });
-    await auditar({ usuarioId: eu.id, acao: "toras.criar", entidade: "CargaToras", entidadeId: nova.id, resumo: `Registrou carga de toras de ${c.origem} (${total} toras)` });
+    if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor edita cargas de outra pessoa" };
+    await db.cargaToras.update({ where: { id }, data: dados });
+    await auditar({ usuarioId: eu.id, acao: "toras.editar", entidade: "CargaToras", entidadeId: id, resumo: `Editou a carga de toras: ${resumo}` });
+    revalidatePath("/producao", "layout");
+    return { id };
   }
+  const nova = await db.cargaToras.create({ data: { ...dados, chaveOffline, responsavelId: eu.id } });
+  await auditar({ usuarioId: eu.id, acao: "toras.criar", entidade: "CargaToras", entidadeId: nova.id, resumo: `Recebeu carga de toras: ${resumo}` });
   revalidatePath("/producao", "layout");
-  return { id: id ?? undefined };
+  return { id: nova.id };
 }
 
 export async function excluirCargaToras(id: string): Promise<Resultado> {
@@ -507,22 +580,17 @@ export async function excluirCargaToras(id: string): Promise<Resultado> {
 
 const levantamentoSchema = z.object({
   id: opcional(z.string()),
+  chaveOffline: opcional(z.string().uuid()),
   data: dia,
-  tipo: z.enum(["VERDE", "EMPACOTADA"]),
+  local: z.enum(["GRADE", "PACOTE", "ESTUFA", "VERDE"], { message: "Escolha onde está a madeira" }),
+  estufaId: opcional(z.string()),
+  espessura: z.coerce.number().int().refine((e) => (ESPESSURAS as readonly number[]).includes(e), "Espessura inválida"),
   observacoes: opcional(z.string().trim().max(1000)),
+  /** Grade: peças por largura × comprimento (mm). */
   itens: z
-    .array(
-      z.object({
-        espessura: positivo("Espessura inválida").int(),
-        largura: z.string().trim().min(1, "Informe a largura").max(40),
-        comprimento: positivo("Comprimento inválido"),
-        grades: opcional(z.coerce.number().int().min(0)),
-        pacotes: opcional(z.coerce.number().int().min(0)),
-        m3: positivo("Informe o volume em m³"),
-      }),
-    )
-    .min(1, "Informe ao menos uma bitola")
-    .max(300),
+    .array(z.object({ largura: z.coerce.number().int().positive(), comprimento: z.coerce.number().int().positive(), pecas: z.coerce.number().int().positive() }))
+    .min(1, "Preencha a quantidade em pelo menos uma medida")
+    .max(60),
 });
 
 export type DadosLevantamento = z.input<typeof levantamentoSchema>;
@@ -532,27 +600,39 @@ export async function salvarLevantamento(entrada: DadosLevantamento): Promise<Re
   if (!ok) return { erro: "Sem permissão" };
   const parse = levantamentoSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, itens, ...c } = parse.data;
+  const { id, chaveOffline, itens, ...c } = parse.data;
   if (c.data > hojeSP()) return { erro: "A data não pode ser futura" };
-
-  const linhas = itens.map((i) => ({ ...i, m3: arred(i.m3, 4) }));
-  const volume = arred(linhas.reduce((s, l) => s + l.m3, 0), 2);
+  if (c.local === "ESTUFA" && !c.estufaId) return { erro: "Escolha a estufa" };
+  if (c.local !== "ESTUFA") c.estufaId = null;
+  if (chaveOffline) {
+    const ja = await db.levantamentoEstoque.findUnique({ where: { chaveOffline } });
+    if (ja) return { id: ja.id };
+  }
+  const linhas = itens.map((i) => ({
+    espessura: c.espessura,
+    largura: String(i.largura),
+    comprimento: i.comprimento / 1000,
+    pecas: i.pecas,
+    m3: m3Pecas(c.espessura, i.largura, i.comprimento, i.pecas),
+  }));
+  const volume = arred(linhas.reduce((t, l) => t + l.m3, 0), 2);
   const dados = { ...c, data: diaParaDate(c.data) };
+  const onde = c.local === "ESTUFA" ? (await db.estufa.findUnique({ where: { id: c.estufaId! } }))?.nome ?? "estufa" : c.local.toLowerCase();
 
   if (id) {
     const antes = await db.levantamentoEstoque.findUnique({ where: { id } });
     if (!antes) return { erro: "Levantamento não encontrado" };
-    if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor de produção edita levantamentos de outra pessoa" };
+    if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor edita levantamentos de outra pessoa" };
     await db.$transaction([
       db.itemEstoque.deleteMany({ where: { levantamentoId: id } }),
       db.levantamentoEstoque.update({ where: { id }, data: { ...dados, itens: { create: linhas } } }),
     ]);
-    await auditar({ usuarioId: eu.id, acao: "estoque.editar", entidade: "LevantamentoEstoque", entidadeId: id, resumo: `Editou o levantamento de estoque de ${formatarDia(dados.data)} (${volume} m³)` });
+    await auditar({ usuarioId: eu.id, acao: "estoque.editar", entidade: "LevantamentoEstoque", entidadeId: id, resumo: `Editou o inventário de ${formatarDia(dados.data)} (${onde}, ${c.espessura} mm, ${volume} m³)` });
     revalidatePath("/producao", "layout");
     return { id };
   }
-  const novo = await db.levantamentoEstoque.create({ data: { ...dados, responsavelId: eu.id, itens: { create: linhas } } });
-  await auditar({ usuarioId: eu.id, acao: "estoque.criar", entidade: "LevantamentoEstoque", entidadeId: novo.id, resumo: `Registrou levantamento de estoque de ${formatarDia(dados.data)} (${volume} m³)` });
+  const novo = await db.levantamentoEstoque.create({ data: { ...dados, chaveOffline, responsavelId: eu.id, itens: { create: linhas } } });
+  await auditar({ usuarioId: eu.id, acao: "estoque.criar", entidade: "LevantamentoEstoque", entidadeId: novo.id, resumo: `Inventário de ${formatarDia(dados.data)}: ${onde}, ${c.espessura} mm, ${volume} m³` });
   revalidatePath("/producao", "layout");
   return { id: novo.id };
 }

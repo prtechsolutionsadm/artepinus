@@ -15,7 +15,7 @@ export default async function MenuPage() {
   const eu = await exigirUsuario();
   const perfis = [
     temModulo(eu, "manutencao") ? PERFIL[eu.perfil] : null,
-    eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? `Produção: ${PERFIL_PRODUCAO[eu.perfilProducao]}` : null,
+    eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? `Acesso: ${PERFIL_PRODUCAO[eu.perfilProducao]}` : null,
   ].filter(Boolean);
 
   return (
