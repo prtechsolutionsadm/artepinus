@@ -145,7 +145,7 @@ export default async function InicioProducaoPage() {
 
   return (
     // No computador a tela cabe na altura da janela; as listas rolam por dentro dos quadros
-    <div className="flex flex-col gap-5 lg:h-[calc(100dvh-4rem-1px-3.5rem)] lg:min-h-[520px]">
+    <div className="flex flex-col gap-5 lg:h-[calc(100dvh-6.75rem-2px-3.25rem)] lg:min-h-[520px]">
       <div className="flex shrink-0 flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-stone-500 first-letter:uppercase">

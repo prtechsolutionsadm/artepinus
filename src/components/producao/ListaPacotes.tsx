@@ -62,7 +62,7 @@ export function ListaPacotes({
   return (
     <div>
       {sel.length > 0 && (
-        <div className="sticky top-16 z-10 mb-3 rounded-2xl border border-marca-200 bg-white p-3 shadow-sm">
+        <div className="sticky top-16 z-10 lg:top-[7.25rem] mb-3 rounded-2xl border border-marca-200 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium">
               {sel.length} selecionado(s) · {fmtM3(selecionados.reduce((s, l) => s + l.m3, 0), 2)}
