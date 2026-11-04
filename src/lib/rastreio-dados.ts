@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { formatarDia } from "@/lib/producao";
-import { codigoCarga, codigoColheita, codigoLote } from "@/lib/rastreio";
+import { codigoCarga, codigoLote } from "@/lib/rastreio";
 
 const selCarga = {
   id: true,
@@ -72,22 +72,6 @@ export type Rastreio = NonNullable<Awaited<ReturnType<typeof rastrearPacote>>>;
 
 const DIA = 864e5;
 
-/** Colheitas em andamento ou recentes, para escolher na carga de toras. */
-export async function colheitasParaForm(incluir?: string | null) {
-  const limite = new Date(Date.now() - 180 * DIA);
-  const lista = await db.colheita.findMany({
-    where: { OR: [{ fim: null }, { fim: { gte: limite } }, ...(incluir ? [{ id: incluir }] : [])] },
-    orderBy: { inicio: "desc" },
-    take: 100,
-    include: { origem: { select: { nome: true } } },
-  });
-  return lista.map((c) => ({
-    id: c.id,
-    origem: c.origem.nome,
-    talhao: c.talhao,
-    rotulo: `${codigoColheita(c.numero)} · ${c.origem.nome}${c.talhao ? ` · talhão ${c.talhao}` : ""} · desde ${formatarDia(c.inicio)}`,
-  }));
-}
 
 /** Cargas de toras dos últimos 60 dias (e as já ligadas), para marcar no boletim. */
 export async function cargasParaForm(ligadas: string[] = []) {
@@ -117,19 +101,6 @@ export async function boletinsParaForm(ligados: string[] = []) {
   }));
 }
 
-/** Ciclos de estufa concluídos nos últimos 90 dias (madeira seca para formar pacotes). */
-export async function ciclosParaForm() {
-  const lista = await db.cicloSecagem.findMany({
-    where: { status: "CONCLUIDO", saida: { gte: new Date(Date.now() - 90 * DIA) } },
-    orderBy: { saida: "desc" },
-    take: 60,
-    include: { estufa: { select: { nome: true } }, cargas: { select: { m3: true } } },
-  });
-  return lista.map((c) => ({
-    id: c.id,
-    rotulo: `${c.estufa.nome}${c.numero ? ` · ciclo nº ${c.numero}` : ""} · saiu ${c.saida ? formatarDia(c.saida, { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }) : "—"} · ${c.cargas.reduce((s, x) => s + x.m3, 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m³`,
-  }));
-}
 
 /** Ciclos em secagem agora (para mandar um pacote verde para a estufa). */
 export async function ciclosAtivos() {

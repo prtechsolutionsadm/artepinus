@@ -29,10 +29,6 @@ export function pode(perfil: Perfil, acao: Acao) {
   return (REGRAS[acao] as Perfil[]).includes(perfil);
 }
 
-export function perfisCom(acao: Acao): Perfil[] {
-  return [...REGRAS[acao]];
-}
-
 /** Perfis que aparecem como responsáveis possíveis de uma requisição. */
 export const PERFIS_RESPONSAVEIS: Perfil[] = ["SUPERVISOR", "MANUTENTOR"];
 

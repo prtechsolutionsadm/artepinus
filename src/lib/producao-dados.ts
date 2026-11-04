@@ -20,24 +20,18 @@ export async function opcoesBoletim() {
   };
 }
 
-/** Meses ("AAAA-MM") com boletins lançados nos últimos 3 anos, do mais recente ao mais antigo. */
+/** Meses ("AAAA-MM") distintos de uma lista de datas, na ordem recebida. */
+const mesesDistintos = (datas: { data: Date }[]) => [...new Set(datas.map((d) => d.data.toISOString().slice(0, 7)))];
+const consultaUltimos3Anos = () => ({ where: { data: { gte: new Date(Date.now() - 3 * 366 * 864e5) } }, select: { data: true }, orderBy: { data: "desc" as const } });
+
+/** Meses com boletins lançados nos últimos 3 anos, do mais recente ao mais antigo. */
 export async function mesesComBoletim() {
-  const datas = await db.boletimProducao.findMany({
-    where: { data: { gte: new Date(Date.now() - 3 * 366 * 864e5) } },
-    select: { data: true },
-    orderBy: { data: "desc" },
-  });
-  return [...new Set(datas.map((d) => d.data.toISOString().slice(0, 7)))];
+  return mesesDistintos(await db.boletimProducao.findMany(consultaUltimos3Anos()));
 }
 
 /** Meses com cargas de toras recebidas nos últimos 3 anos. */
 export async function mesesComCargas() {
-  const datas = await db.cargaToras.findMany({
-    where: { data: { gte: new Date(Date.now() - 3 * 366 * 864e5) } },
-    select: { data: true },
-    orderBy: { data: "desc" },
-  });
-  return [...new Set(datas.map((d) => d.data.toISOString().slice(0, 7)))];
+  return mesesDistintos(await db.cargaToras.findMany(consultaUltimos3Anos()));
 }
 
 /** Configuração padrão da serraria (meta e horas do boletim). */

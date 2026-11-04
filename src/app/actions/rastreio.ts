@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { verificarPedidosProntos } from "@/lib/alertas-serraria";
 import { z } from "zod";
-import { auditar, diferencas } from "@/lib/auditoria";
+import { auditar } from "@/lib/auditoria";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
-import { diaParaDate, formatarDia, hojeSP, m3Pecas } from "@/lib/producao";
-import { codigoColheita, codigoPacote, codigoRomaneio, novoCodigoPublico } from "@/lib/rastreio";
+import { formatarDia, m3Pecas } from "@/lib/producao";
+import { codigoPacote, codigoRomaneio, novoCodigoPublico } from "@/lib/rastreio";
 import { exigirUsuario } from "@/lib/session";
 import type { EstadoForm } from "./auth";
 
@@ -16,86 +16,11 @@ export type Resultado = { erro?: string; id?: string | number; numeros?: number[
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
 const opcional = <T extends z.ZodTypeAny>(t: T) => z.preprocess(vazioParaNull, t.nullable());
-const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
 const positivo = (msg: string) => z.coerce.number({ message: msg }).positive(msg);
 
 async function exigirAcao(acao: "lancar" | "gerir") {
   const eu = await exigirUsuario();
   return { eu, ok: podeProducao(eu, acao) };
-}
-
-// ============================ Florestas e colheitas ============================
-
-const origemSchema = z.object({
-  id: opcional(z.string()),
-  nome: z.string().trim().min(2, "Informe o nome da floresta/fazenda").max(120),
-  tipo: z.enum(["PROPRIA", "ARRENDADA", "TERCEIRO"]),
-  proprietario: opcional(z.string().trim().max(120)),
-  municipio: opcional(z.string().trim().max(80)),
-  uf: opcional(z.string().trim().toUpperCase().length(2, "UF com 2 letras")),
-  especie: opcional(z.string().trim().max(80)),
-  anoPlantio: opcional(z.coerce.number().int().min(1900).max(2100)),
-  areaHa: opcional(z.coerce.number().positive()),
-  observacoes: opcional(z.string().trim().max(1000)),
-  ativo: z.preprocess((v) => v === "on", z.boolean()),
-});
-
-export async function salvarOrigem(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const { eu, ok } = await exigirAcao("gerir");
-  if (!ok) return { erro: "Sem permissão" };
-  const parse = origemSchema.safeParse(Object.fromEntries(form));
-  if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, ...dados } = parse.data;
-  if (id) {
-    const antes = await db.origemFlorestal.findUnique({ where: { id } });
-    if (!antes) return { erro: "Floresta não encontrada" };
-    await db.origemFlorestal.update({ where: { id }, data: dados });
-    const mudou = diferencas(antes, dados, ["nome", "tipo", "proprietario", "municipio", "uf", "especie", "anoPlantio", "areaHa", "ativo"]);
-    if (Object.keys(mudou).length) {
-      await auditar({ usuarioId: eu.id, acao: "origem.editar", entidade: "OrigemFlorestal", entidadeId: id, resumo: `Editou a floresta ${dados.nome}`, detalhes: mudou });
-    }
-  } else {
-    const nova = await db.origemFlorestal.create({ data: dados });
-    await auditar({ usuarioId: eu.id, acao: "origem.criar", entidade: "OrigemFlorestal", entidadeId: nova.id, resumo: `Cadastrou a floresta ${nova.nome}` });
-  }
-  revalidatePath("/producao/florestas");
-  return { ok: id ? "Floresta atualizada" : "Floresta cadastrada" };
-}
-
-const colheitaSchema = z.object({
-  id: opcional(z.string()),
-  origemId: z.string().min(1, "Escolha a floresta"),
-  talhao: opcional(z.string().trim().max(60)),
-  inicio: dia,
-  fim: opcional(dia),
-  equipe: opcional(z.string().trim().max(120)),
-  idadeAnos: opcional(z.coerce.number().int().min(1).max(100)),
-  volumeEstimadoM3: opcional(z.coerce.number().positive()),
-  documento: opcional(z.string().trim().max(120)),
-  observacoes: opcional(z.string().trim().max(1000)),
-});
-
-export async function salvarColheita(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const { eu, ok } = await exigirAcao("lancar");
-  if (!ok) return { erro: "Sem permissão" };
-  const parse = colheitaSchema.safeParse(Object.fromEntries(form));
-  if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { id, inicio, fim, ...resto } = parse.data;
-  if (inicio > hojeSP()) return { erro: "O início da colheita não pode ser futuro" };
-  if (fim && fim < inicio) return { erro: "O fim é anterior ao início" };
-  const dados = { ...resto, inicio: diaParaDate(inicio), fim: fim ? diaParaDate(fim) : null };
-  if (id) {
-    const antes = await db.colheita.findUnique({ where: { id } });
-    if (!antes) return { erro: "Colheita não encontrada" };
-    if (antes.responsavelId !== eu.id && !podeProducao(eu, "gerir")) return { erro: "Só o supervisor edita colheitas de outra pessoa" };
-    await db.colheita.update({ where: { id }, data: dados });
-    await auditar({ usuarioId: eu.id, acao: "colheita.editar", entidade: "Colheita", entidadeId: id, resumo: `Editou a colheita ${codigoColheita(antes.numero)}` });
-  } else {
-    const nova = await db.colheita.create({ data: { ...dados, responsavelId: eu.id } });
-    await auditar({ usuarioId: eu.id, acao: "colheita.criar", entidade: "Colheita", entidadeId: nova.id, resumo: `Registrou a colheita ${codigoColheita(nova.numero)} (início ${formatarDia(nova.inicio)})` });
-  }
-  revalidatePath("/producao/florestas");
-  return { ok: id ? "Colheita atualizada" : "Colheita registrada" };
 }
 
 // ============================ Pacotes ============================
@@ -195,6 +120,17 @@ async function criarRomaneio(
   });
 }
 
+/** Nota fiscal do romaneio: nº e chave de acesso da NF-e (44 dígitos; espaços e pontos são ignorados). */
+const camposNf = {
+  notaFiscal: opcional(z.string().trim().max(20)).optional(),
+  chaveNfe: opcional(
+    z
+      .string()
+      .transform((v) => v.replace(/\D/g, ""))
+      .refine((v) => v === "" || v.length === 44, "A chave da NF-e tem 44 dígitos"),
+  ).optional(),
+};
+
 const eventoSchema = z.object({
   numero: z.coerce.number().int().positive(),
   acao: z.enum(["estufa", "expedir", "local", "observacao", "cancelar"]),
@@ -204,14 +140,7 @@ const eventoSchema = z.object({
   localizacao: opcional(z.string().trim().max(80)),
   texto: opcional(z.string().trim().max(500)),
   motoristaId: opcional(z.string()),
-  notaFiscal: opcional(z.string().trim().max(20)).optional(),
-  /** Chave de acesso da NF-e: 44 dígitos (espaços e pontos são ignorados). */
-  chaveNfe: opcional(
-    z
-      .string()
-      .transform((v) => v.replace(/\D/g, ""))
-      .refine((v) => v === "" || v.length === 44, "A chave da NF-e tem 44 dígitos"),
-  ).optional(),
+  ...camposNf,
 });
 
 /** Ações feitas na tela do pacote (depois de escanear o QR). Cada uma vira um evento. */
@@ -278,14 +207,7 @@ const expedicaoSchema = z.object({
   numeros: z.array(z.coerce.number().int().positive()).min(1, "Selecione os pacotes").max(200),
   motoristaId: opcional(z.string()).optional(),
   observacoes: opcional(z.string().trim().max(500)).optional(),
-  notaFiscal: opcional(z.string().trim().max(20)).optional(),
-  /** Chave de acesso da NF-e: 44 dígitos (espaços e pontos são ignorados). */
-  chaveNfe: opcional(
-    z
-      .string()
-      .transform((v) => v.replace(/\D/g, ""))
-      .refine((v) => v === "" || v.length === 44, "A chave da NF-e tem 44 dígitos"),
-  ).optional(),
+  ...camposNf,
 });
 
 export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): Promise<Resultado> {

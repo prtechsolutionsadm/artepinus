@@ -40,7 +40,7 @@ export async function alertarEstufasAtrasadas() {
 }
 
 /** No fim do dia útil: avisa se a serraria não teve nenhum lote apontado hoje. */
-export async function alertarDiaSemApontamento() {
+async function alertarDiaSemApontamento() {
   const hoje = hojeSP();
   const dia = diaParaDate(hoje);
   const semana = dia.getUTCDay();

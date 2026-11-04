@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { sair, trocarSenha } from "@/app/actions/auth";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
+import { CamposNovaSenha } from "@/components/CamposNovaSenha";
 import { Rodape } from "@/components/Rodape";
 import { usuarioAtual } from "@/lib/session";
 
@@ -23,18 +24,7 @@ export default async function TrocarSenhaPage({ searchParams }: { searchParams: 
         </div>
         <ActionForm action={trocarSenha} className="cartao space-y-4">
           <input type="hidden" name="next" value={next ?? ""} />
-          <div>
-            <label htmlFor="atual">Senha atual (a que você recebeu)</label>
-            <input id="atual" name="atual" type="password" autoComplete="current-password" required className="campo" />
-          </div>
-          <div>
-            <label htmlFor="nova">Nova senha</label>
-            <input id="nova" name="nova" type="password" autoComplete="new-password" minLength={6} required className="campo" />
-          </div>
-          <div>
-            <label htmlFor="confirmacao">Confirme a nova senha</label>
-            <input id="confirmacao" name="confirmacao" type="password" autoComplete="new-password" required className="campo" />
-          </div>
+          <CamposNovaSenha rotuloAtual="Senha atual (a que você recebeu)" />
           <BotaoEnviar className="btn-primario w-full py-2.5">Salvar e continuar</BotaoEnviar>
         </ActionForm>
         <form action={sair} className="mt-4 text-center">

@@ -64,7 +64,7 @@ export async function enfileirar(form: FormData) {
 }
 
 /** Guarda um apontamento no aparelho para enviar quando a internet voltar. */
-export async function guardarEnvio(tipo: TipoEnvio, titulo: string, dados: Record<string, unknown>) {
+async function guardarEnvio(tipo: TipoEnvio, titulo: string, dados: Record<string, unknown>) {
   const chave = crypto.randomUUID();
   const item: ItemFila = { chave, criadoEm: new Date().toISOString(), titulo, campos: {}, fotos: [], tentativas: 0, tipo, dados: { ...dados, chaveOffline: chave } };
   await transacao("readwrite", (s) => s.put(item));
@@ -73,7 +73,7 @@ export async function guardarEnvio(tipo: TipoEnvio, titulo: string, dados: Recor
 }
 
 /** Erro de rede (sem internet) ao chamar o servidor. */
-export function semConexao(e: unknown) {
+function semConexao(e: unknown) {
   return !navigator.onLine || e instanceof TypeError || (e instanceof Error && /fetch|network|Failed to/i.test(e.message));
 }
 

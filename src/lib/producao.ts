@@ -8,12 +8,6 @@ export const CENTRO: Record<CentroParada, { label: string; curto: string; hex: s
   OPE: { label: "Operacional", curto: "OPE", hex: "#1baf7a" },
 };
 
-export const TIPO_PRODUTO: Record<TipoProduto, string> = {
-  BOM: "Bom",
-  APROVEITAMENTO: "Aproveitamento",
-  REFUGO: "Refugo",
-};
-
 export const MERCADO: Record<Mercado, string> = { EXTERNO: "Mercado externo", INTERNO: "Mercado interno" };
 
 export const STATUS_CICLO: Record<StatusCiclo, { label: string; cor: string }> = {
@@ -58,7 +52,7 @@ export function rotuloLarguras(larguras: string[]) {
 }
 
 /** Largura usada no volume: média das larguras marcadas; Mista (ou nada) = média de todas. */
-export function larguraEfetiva(larguras: string[]) {
+function larguraEfetiva(larguras: string[]) {
   const nums = LARGURAS.filter((l) => larguras.includes(String(l)));
   const base: number[] = nums.length && !larguras.includes(MISTA) ? nums : [...LARGURAS];
   return Math.round(base.reduce((t, l) => t + l, 0) / base.length);
@@ -111,7 +105,7 @@ export function linhasParaTabela(itens: { linha: number | null; espessura: numbe
 }
 
 /** "100/85" → ["100","85"]; "Mista" → ["MISTA"]. */
-export function larguraDoRotulo(r: string) {
+function larguraDoRotulo(r: string) {
   return r
     .split(/[\/\-, ]+/)
     .map((x) => (/^mista$/i.test(x) ? MISTA : x.replace(/\D/g, "")))
@@ -143,11 +137,6 @@ export const TIPO_ESTOQUE: Record<TipoEstoque, string> = { VERDE: "Madeira verde
 /** Volume de peças serradas: espessura × largura × comprimento (mm) × peças → m³. */
 export function m3Pecas(espessura: number, largura: number, comprimento: number, pecas: number) {
   return arred((espessura * largura * comprimento * pecas) / 1e9, 4);
-}
-
-/** Volume de grades/pacotes com comprimento em metros: espessura e largura em mm. */
-export function m3Grade(espessura: number, largura: number, comprimentoM: number, pecas: number) {
-  return arred((espessura * largura * comprimentoM * 1000 * pecas) / 1e9, 4);
 }
 
 /** Volume estimado de toras (cilindro): diâmetro em cm, comprimento em m. */

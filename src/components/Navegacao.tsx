@@ -17,7 +17,7 @@ export type Menus = Partial<Record<Modulo, GrupoNav[]>>;
  * Módulo em uso: o da rota atual; nas páginas comuns (perfil, manual…) continua
  * o último módulo visitado (guardado em cookie para o servidor já renderizar certo).
  */
-export function useModulo(menus: Menus, salvo: Modulo | null): Modulo {
+function useModulo(menus: Menus, salvo: Modulo | null): Modulo {
   const path = usePathname();
   const disponiveis = Object.keys(menus) as Modulo[];
   const daRota = moduloDaRota(path);
@@ -34,7 +34,7 @@ export function useModulo(menus: Menus, salvo: Modulo | null): Modulo {
 }
 
 
-export function TrocaModulo({ menus, modulo }: { menus: Menus; modulo: Modulo }) {
+function TrocaModulo({ menus, modulo }: { menus: Menus; modulo: Modulo }) {
   const disponiveis = Object.keys(menus) as Modulo[];
   if (disponiveis.length < 2) return null;
   return (

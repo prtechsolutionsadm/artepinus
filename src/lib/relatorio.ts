@@ -21,7 +21,7 @@ function inicioDoMes() {
   return `${hoje.slice(0, 8)}01`;
 }
 
-export function normalizarFiltros(f: FiltrosRelatorio): Required<FiltrosRelatorio> {
+function normalizarFiltros(f: FiltrosRelatorio): Required<FiltrosRelatorio> {
   const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
   return {
     de: f.de && DATA.test(f.de) ? f.de : inicioDoMes(),

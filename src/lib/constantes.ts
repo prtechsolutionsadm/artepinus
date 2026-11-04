@@ -33,18 +33,6 @@ export const TIPO: Record<TipoManutencao, string> = {
 /** Formato do login: nome.sobrenome (letras minúsculas sem acento, números, ponto, hífen ou _). */
 export const LOGIN_REGEX = /^[a-z0-9_-]+(\.[a-z0-9_-]+)+$/;
 
-/** Sugere um login nome.sobrenome a partir do nome completo. */
-export function sugerirLogin(nome: string) {
-  const partes = nome
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, "")
-    .split(/\s+/)
-    .filter(Boolean);
-  return partes.length > 1 ? `${partes[0]}.${partes[partes.length - 1]}` : (partes[0] ?? "");
-}
-
 export const PERFIL: Record<Perfil, string> = {
   ADMIN: "Administrador",
   GERENTE: "Gerente",

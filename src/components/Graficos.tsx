@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatarDuracao } from "@/lib/constantes";
 
 // Paleta categórica validada (light): azul, laranja, verde-água — nesta ordem fixa.
-export const SERIES = ["#2a78d6", "#eb6834", "#1baf7a"] as const;
+const SERIES = ["#2a78d6", "#eb6834", "#1baf7a"] as const;
 /** Linhas de grade: segue o tema (cinza claro no claro, cinza escuro no escuro). */
 const GRADE = "var(--color-stone-200)";
 

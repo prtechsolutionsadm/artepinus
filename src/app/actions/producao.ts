@@ -15,7 +15,6 @@ import {
   diaParaDate,
   formatarDia,
   hojeSP,
-  m3Pecas,
   ESPESSURAS,
   LARGURAS,
   COMPRIMENTOS,
@@ -361,33 +360,6 @@ export async function salvarEstufa(_: EstadoForm, form: FormData): Promise<Estad
   return { ok: id ? "Estufa atualizada" : "Estufa cadastrada" };
 }
 
-const metaSchema = z.object({
-  mes: z.string().regex(/^\d{4}-\d{2}$/, "Mês inválido"),
-  metaDiariaM3: z.coerce.number().positive("Informe a meta diária em m³"),
-  horasDia: z.coerce.number().positive("Informe as horas por dia").max(24),
-  rendimentoMeta: opcional(z.coerce.number().min(1, "Rendimento em %, ex.: 45").max(100, "Rendimento em %, ex.: 45")),
-});
-
-export async function salvarMeta(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const { eu, ok } = await exigirAcao("gerir");
-  if (!ok) return { erro: "Sem permissão" };
-  const parse = metaSchema.safeParse(Object.fromEntries(form));
-  if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { mes, ...resto } = parse.data;
-  const dados = { ...resto, rendimentoMeta: resto.rendimentoMeta == null ? null : resto.rendimentoMeta / 100 };
-  const antes = await db.metaProducao.findUnique({ where: { mes } });
-  const meta = await db.metaProducao.upsert({ where: { mes }, update: dados, create: { mes, ...dados } });
-  await auditar({
-    usuarioId: eu.id,
-    acao: antes ? "meta.editar" : "meta.criar",
-    entidade: "MetaProducao",
-    entidadeId: meta.id,
-    resumo: `${antes ? "Alterou" : "Definiu"} a meta de produção de ${mes}: ${dados.metaDiariaM3} m³/dia em ${dados.horasDia} h`,
-    detalhes: antes ? diferencas(antes, dados, ["metaDiariaM3", "horasDia", "rendimentoMeta"]) : undefined,
-  });
-  revalidatePath("/producao", "layout");
-  return { ok: "Meta salva" };
-}
 
 // ============================ Estufas: ciclos de secagem ============================
 

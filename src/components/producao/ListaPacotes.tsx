@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Printer, Truck } from "lucide-react";
 import { expedirPacotes } from "@/app/actions/rastreio";
+import { SeletorMotorista, type MotoristaOpcao } from "@/components/producao/SeletorMotorista";
 import { fmtM3 } from "@/lib/producao";
 import { STATUS_PACOTE, codigoPacote } from "@/lib/rastreio";
 import type { StatusPacote } from "@/generated/prisma/enums";
@@ -30,7 +31,7 @@ export function ListaPacotes({
   linhas: LinhaPacote[];
   podeExpedir: boolean;
   /** Motoristas do cadastro (o romaneio leva nome e placas). */
-  motoristas?: { id: string; nome: string; placaCaminhao: string; placaJulieta: string | null }[];
+  motoristas?: MotoristaOpcao[];
 }) {
   const router = useRouter();
   const [sel, setSel] = useState<number[]>([]);
@@ -82,18 +83,7 @@ export function ListaPacotes({
           </div>
           {saida && expediveis.length > 0 && (
             <div className="mt-3 grid gap-3 border-t border-stone-100 pt-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
-              <div>
-                <label htmlFor="rom-mot">Motorista</label>
-                <select id="rom-mot" value={motoristaId} onChange={(e) => setMotoristaId(e.target.value)} className="campo">
-                  <option value="">— Sem motorista cadastrado —</option>
-                  {motoristas.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.nome} · {m.placaCaminhao}
-                      {m.placaJulieta ? ` + ${m.placaJulieta}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SeletorMotorista id="rom-mot" motoristas={motoristas} value={motoristaId} onChange={setMotoristaId} />
               <div>
                 <label htmlFor="rom-nf">Nota fiscal</label>
                 <input id="rom-nf" value={nf} onChange={(e) => setNf(e.target.value)} inputMode="numeric" placeholder="Nº da NF" className="campo" />

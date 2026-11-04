@@ -17,7 +17,7 @@ export function descreverFrequencia(intervalo: number, unidade: UnidadeFrequenci
 }
 
 /** Soma o intervalo do plano a uma data (meses respeitam o calendário, horário de Brasília fixo). */
-export function somarIntervalo(data: Date, intervalo: number, unidade: UnidadeFrequencia) {
+function somarIntervalo(data: Date, intervalo: number, unidade: UnidadeFrequencia) {
   const d = new Date(data);
   if (unidade === "DIAS") d.setUTCDate(d.getUTCDate() + intervalo);
   else if (unidade === "SEMANAS") d.setUTCDate(d.getUTCDate() + intervalo * 7);

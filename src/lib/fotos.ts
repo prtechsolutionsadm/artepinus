@@ -1,7 +1,7 @@
 import "server-only";
 import sharp from "sharp";
 
-export const MAX_FOTOS_POR_ENVIO = 6;
+const MAX_FOTOS_POR_ENVIO = 6;
 const MAX_BYTES = 8 * 1024 * 1024;
 const TIPOS = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 

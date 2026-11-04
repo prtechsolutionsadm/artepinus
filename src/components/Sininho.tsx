@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useFecharAoClicarFora } from "@/components/useFecharAoClicarFora";
 import { Bell, CheckCheck } from "lucide-react";
 import { contarNaoLidas, listarNotificacoes, marcarLida, marcarTodasLidas } from "@/app/actions/notificacoes";
 
@@ -65,17 +66,8 @@ export function Sininho({ naoLidasInicial }: { naoLidasInicial: number }) {
   }, [naoLidas]);
 
   // Fecha ao clicar fora / Esc
-  useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setAberto(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
-    document.addEventListener("mousedown", fora);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", fora);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [aberto]);
+  const fechar = useCallback(() => setAberto(false), []);
+  useFecharAoClicarFora(aberto, ref, fechar);
 
   const alternar = () => {
     if (!aberto) carregar();

@@ -2,7 +2,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaPostgresAdapter } from "@prisma/adapter-ppg";
 
-export function urlDoBanco() {
+function urlDoBanco() {
   const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
   if (!url) throw new Error("DATABASE_URL não configurada");
   if (url.startsWith("prisma+postgres://")) {

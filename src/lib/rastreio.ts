@@ -1,4 +1,4 @@
-import type { StatusPacote, TipoEvento, TipoOrigem } from "@/generated/prisma/enums";
+import type { StatusPacote, TipoEvento } from "@/generated/prisma/enums";
 
 // Códigos e rótulos da rastreabilidade (servidor e navegador).
 
@@ -13,7 +13,6 @@ export function novoCodigoPublico() {
 /** Romaneio de expedição: ROM-000123. */
 export const codigoRomaneio = (n: number) => `ROM-${String(n).padStart(6, "0")}`;
 export const codigoCarga = (n: number) => `CT-${String(n).padStart(5, "0")}`;
-export const codigoColheita = (n: number) => `COL-${String(n).padStart(4, "0")}`;
 export const codigoLote = (n: number) => `LOT-${String(n).padStart(6, "0")}`;
 
 export type CodigoLido = { tipo: "pacote" | "lote"; numero: number } | { tipo: "codigo"; codigo: string };
@@ -60,10 +59,5 @@ export const TIPO_EVENTO: Record<TipoEvento, string> = {
   CANCELADO: "Cancelado",
 };
 
-export const TIPO_ORIGEM: Record<TipoOrigem, string> = {
-  PROPRIA: "Floresta própria",
-  ARRENDADA: "Floresta arrendada",
-  TERCEIRO: "Fornecedor (terceiro)",
-};
 
 export const bitola = (p: { espessura: number; largura: number; comprimento: number }) => `${p.espessura} × ${p.largura} × ${p.comprimento} mm`;

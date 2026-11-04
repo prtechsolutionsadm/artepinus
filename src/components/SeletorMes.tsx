@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useFecharAoClicarFora } from "@/components/useFecharAoClicarFora";
 import Link from "next/link";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -46,17 +47,8 @@ export function SeletorMes({
   const proximo = somar(mes, 1);
   const dados = new Set(comDados);
 
-  useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: MouseEvent) => !caixa.current?.contains(e.target as Node) && setAberto(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
-    document.addEventListener("mousedown", fora);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", fora);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [aberto]);
+  const fechar = useCallback(() => setAberto(false), []);
+  useFecharAoClicarFora(aberto, caixa, fechar);
 
   const botao = "grid h-9 w-9 place-items-center text-stone-600 hover:bg-stone-50 hover:text-stone-900";
   return (

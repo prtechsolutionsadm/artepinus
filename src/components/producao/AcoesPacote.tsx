@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { registrarEventoPacote } from "@/app/actions/rastreio";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
+import { SeletorMotorista, type MotoristaOpcao } from "@/components/producao/SeletorMotorista";
 import type { StatusPacote } from "@/generated/prisma/enums";
 
 type Acao = "estufa" | "expedir" | "observacao" | "cancelar";
@@ -29,7 +30,7 @@ export function AcoesPacote({
   podeGerir: boolean;
   /** "Nº · cliente" do pedido do pacote, se houver. */
   pedido?: string | null;
-  motoristas?: { id: string; nome: string; placaCaminhao: string; placaJulieta: string | null }[];
+  motoristas?: MotoristaOpcao[];
 }) {
   const encerrado = status === "EXPEDIDO" || status === "CANCELADO";
   const acoes: Acao[] = [
@@ -82,18 +83,7 @@ export function AcoesPacote({
             <p className="text-sm text-stone-600 sm:col-span-2">
               Registra a saída física do pacote e gera o romaneio. Cliente e destino já vêm do pedido{pedido ? ` (${pedido})` : ""}. Para vários pacotes no mesmo caminhão, use a lista de Pacotes.
             </p>
-            <div>
-              <label htmlFor="ev-mot">Motorista</label>
-              <select id="ev-mot" name="motoristaId" className="campo" defaultValue="">
-                <option value="">— Sem motorista cadastrado —</option>
-                {motoristas.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome} · {m.placaCaminhao}
-                    {m.placaJulieta ? ` + ${m.placaJulieta}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SeletorMotorista id="ev-mot" name="motoristaId" motoristas={motoristas} />
             <div>
               <label htmlFor="ev-nf">Nota fiscal</label>
               <input id="ev-nf" name="notaFiscal" inputMode="numeric" className="campo" />

@@ -2,6 +2,7 @@ import { SeletorTema } from "@/components/Tema";
 import type { Metadata } from "next";
 import { trocarSenha } from "@/app/actions/auth";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
+import { CamposNovaSenha } from "@/components/CamposNovaSenha";
 import { AtivarPush } from "@/components/AtivarPush";
 import { iniciais } from "@/lib/menu";
 import { Titulo } from "@/components/ui";
@@ -34,18 +35,7 @@ export default async function PerfilPage() {
       </section>
       <ActionForm action={trocarSenha} limparAoSalvar className="cartao space-y-3">
         <h2 className="font-semibold">Trocar senha</h2>
-        <div>
-          <label htmlFor="atual">Senha atual</label>
-          <input id="atual" name="atual" type="password" autoComplete="current-password" required className="campo" />
-        </div>
-        <div>
-          <label htmlFor="nova">Nova senha</label>
-          <input id="nova" name="nova" type="password" autoComplete="new-password" minLength={6} required className="campo" />
-        </div>
-        <div>
-          <label htmlFor="confirmacao">Confirme a nova senha</label>
-          <input id="confirmacao" name="confirmacao" type="password" autoComplete="new-password" required className="campo" />
-        </div>
+        <CamposNovaSenha />
         <BotaoEnviar>Salvar nova senha</BotaoEnviar>
       </ActionForm>
     </div>

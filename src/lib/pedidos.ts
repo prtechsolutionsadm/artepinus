@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 
 /** Tolerância para considerar o volume atingido (diferença de medição/arredondamento). */
-export const TOLERANCIA_PEDIDO = 0.98;
+const TOLERANCIA_PEDIDO = 0.98;
 
 export type SituacaoPedido = {
   id: string;

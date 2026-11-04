@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { salvarBoletim, type DadosBoletim } from "@/app/actions/producao";
 import { SeletorMultiplo } from "@/components/producao/SeletorMultiplo";
 import { CENTRO, fmtM3, fmtNum, fmtPct, hojeSP } from "@/lib/producao";
