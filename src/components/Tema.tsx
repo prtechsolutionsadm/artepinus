@@ -83,3 +83,34 @@ export function SeletorTema({ grande = false }: { grande?: boolean }) {
     </div>
   );
 }
+
+/** Botão redondo da barra do topo: alterna Claro → Escuro → Automático (o ícone mostra o atual). */
+export function BotaoTema({ className = "" }: { className?: string }) {
+  const [tema, setTema] = useState<Tema>("auto");
+  useEffect(() => {
+    setTema(ler());
+    const atualizar = () => setTema(ler());
+    window.addEventListener(EVENTO, atualizar);
+    return () => window.removeEventListener(EVENTO, atualizar);
+  }, []);
+  const i = OPCOES.findIndex((o) => o.valor === tema);
+  const { Icone, rotulo } = OPCOES[i];
+  const proximo = OPCOES[(i + 1) % OPCOES.length];
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        try {
+          localStorage.setItem(CHAVE, proximo.valor);
+        } catch {}
+        setTema(proximo.valor);
+        window.dispatchEvent(new Event(EVENTO));
+      }}
+      aria-label={`Tema: ${rotulo}. Tocar muda para ${proximo.rotulo}`}
+      title={`Tema: ${rotulo} (tocar muda para ${proximo.rotulo})`}
+      className={`h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100 ${className || "grid"}`}
+    >
+      <Icone className="h-5 w-5" />
+    </button>
+  );
+}

@@ -7,7 +7,7 @@ import { BarraInferior, BarraSuperior, BuscaTopo } from "@/components/Navegacao"
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
-import { SCRIPT_TEMA, TemaApp } from "@/components/Tema";
+import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
 import { PERFIL, PERFIL_PRODUCAO } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { COOKIE_MODULO, iniciais, menusDoUsuario, moduloSalvo } from "@/lib/menu";
@@ -71,6 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="w-56 xl:w-72">
               <BuscaTopo menus={menus} salvo={salvo} />
             </div>
+            <BotaoTema />
             <Link href="/ajuda" aria-label="Manual do usuário" title="Manual do usuário" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100">
               <CircleHelp className="h-5 w-5" />
             </Link>
@@ -91,6 +92,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="ml-auto flex items-center gap-1">
             <BuscaTopo menus={menus} salvo={salvo} celular />
+            <BotaoTema />
             <Link href="/ajuda" aria-label="Manual do usuário" title="Manual do usuário" className="hidden h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100 sm:grid">
               <CircleHelp className="h-5 w-5" />
             </Link>
