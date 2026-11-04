@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, lerSessao } from "@/lib/jwt";
 
 /** O site da empresa, o login e a página pública do QR do pacote (/p/123) são abertos; o resto é o sistema (precisa estar logado). */
-const ROTAS_PUBLICAS = ["/", "/login"];
+const ROTAS_PUBLICAS = ["/", "/login", "/recuperar", "/privacidade"];
 const PREFIXOS_PUBLICOS = ["/p/"];
 
 export default async function proxy(req: NextRequest) {
@@ -15,7 +15,7 @@ export default async function proxy(req: NextRequest) {
     if (path !== "/sistema") login.searchParams.set("next", path + req.nextUrl.search);
     return NextResponse.redirect(login);
   }
-  if (path === "/login" && sessao) {
+  if ((path === "/login" || path === "/recuperar") && sessao) {
     return NextResponse.redirect(new URL("/sistema", req.nextUrl));
   }
   return NextResponse.next();

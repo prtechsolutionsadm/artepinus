@@ -70,7 +70,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </div>
             <BotaoEnviar className="btn-primario w-full py-3">Entrar</BotaoEnviar>
           </ActionForm>
-          <p className="mt-8 text-center text-xs text-stone-400">Esqueceu a senha? Fale com o administrador do sistema.</p>
+          <p className="mt-6 text-center text-sm">
+            <Link href="/recuperar" className="font-medium text-marca-700 hover:underline">
+              Esqueci a minha senha
+            </Link>
+          </p>
           <Rodape className="mt-10 lg:hidden" />
         </div>
       </section>

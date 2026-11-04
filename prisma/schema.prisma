@@ -53,18 +53,21 @@ enum TipoManutencao {
 }
 
 model Usuario {
-  id             String          @id @default(cuid())
-  nome           String
-  login          String          @unique // nome.sobrenome
+  id                String          @id @default(cuid())
+  nome              String
+  login             String          @unique // nome.sobrenome
   /// muda quando a senha é trocada/redefinida: derruba as sessões abertas em outros aparelhos
-  versaoSessao   Int             @default(0)
-  trocarSenha    Boolean         @default(false) // obriga a trocar a senha no próximo acesso
-  senhaHash      String
-  perfil         Perfil          @default(OPERADOR) // papel no módulo de Manutenção
-  perfilProducao PerfilProducao? // papel no módulo de Produção (vazio = sem acesso)
-  ativo          Boolean         @default(true)
-  criadoEm       DateTime        @default(now())
-  atualizadoEm   DateTime        @updatedAt
+  /// pergunta de segurança escolhida (índice em PERGUNTAS_SEGURANCA) e a resposta embaralhada (bcrypt)
+  perguntaSeguranca Int?
+  respostaHash      String?
+  versaoSessao      Int             @default(0)
+  trocarSenha       Boolean         @default(false) // obriga a trocar a senha no próximo acesso
+  senhaHash         String
+  perfil            Perfil          @default(OPERADOR) // papel no módulo de Manutenção
+  perfilProducao    PerfilProducao? // papel no módulo de Produção (vazio = sem acesso)
+  ativo             Boolean         @default(true)
+  criadoEm          DateTime        @default(now())
+  atualizadoEm      DateTime        @updatedAt
 
   requisicoesAbertas    Requisicao[]          @relation("Solicitante")
   requisicoesAtribuidas Requisicao[]          @relation("Responsavel")

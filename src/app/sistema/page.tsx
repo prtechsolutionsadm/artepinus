@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Factory, FlaskConical, Lock, Wrench, type LucideIcon } from "lucide-react";
+import { ArrowRight, Factory, FlaskConical, KeyRound, Lock, Wrench, type LucideIcon } from "lucide-react";
+import { db } from "@/lib/db";
 import { sair } from "@/app/actions/auth";
 import { BotaoSair } from "@/components/BotaoSair";
 import { Rodape } from "@/components/Rodape";
@@ -34,6 +35,8 @@ function saudacao() {
 /** Tela de início do sistema: escolha do módulo (Serraria; Manutenção em breve — aberta só para o administrador testar). */
 export default async function SistemaPage() {
   const eu = await exigirUsuario();
+  const seg = await db.usuario.findUniqueOrThrow({ where: { id: eu.id }, select: { perguntaSeguranca: true, respostaHash: true } });
+  const temPergunta = seg.perguntaSeguranca != null && !!seg.respostaHash;
   const perfil = eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? PERFIL_PRODUCAO[eu.perfilProducao] : PERFIL[eu.perfil];
 
   return (
@@ -59,6 +62,16 @@ export default async function SistemaPage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 sm:py-16">
         <p className="text-sm text-stone-500">{saudacao()},</p>
         <h1 className="text-3xl font-semibold tracking-tight">{eu.nome.split(" ")[0]}, onde vamos trabalhar hoje?</h1>
+
+        {!temPergunta && (
+          <Link href="/perfil" className="mt-6 flex items-center gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100">
+            <KeyRound className="h-5 w-5 shrink-0" />
+            <span className="flex-1">
+              <b>Cadastre a sua pergunta de segurança</b> — assim você recupera a senha sozinho, se esquecer.
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </Link>
+        )}
 
         <ul className="mt-8 grid gap-5 md:grid-cols-2">
           {CARTOES.map(({ modulo, Icone, descricao, itens }) => {

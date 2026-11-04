@@ -56,6 +56,7 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "lista", itens: [
             "O sistema fica atrás do site da empresa: no site, toque em Acessar sistema (ou abra o app instalado).",
+            "Esqueceu a senha? No login, toque em Esqueci a minha senha, informe o login, responda a sua pergunta de segurança e crie uma nova senha. Para isso, cadastre antes a pergunta em Meu perfil.",
             "Depois de entrar, a tela de início mostra os módulos: toque em Serraria para trabalhar. A Manutenção aparece como Em breve. Para voltar a essa tela, use Escolher módulo no menu do seu nome (no celular, em Mais).",
             "No computador: o menu fica na barra do topo — Início, Operação, Gestão e Cadastros (passe o mouse para ver a lista). Logo abaixo aparecem as abas do grupo em que você está. A busca, o manual, o sininho e o seu nome ficam à direita.",
             "A tela Início mostra o que precisa de atenção (dia sem apontamento, estufa passando da previsão, pacotes por formar) e os botões para lançar cada etapa.",
