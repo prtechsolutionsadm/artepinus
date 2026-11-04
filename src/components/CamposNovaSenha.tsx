@@ -1,18 +1,20 @@
+import { CampoSenha } from "@/components/CampoSenha";
+
 /** Campos de troca de senha (senha atual, nova e confirmação), usados no Meu perfil e na troca obrigatória. */
 export function CamposNovaSenha({ rotuloAtual = "Senha atual" }: { rotuloAtual?: string }) {
   return (
     <>
       <div>
         <label htmlFor="atual">{rotuloAtual}</label>
-        <input id="atual" name="atual" type="password" autoComplete="current-password" required className="campo" />
+        <CampoSenha id="atual" name="atual" autoComplete="current-password" />
       </div>
       <div>
         <label htmlFor="nova">Nova senha (mínimo 8 caracteres)</label>
-        <input id="nova" name="nova" type="password" autoComplete="new-password" minLength={8} required className="campo" />
+        <CampoSenha id="nova" name="nova" autoComplete="new-password" minLength={8} />
       </div>
       <div>
         <label htmlFor="confirmacao">Confirme a nova senha</label>
-        <input id="confirmacao" name="confirmacao" type="password" autoComplete="new-password" required className="campo" />
+        <CampoSenha id="confirmacao" name="confirmacao" autoComplete="new-password" />
       </div>
     </>
   );

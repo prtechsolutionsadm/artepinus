@@ -1,3 +1,4 @@
+import { CampoSenha } from "@/components/CampoSenha";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ClipboardCheck, Factory, Gauge } from "lucide-react";
@@ -65,7 +66,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </div>
             <div>
               <label htmlFor="senha">Senha</label>
-              <input id="senha" name="senha" type="password" autoComplete="current-password" required className="campo" />
+              <CampoSenha id="senha" name="senha" autoComplete="current-password" />
             </div>
             <BotaoEnviar className="btn-primario w-full py-3">Entrar</BotaoEnviar>
           </ActionForm>
