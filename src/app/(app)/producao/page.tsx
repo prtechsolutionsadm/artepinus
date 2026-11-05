@@ -11,6 +11,7 @@ import {
   OctagonAlert,
   Package,
   QrCode,
+  TreePine,
   Truck,
   Warehouse,
   type LucideIcon,
@@ -152,7 +153,7 @@ export default async function InicioProducaoPage() {
 
   return (
     // No computador a tela cabe na altura da janela; as listas rolam por dentro dos quadros
-    <div className="flex flex-col gap-5 lg:h-[calc(100dvh-6.75rem-2px-3.25rem)] lg:min-h-[520px]">
+    <div className="flex flex-col gap-5 lg:h-[calc(100dvh-4rem-1px-3.75rem)] lg:min-h-[520px]">
       <div className="flex shrink-0 flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-stone-500 first-letter:uppercase">
@@ -274,7 +275,7 @@ export default async function InicioProducaoPage() {
           {lancar && (
             <section className="shrink-0">
               <h2 className="mb-2 font-semibold">Lançar</h2>
-              <ul className="grid gap-px overflow-hidden rounded-lg border border-stone-200 bg-stone-200 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid gap-px overflow-hidden rounded-2xl border border-stone-200 bg-stone-200 sm:grid-cols-2 xl:grid-cols-3 sm:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-3">
                 {TAREFAS.map((t) => (
                   <Tarefa key={t.href} {...t} />
                 ))}
@@ -291,6 +292,34 @@ export default async function InicioProducaoPage() {
 
         {/* Situação e últimos lançamentos */}
         <aside className="flex min-w-0 flex-col gap-5 lg:min-h-0">
+          {/* Destaque do mês, no verde da marca */}
+          <section className="fundo-marca relative shrink-0 overflow-hidden rounded-2xl p-5 text-white shadow-lg shadow-marca-900/20">
+            <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-white/10" aria-hidden />
+            <div className="pointer-events-none absolute -bottom-16 right-10 h-32 w-32 rounded-full bg-white/5" aria-hidden />
+            <div className="relative flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/15 ring-1 ring-white/20">
+                <TreePine className="h-5 w-5 text-white" />
+              </span>
+              <div className="leading-tight">
+                <h2 className="font-semibold text-white">Serrado no mês</h2>
+                <p className="text-xs text-white/70">{d.mes.dias} dia(s) com apontamento</p>
+              </div>
+            </div>
+            <div className="relative mt-4 flex items-end gap-3">
+              <span className="text-3xl font-semibold tabular-nums text-white">{fmtM3(d.mes.producaoM3, 1)}</span>
+              <span className="mb-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold text-white">{d.mes.metaM3 > 0 ? `${Math.round(progresso * 100)}% da meta` : "sem meta"}</span>
+            </div>
+            <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-white/20" aria-hidden>
+              <div className="h-full rounded-full bg-white" style={{ width: `${progresso * 100}%` }} />
+            </div>
+            <Link href="/producao/indicadores" className="relative mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-sm font-medium text-white/90 hover:text-white">
+              <span>
+                Meta {fmtM3(d.mes.metaM3, 0)} · OEE {fmtPct(d.mes.oee)}
+              </span>
+              <ArrowRight className="h-4 w-4 text-white" />
+            </Link>
+          </section>
+
           <section className="cartao shrink-0 py-3 sm:py-4">
             <h2 className="mb-1 font-semibold">Situação agora</h2>
             <dl className="divide-y divide-stone-100 text-sm">
@@ -347,35 +376,7 @@ export default async function InicioProducaoPage() {
             </dl>
           </section>
 
-          <section className="cartao shrink-0 py-3 sm:py-4">
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="font-semibold">Serrado no mês</h2>
-              <span className="text-xs text-stone-500">
-                {d.mes.dias} dia(s)
-              </span>
-            </div>
-            <div className="mt-1 text-2xl font-semibold tabular-nums">
-              {fmtM3(d.mes.producaoM3, 1)}
-            </div>
-            <div
-              className="mt-2 h-2 overflow-hidden rounded-full bg-stone-100"
-              aria-hidden
-            >
-              <div
-                className="h-full rounded-full bg-marca-600"
-                style={{ width: `${progresso * 100}%` }}
-              />
-            </div>
-            <div className="mt-1.5 flex justify-between text-xs text-stone-500">
-              <span>meta {fmtM3(d.mes.metaM3, 0)}</span>
-              <Link
-                href="/producao/indicadores"
-                className="font-semibold text-marca-700 hover:underline"
-              >
-                OEE {fmtPct(d.mes.oee)} · ver indicadores
-              </Link>
-            </div>
-          </section>
+
 
           <section className="cartao flex flex-col p-0 lg:min-h-0 lg:shrink">
             <div className="shrink-0 border-b border-stone-200 px-4 py-3 sm:px-5">

@@ -4,7 +4,7 @@ import { LogOut } from "lucide-react";
 import { listarFila, limparFila } from "@/lib/fila-offline";
 
 /** Sair: avisa se há lançamentos não enviados e apaga as páginas guardadas no aparelho. */
-export function BotaoSair({ sair, variante = "icone" }: { sair: () => Promise<void>; variante?: "icone" | "botao" | "item" }) {
+export function BotaoSair({ sair, variante = "icone" }: { sair: () => Promise<void>; variante?: "icone" | "botao" | "item" | "lateral" }) {
   const aoSair = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const pendentes = (await listarFila()).length;
@@ -15,7 +15,11 @@ export function BotaoSair({ sair, variante = "icone" }: { sair: () => Promise<vo
   };
   return (
     <form onSubmit={aoSair}>
-      {variante === "item" ? (
+      {variante === "lateral" ? (
+        <button className="group flex h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-stone-600 transition hover:bg-rose-50 hover:text-rose-700">
+          <LogOut className="h-[18px] w-[18px] text-stone-400 group-hover:text-rose-600" /> Sair
+        </button>
+      ) : variante === "item" ? (
         <button className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-medium text-rose-700 hover:bg-rose-50">
           <LogOut className="h-4 w-4" /> Sair
         </button>

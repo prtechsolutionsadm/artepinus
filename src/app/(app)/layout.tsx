@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CircleHelp } from "lucide-react";
 import { sair } from "@/app/actions/auth";
 import { BotaoSair } from "@/components/BotaoSair";
-import { BarraInferior, BarraSuperior, BuscaTopo } from "@/components/Navegacao";
+import { BarraInferior, BuscaTopo, MenuLateral, TopoComputador } from "@/components/Navegacao";
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
@@ -60,25 +60,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-dvh">
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <TemaApp />
-      {/* Computador: barra superior com grupos e abas */}
-      <BarraSuperior
-        menus={menus}
-        salvo={salvo}
-        usuario={{ nome: eu.nome, perfilLabel }}
-        sair={sair}
-        acoes={
-          <>
-            <div className="w-56 xl:w-72">
-              <BuscaTopo menus={menus} salvo={salvo} />
-            </div>
-            <BotaoTema />
-            <Link href="/ajuda" aria-label="Manual do usuário" title="Manual do usuário" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100">
-              <CircleHelp className="h-5 w-5" />
-            </Link>
-            <Sininho naoLidasInicial={naoLidas} />
-          </>
-        }
-      />
+      {/* Computador: menu lateral + topo com o caminho da tela */}
+      <MenuLateral menus={menus} salvo={salvo} sair={sair} />
 
       {/* Celular e tablet: topo simples + barra inferior */}
       <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
@@ -104,12 +87,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-7 lg:pt-6 2xl:max-w-[1600px]">
-        <SincronizadorOffline />
-        {children}
-        {/* No computador os créditos ficam no menu do usuário */}
-        <Rodape className="nao-imprimir mt-12 border-t border-stone-200/70 pt-6 lg:hidden" />
-      </main>
+      <div className="lg:pl-[17rem]">
+        <TopoComputador
+          menus={menus}
+          salvo={salvo}
+          usuario={{ nome: eu.nome, perfilLabel }}
+          sair={sair}
+          acoes={
+            <>
+              <BotaoTema />
+              <Link href="/ajuda" aria-label="Manual do usuário" title="Manual do usuário" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100">
+                <CircleHelp className="h-5 w-5" />
+              </Link>
+              <Sininho naoLidasInicial={naoLidas} />
+            </>
+          }
+        />
+        <main className="mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-8 lg:pt-7 2xl:max-w-[1500px]">
+          <SincronizadorOffline />
+          {children}
+          {/* No computador os créditos ficam no menu lateral */}
+          <Rodape className="nao-imprimir mt-12 border-t border-stone-200/70 pt-6 lg:hidden" />
+        </main>
+      </div>
 
       <BarraInferior menus={menus} salvo={salvo} />
     </div>
