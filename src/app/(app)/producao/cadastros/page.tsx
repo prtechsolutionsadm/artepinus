@@ -851,9 +851,9 @@ async function Config({ admin }: { admin: boolean }) {
           <p className="mb-3 text-sm text-stone-600">
             Apaga <b>todos</b> os lançamentos — cargas de toras, apontamentos e
             boletins, lotes, ciclos de estufa, pacotes, romaneios e inventários
-            — e a numeração (PCT, LOT, ROM, CT) recomeça do 1. Mantém usuários,
-            cadastros (florestas, fornecedores, motoristas, estufas, motivos), a
-            configuração e a auditoria. Use antes de começar a usar de verdade.
+            — e a numeração (PCT, LOT, ROM, CT) recomeça do 1. Marque abaixo se
+            quiser apagar também pedidos, cadastros de origem ou requisições de
+            manutenção de teste. Use antes de começar a usar de verdade.
             <b> Não dá para desfazer.</b>
           </p>
           <ActionForm
@@ -871,9 +871,19 @@ async function Config({ admin }: { admin: boolean }) {
               />
             </div>
             <BotaoEnviar className="btn-perigo">Zerar movimento</BotaoEnviar>
-            <label className="flex items-center gap-2 font-normal sm:col-span-2">
-              <input type="checkbox" name="pedidos" /> Apagar também os pedidos
-            </label>
+            <fieldset className="space-y-2 sm:col-span-2">
+              <legend className="mb-1 text-sm font-medium text-stone-700">Apagar também:</legend>
+              <label className="flex items-center gap-2 font-normal">
+                <input type="checkbox" name="pedidos" /> Os pedidos
+              </label>
+              <label className="flex items-center gap-2 font-normal">
+                <input type="checkbox" name="origens" /> Os cadastros de origem: florestas, fornecedores e motoristas
+              </label>
+              <label className="flex items-center gap-2 font-normal">
+                <input type="checkbox" name="manutencao" /> As requisições de manutenção (com fotos, comentários, horas e checklists)
+              </label>
+              <p className="text-xs text-stone-500">Usuários, equipamentos, estufas, motivos de parada, preventivas, checklists modelo, configuração e auditoria nunca são apagados.</p>
+            </fieldset>
           </ActionForm>
         </section>
       )}

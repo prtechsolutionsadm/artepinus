@@ -243,6 +243,12 @@ const MOVIMENTO = [
   "LevantamentoEstoque",
 ];
 
+/** Cadastros de origem das toras (opcional ao zerar). Colheita já está no movimento. */
+const CADASTROS_ORIGEM = ["OrigemFlorestal", "Fornecedor", "Motorista"];
+
+/** Requisições de manutenção e tudo o que pende delas (opcional ao zerar). */
+const MOVIMENTO_MANUTENCAO = ["HistoricoStatus", "Comentario", "Anexo", "Apontamento", "ChecklistItem", "Requisicao"];
+
 /**
  * Apaga todo o movimento lançado em teste (cargas, boletins/lotes, ciclos, pacotes,
  * romaneios, inventários) e reinicia a numeração. Mantém usuários e cadastros
@@ -253,16 +259,37 @@ export async function zerarMovimento(_: EstadoForm, form: FormData): Promise<Est
   if (eu.perfil !== "ADMIN") return { erro: "Só o administrador pode zerar o movimento" };
   if (String(form.get("confirmacao") ?? "").trim().toUpperCase() !== "APAGAR") return { erro: "Digite APAGAR para confirmar" };
   const pedidos = form.get("pedidos") === "on";
-  const tabelas = [...MOVIMENTO, ...(pedidos ? ["Pedido"] : [])].map((t) => `"${t}"`).join(", ");
-  const antes = await Promise.all([db.pacote.count(), db.lote.count(), db.cargaToras.count(), db.cicloSecagem.count(), db.romaneio.count(), db.levantamentoEstoque.count()]);
+  const origens = form.get("origens") === "on";
+  const manutencao = form.get("manutencao") === "on";
+  const tabelas = [...MOVIMENTO, ...(pedidos ? ["Pedido"] : []), ...(origens ? CADASTROS_ORIGEM : []), ...(manutencao ? MOVIMENTO_MANUTENCAO : [])]
+    .map((t) => `"${t}"`)
+    .join(", ");
+  const antes = await Promise.all([
+    db.pacote.count(),
+    db.lote.count(),
+    db.cargaToras.count(),
+    db.cicloSecagem.count(),
+    db.romaneio.count(),
+    db.levantamentoEstoque.count(),
+    db.requisicao.count(),
+  ]);
   await db.$executeRawUnsafe(`TRUNCATE TABLE ${tabelas} RESTART IDENTITY`);
   if (!pedidos) await db.pedido.updateMany({ data: { prontoAvisadoEm: null } });
-  await db.notificacao.deleteMany({ where: { OR: [{ link: { startsWith: "/producao" } }, { link: { startsWith: "/p/" } }] } });
+  await db.notificacao.deleteMany({
+    where: {
+      OR: [
+        { link: { startsWith: "/producao" } },
+        { link: { startsWith: "/p/" } },
+        ...(manutencao ? [{ link: { startsWith: "/requisicoes" } }, { link: { startsWith: "/manutencao" } }, { link: { startsWith: "/agenda" } }] : []),
+      ],
+    },
+  });
+  const extras = [pedidos && "os pedidos", origens && "florestas, fornecedores e motoristas", manutencao && `${antes[6]} requisição(ões) de manutenção`].filter(Boolean);
   await auditar({
     usuarioId: eu.id,
     acao: "sistema.zerar",
     entidade: "Sistema",
-    resumo: `Zerou o movimento da serraria${pedidos ? " e os pedidos" : ""}: ${antes[0]} pacote(s), ${antes[1]} lote(s), ${antes[2]} carga(s), ${antes[3]} ciclo(s), ${antes[4]} romaneio(s), ${antes[5]} inventário(s)`,
+    resumo: `Zerou o movimento da serraria${extras.length ? ` e ${extras.join(", ")}` : ""}: ${antes[0]} pacote(s), ${antes[1]} lote(s), ${antes[2]} carga(s), ${antes[3]} ciclo(s), ${antes[4]} romaneio(s), ${antes[5]} inventário(s)`,
   });
   revalidatePath("/", "layout");
   return { ok: "Movimento apagado. A numeração recomeça do 1." };
