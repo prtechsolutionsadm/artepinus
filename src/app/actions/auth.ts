@@ -142,12 +142,12 @@ export async function perguntaDoLogin(login: string): Promise<{ pergunta?: strin
   const ip = await ipDaRequisicao();
   const espera = await minutosBloqueado([{ chave: `ip:${ip}`, max: LIMITE.ip }]);
   if (espera) return { erro: `Muitas tentativas. Aguarde ${espera} minuto(s).` };
+  // Toda consulta conta no limite do IP (com acerto ou não): assim ninguém testa logins sem parar
+  // para descobrir quais existem
+  await registrarFalha([`ip:${ip}`]);
   const l = String(login ?? "").trim().toLowerCase().slice(0, 80);
   const u = l ? await db.usuario.findUnique({ where: { login: l }, select: { ativo: true, perguntaSeguranca: true, respostaHash: true } }) : null;
-  if (!u?.ativo || u.perguntaSeguranca == null || !u.respostaHash) {
-    await registrarFalha([`ip:${ip}`]);
-    return { erro: SEM_RECUPERACAO };
-  }
+  if (!u?.ativo || u.perguntaSeguranca == null || !u.respostaHash) return { erro: SEM_RECUPERACAO };
   return { pergunta: PERGUNTAS_SEGURANCA[u.perguntaSeguranca] };
 }
 

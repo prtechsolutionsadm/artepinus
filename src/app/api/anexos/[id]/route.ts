@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { temModulo } from "@/lib/permissoes";
 import { usuarioAtual } from "@/lib/session";
 
-/** Serve a foto (ou a miniatura com ?mini=1) apenas para usuários logados. */
+/** Serve a foto (ou a miniatura com ?mini=1) apenas para usuários logados com acesso à manutenção. */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await usuarioAtual())) return new NextResponse("Não autorizado", { status: 401 });
+  const eu = await usuarioAtual();
+  if (!eu || eu.trocarSenha) return new NextResponse("Não autorizado", { status: 401 });
+  // As fotos são das requisições de manutenção: só para quem usa o módulo
+  if (!temModulo(eu, "manutencao")) return new NextResponse("Sem acesso", { status: 403 });
   const { id } = await params;
   const mini = req.nextUrl.searchParams.has("mini");
   const anexo = mini
