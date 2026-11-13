@@ -80,9 +80,9 @@ export const GERAL: Secao[] = [
         titulo: "Cadastre a pergunta de segurança",
         palavras: ["pergunta de segurança", "pergunta de seguranca", "resposta", "recuperar senha", "esqueci", "faixa amarela", "trocar pergunta"],
         blocos: [
-          texto("Com a pergunta de segurança, você mesmo cria uma senha nova se esquecer a sua, sem esperar o gerente. Enquanto você não cadastrar, a tela de início mostra a faixa amarela Cadastre a sua pergunta de segurança."),
+          texto("Com a pergunta de segurança, você mesmo cria uma senha nova se esquecer a sua, sem esperar o gerente. Enquanto você não cadastrar, a tela de início mostra um botão na faixa verde Cadastre a sua pergunta de segurança."),
           passos(
-            `Abra Meu perfil tocando na faixa amarela da tela de início. Ou: ${ABRIR_PERFIL.charAt(0).toLowerCase()}${ABRIR_PERFIL.slice(1)}`,
+            `Abra Meu perfil tocando no botão Cadastre a sua pergunta de segurança, na faixa verde da tela de início. Ou: ${ABRIR_PERFIL.charAt(0).toLowerCase()}${ABRIR_PERFIL.slice(1)}`,
             "No quadro Pergunta de segurança, escolha a Pergunta.",
             "Escreva a Resposta. Maiúsculas e acentos não fazem diferença.",
             "Em Sua senha atual (para confirmar), digite a senha com que você entrou.",
@@ -136,7 +136,7 @@ export const GERAL: Secao[] = [
         blocos: [
           texto("Depois de entrar, abre a tela de início do sistema. O app instalado também abre sempre por ela. De cima para baixo:"),
           termos(
-            ["Faixa verde", "Olá, com o seu nome."],
+            ["Faixa verde", "Bom dia, Boa tarde ou Boa noite com o seu nome, a data de hoje, para que serve o sistema e três destaques: rastreio de cada pacote, lançamentos sem internet e a ajuda de cada tela no botão ?."],
             ["Resumo do momento", "Logo abaixo da faixa: máquinas paradas, estufas secando e pacotes em estoque (Serraria) e requisições abertas e de prioridade alta ou urgente (Manutenção), só dos módulos que você usa. Vermelho pede atenção. Toque num número para abrir a lista."],
             [
               "Serraria e Manutenção",
@@ -145,7 +145,7 @@ export const GERAL: Secao[] = [
                 : "Um cartão para cada módulo, dizendo o que ele faz. Toque em Abrir a Serraria. A Manutenção ainda está em teste: aparece tracejada, com Em breve (só o administrador abre, com o selo Em teste).",
             ],
             ["Ajuda, Notificações e Administração", "Os cartões gerais: o manual do sistema, os seus avisos (com o número dos novos) e, para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria, o Painel Administrativo (/ajuda/navegacao#painel-administrativo)."],
-            ["Cadastre a sua pergunta de segurança", "Faixa amarela no fim, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
+            ["Cadastre a sua pergunta de segurança", "Botão dentro da faixa verde, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
           ),
           texto("Seu usuário ainda não tem acesso a nenhum módulo? A tela avisa: fale com o gerente para ele escolher o seu perfil."),
           texto(

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, Flame, FlaskConical, KeyRound, Lock, OctagonAlert, Package, Wrench, type LucideIcon } from "lucide-react";
+import { ArrowRight, ChevronRight, CircleHelp, Flame, FlaskConical, KeyRound, Lock, OctagonAlert, Package, QrCode, WifiOff, Wrench, type LucideIcon } from "lucide-react";
 import { db } from "@/lib/db";
 import { sair } from "@/app/actions/auth";
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
@@ -9,6 +9,7 @@ import { BotaoSair } from "@/components/BotaoSair";
 import { ICONES } from "@/components/icones";
 import { TopoApp } from "@/components/Navegacao";
 import { FaixaPainel } from "@/components/painel";
+import { hojePorExtenso, saudacao } from "@/components/inicio/PecasInicio";
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
@@ -217,14 +218,51 @@ export default async function SistemaPage() {
       <div className="flex-1 overflow-x-clip">
         <main className={`${largura} pb-8 pt-5 lg:pt-6`}>
           <FaixaPainel
+            rotulo="Sistema Artepinus"
             titulo={
               <>
-                Olá, {primeiro}{" "}
+                {saudacao()}, {primeiro}{" "}
                 <span aria-hidden>👋</span>
               </>
             }
-            subtitulo={algum ? "Escolha um módulo para começar" : "Assim que o gerente liberar o seu acesso, os módulos aparecem aqui"}
-          />
+            subtitulo={
+              algum
+                ? "A madeira da floresta ao caminhão e a manutenção da fábrica num só lugar. Escolha um módulo para começar."
+                : "Assim que o gerente liberar o seu acesso, os módulos aparecem aqui."
+            }
+            direita={
+              <div className="text-right">
+                <p className="text-sm font-medium text-white/90">{hojePorExtenso()}</p>
+                <p className="text-xs text-white/70">Caçador · SC</p>
+              </div>
+            }
+          >
+            <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/90">
+              {[
+                [QrCode, "Rastreio de cada pacote, da floresta à expedição"],
+                [WifiOff, "Lançamentos guardados mesmo sem internet"],
+                [CircleHelp, "Ajuda de cada tela no botão ?"],
+              ].map(([I, t]) => {
+                const Ic = I as LucideIcon;
+                return (
+                  <li key={t as string} className="flex items-center gap-2">
+                    <Ic className="h-4 w-4 shrink-0 text-white/75" aria-hidden /> {t as string}
+                  </li>
+                );
+              })}
+            </ul>
+            {!temPergunta && (
+              <Link
+                href="/perfil"
+                className="group mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm text-white ring-1 ring-white/30 transition hover:bg-white/25"
+              >
+                <KeyRound className="h-4 w-4 shrink-0" aria-hidden />
+                <b className="font-semibold">Cadastre a sua pergunta de segurança</b>
+                <span className="hidden sm:inline">para recuperar a senha sozinho</span>
+                <ArrowRight className="h-4 w-4 shrink-0 transition group-hover:translate-x-0.5" aria-hidden />
+              </Link>
+            )}
+          </FaixaPainel>
 
           {/* Resumo do momento dos módulos que a pessoa usa */}
           {numeros.length > 0 && (
@@ -265,19 +303,6 @@ export default async function SistemaPage() {
             {administra && <CartaoGeral href="/administracao" icone="seguranca" titulo="Administração" texto={textoAdm} />}
           </section>
 
-          {!temPergunta && (
-            <Link
-              href="/perfil"
-              className="group mt-4 flex items-center gap-2.5 rounded-xl bg-amber-50/70 px-4 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200/70 transition hover:bg-amber-100"
-            >
-              <KeyRound className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="min-w-0">
-                <b className="font-semibold">Cadastre a sua pergunta de segurança</b>
-                <span className="hidden sm:inline">: assim você recupera a senha sozinho, se esquecer</span>
-              </span>
-              <ArrowRight className="ml-auto h-4 w-4 shrink-0 transition group-hover:translate-x-0.5" aria-hidden />
-            </Link>
-          )}
         </main>
       </div>
 
