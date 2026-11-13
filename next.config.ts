@@ -39,8 +39,16 @@ const SEGURANCA = [
   { key: "Strict-Transport-Security", value: "max-age=63072000" },
 ];
 
+/**
+ * Identificador desta publicação (commit na Vercel; hora do build fora dela). O app compara com o do
+ * servidor (/api/versao) para se atualizar sozinho, e o service worker é registrado com ele (sw.js?v=):
+ * cada publicação instala um service worker novo, que troca os arquivos guardados (AtualizacaoApp).
+ */
+const BUILD = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) || `local-${Date.now().toString(36)}`;
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_BUILD: BUILD },
   async headers() {
     return [{ source: "/:path*", headers: SEGURANCA }];
   },

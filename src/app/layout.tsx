@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SCRIPT_INSTALAR } from "@/lib/instalar";
 import { RegistrarSW } from "@/components/RegistrarSW";
 import { EMPRESA } from "@/lib/empresa";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_INSTALAR }} />
         {children}
         <RegistrarSW />
       </body>

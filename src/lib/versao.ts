@@ -25,6 +25,8 @@ export const NOTAS: NotaAtualizacao[] = [
     titulo: "Visual novo e manual do usuário",
     novidades: [
       "Notas de atualização: o cartão Novidades da tela de início e a versão no rodapé mostram o que mudou em cada versão.",
+      "O app se atualiza sozinho quando sai uma versão nova, também instalado no celular: não precisa desinstalar.",
+      "Cartão Instalar o app na tela de início, nos aparelhos que permitem (no iPhone, com o passo a passo do Safari).",
       "Manual do usuário refeito, com o passo a passo de cada tela; o botão ? do topo abre a ajuda da tela em que você está.",
       "Tela de início nova: saudação, resumo do momento, os módulos com o que cada um faz e cartões de Ajuda, Notificações, Novidades e Administração. Em monitores grandes, os avisos recentes ficam numa coluna à direita.",
       "Painel Administrativo: usuários, cadastros, histórico e dados do sistema em um só lugar.",

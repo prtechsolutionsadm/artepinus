@@ -12,6 +12,7 @@ import { FaixaPainel } from "@/components/painel";
 import { hojePorExtenso, saudacao } from "@/components/inicio/PecasInicio";
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { Rodape } from "@/components/Rodape";
+import { CartaoInstalar } from "@/components/CartaoInstalar";
 import { VERSAO, versaoRecente } from "@/lib/versao";
 import { Sininho } from "@/components/Sininho";
 import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
@@ -321,6 +322,9 @@ export default async function SistemaPage() {
           </section>
 
           </div>
+          {/* Coluna da direita (telas largas): avisos recentes e, onde der para instalar, o cartão do app.
+              Nas outras telas só o cartão do app aparece, no fim da página. */}
+          <div className="space-y-4">
           <aside aria-label="Avisos recentes" className="hidden rounded-2xl border border-stone-200 bg-white shadow-[0_1px_2px_rgb(16_24_16/0.04)] 2xl:block">
             <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
               <h2 className="text-sm font-semibold text-stone-900">Avisos recentes</h2>
@@ -358,6 +362,8 @@ export default async function SistemaPage() {
               </ul>
             )}
           </aside>
+          <CartaoInstalar className="mt-4 2xl:mt-0" />
+          </div>
           </div>
         </main>
       </div>

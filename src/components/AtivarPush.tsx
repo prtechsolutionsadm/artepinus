@@ -1,5 +1,6 @@
 "use client";
 
+import { URL_SW } from "@/lib/sw";
 import { useEffect, useState } from "react";
 import { BellOff, BellRing, X } from "lucide-react";
 import { enviarTeste, inscricaoPushAtiva, removerInscricaoPush, salvarInscricaoPush } from "@/app/actions/notificacoes";
@@ -33,7 +34,7 @@ function chaveParaBytes(base64: string) {
 }
 
 async function registro() {
-  return (await navigator.serviceWorker.getRegistration()) ?? navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  return (await navigator.serviceWorker.getRegistration()) ?? navigator.serviceWorker.register(URL_SW, { scope: "/" });
 }
 
 function useEstadoPush() {

@@ -157,10 +157,11 @@ export const GERAL: Secao[] = [
       },
       {
         id: "instalar",
-        titulo: "Instalar o app no celular",
+        titulo: "Instalar o app no celular ou no computador",
         palavras: ["instalar", "aplicativo", "app", "ícone", "icone", "tela inicial", "atalho", "android", "iphone", "pwa", "adicionar à tela de início"],
         blocos: [
           texto("O sistema funciona como um aplicativo: fica com um ícone na tela do celular, abre em tela cheia, recebe avisos e abre algumas telas até sem internet."),
+          texto("Onde o aparelho permite, a tela de início mostra o cartão Instalar o app (no computador grande, abaixo dos Avisos recentes; nas outras telas, no fim da página). No Android e no computador, toque em Instalar neste aparelho e confirme. No iPhone, o cartão mostra os dois passos do Safari. O X (Agora não) esconde o cartão por 30 dias; com o app já instalado, ele não aparece."),
           termos(
             ["Android (Chrome)", "Abra o sistema no Chrome, toque no menu ⋮ e escolha Instalar app (ou Adicionar à tela inicial)."],
             ["iPhone (Safari)", "Abra o sistema no Safari, toque em Compartilhar (o quadrado com a seta) e depois em Adicionar à Tela de Início."],
@@ -477,6 +478,7 @@ export const GERAL: Secao[] = [
             "Ou toque em Versão, no rodapé de qualquer tela do sistema.",
             "A versão atual aparece no alto, marcada como Atual; as anteriores vêm logo abaixo.",
           ),
+          texto("O sistema se atualiza sozinho, também no app instalado: não precisa desinstalar nem instalar de novo. Quando sai uma versão nova, aparece o aviso Nova versão do sistema; a atualização acontece ao trocar de tela ou ao voltar para o app, ou na hora, pelo botão Atualizar. Lançamentos guardados sem internet não se perdem."),
           dica("O número no rodapé ajuda o suporte: se algo estranho acontecer, diga em qual versão você estava."),
         ],
       },

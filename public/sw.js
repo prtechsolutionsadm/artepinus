@@ -5,8 +5,12 @@
 //   mostram a tela "sem conexão" (public/offline.html). Sem internet, o "?" de uma tela (/ajuda/tela)
 //   abre a seção que ele já abriu neste aparelho ou, na falta dela, a entrada do manual.
 // - Push: mostra a notificação e abre a página ao tocar.
+// - Atualização: o app registra /sw.js?v=<publicação> (RegistrarSW). Cada publicação instala este SW de
+//   novo, que assume na hora; o cache dos arquivos leva a publicação no nome, então o da anterior é
+//   apagado e as telas guardadas (offline e manual) são guardadas de novo com os arquivos novos.
 // Mudou o que fica guardado (inclusive o offline.html, que fica no cache ESTATICO)? Suba a versão do cache.
-const ESTATICO = "artepinus-estatico-v8";
+const PUBLICACAO = new URL(self.location.href).searchParams.get("v") || "dev";
+const ESTATICO = `artepinus-estatico-v8-${PUBLICACAO}`;
 const PAGINAS = "artepinus-paginas-v6";
 const OFFLINE = "/offline.html";
 // Logos claros e brancos (tema escuro): também ficam guardados para abrir sem internet
@@ -55,7 +59,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      const usado = await temPaginasGuardadas(keys.filter((k) => k !== PAGINAS));
+      const usado = await temPaginasGuardadas(keys);
       await Promise.all(keys.filter((k) => k !== ESTATICO && k !== PAGINAS).map((k) => caches.delete(k)));
       // Nova versão: guarda de novo as telas offline com os arquivos desta versão.
       // Sem esperar, para não segurar as requisições da página.
@@ -135,10 +139,14 @@ async function semInternet(url) {
   return (await paginas.match(url.pathname)) || (await caches.match(OFFLINE));
 }
 
-/** Atualiza todas as telas offline (com a sessão do usuário). */
-function aquecer() {
+/** Atualiza todas as telas offline e as páginas do manual já guardadas (com a sessão do usuário). */
+async function aquecer() {
+  let manual = [];
+  try {
+    manual = (await (await caches.open(PAGINAS)).keys()).map((r) => new URL(r.url).pathname).filter((p) => doManual(p) && p !== AJUDA_DA_TELA);
+  } catch {}
   return Promise.all(
-    PAGINAS_OFFLINE.map((p) =>
+    [...new Set([...PAGINAS_OFFLINE, ...manual])].map((p) =>
       // redirect "manual": tela que o usuário não abre volta como redirect, sem carregar a página de destino
       fetch(p, { credentials: "same-origin", redirect: "manual" })
         .then((res) => guardarPagina(p, res))
