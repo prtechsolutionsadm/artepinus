@@ -2,25 +2,45 @@
 
 import { LogOut } from "lucide-react";
 import { removerInscricaoPush } from "@/app/actions/notificacoes";
-import { limparPaginasGuardadas, listarFila, limparFila } from "@/lib/fila-offline";
+import { doUsuario, limparPaginasGuardadas, listarFila, limparFila } from "@/lib/fila-offline";
 
-/** Sair: avisa se há lançamentos não enviados, desliga os avisos e apaga as páginas guardadas no aparelho. */
-export function BotaoSair({ sair, variante = "icone" }: { sair: () => Promise<void>; variante?: "icone" | "botao" | "item" | "lateral" }) {
+/**
+ * Sair: avisa se há lançamentos de quem está saindo ainda não enviados, desliga os avisos dele neste
+ * aparelho e apaga as páginas guardadas. Os lançamentos de outros usuários ficam até eles entrarem.
+ */
+export function BotaoSair({
+  sair,
+  usuarioId,
+  variante = "icone",
+}: {
+  sair: () => Promise<void>;
+  /** Quem está saindo: só os lançamentos dele (e os antigos, sem dono) são apagados. */
+  usuarioId: string;
+  variante?: "icone" | "botao" | "item" | "lateral";
+}) {
   const aoSair = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const pendentes = (await listarFila()).length;
-    if (pendentes && !confirm(`Há ${pendentes} lançamento(s) feito(s) sem internet que ainda não foram enviados. Se sair agora, eles serão perdidos. Sair mesmo assim?`)) return;
-    // Aparelho compartilhado: os avisos de quem saiu não continuam chegando nele.
-    // Ainda com a sessão valendo; sem internet, o unsubscribe local já corta o push.
+    const fila = await listarFila();
+    const pendentes = fila.filter((i) => doUsuario(i, usuarioId)).length;
+    const outros = fila.length - pendentes;
+    if (
+      pendentes &&
+      !confirm(
+        `Há ${pendentes} lançamento(s) seu(s) feito(s) sem internet que ainda não foram enviados. Se sair agora, eles serão perdidos.` +
+          (outros ? ` Os ${outros} de outro(s) usuário(s) continuam no aparelho até a pessoa entrar.` : "") +
+          " Sair mesmo assim?",
+      )
+    )
+      return;
+    // Aparelho compartilhado: os avisos de quem saiu não continuam chegando nele. Só a linha do
+    // servidor sai; a inscrição do navegador fica para voltar a valer quando a mesma pessoa entrar
+    // (SincronizadorOffline). Sem internet o Sair não se completa (sair() é uma Server Action).
     try {
       const reg = await navigator.serviceWorker?.getRegistration();
       const inscricao = await reg?.pushManager?.getSubscription();
-      if (inscricao) {
-        await removerInscricaoPush(inscricao.endpoint).catch(() => {});
-        await inscricao.unsubscribe().catch(() => {});
-      }
+      if (inscricao) await removerInscricaoPush(inscricao.endpoint).catch(() => {});
     } catch {}
-    await limparFila();
+    await limparFila(usuarioId);
     navigator.serviceWorker?.controller?.postMessage({ tipo: "limpar" });
     await limparPaginasGuardadas(); // também sem o SW controlar a aba
     await sair();

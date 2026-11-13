@@ -86,7 +86,6 @@ async function guardarEnvio(tipo: TipoEnvio, titulo: string, dados: Record<strin
 }
 
 /** Erro de rede (sem internet) ao chamar o servidor. */
-/** Erro de rede (sem internet) ao chamar o servidor. */
 export function semConexao(e: unknown) {
   return !navigator.onLine || e instanceof TypeError || (e instanceof Error && /fetch|network|Failed to/i.test(e.message));
 }
@@ -144,9 +143,24 @@ async function salvar(item: ItemFila) {
   await transacao("readwrite", (s) => s.put(item));
 }
 
-export async function limparFila() {
+/** Item deste usuário (ou antigo, sem dono): é o que o Sair dele apaga do aparelho. */
+export function doUsuario(item: ItemFila, usuarioId: string) {
+  return !item.usuarioId || item.usuarioId === usuarioId;
+}
+
+/** Ao sair: apaga só os lançamentos de quem está saindo (e os antigos sem dono); os de outros usuários esperam o login deles. */
+export async function limparFila(usuarioId: string) {
   try {
-    await transacao("readwrite", (s) => s.clear());
+    const chaves = (await listarFila()).filter((i) => doUsuario(i, usuarioId)).map((i) => i.chave);
+    if (!chaves.length) return;
+    const db = await abrir();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(LOJA, "readwrite");
+      const loja = tx.objectStore(LOJA);
+      for (const chave of chaves) loja.delete(chave);
+      tx.oncomplete = () => (db.close(), resolve());
+      tx.onerror = () => (db.close(), reject(tx.error));
+    });
     avisar();
   } catch {}
 }

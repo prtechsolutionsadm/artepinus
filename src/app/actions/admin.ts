@@ -64,8 +64,6 @@ export async function salvarUsuario(_: EstadoForm, form: FormData): Promise<Esta
           ...(senha || (existente.ativo && !resto.ativo) ? { versaoSessao: { increment: 1 } } : {}),
         },
       });
-      // Desativado: o celular dele deixa de receber os avisos
-      if (existente.ativo && !resto.ativo) await db.inscricaoPush.deleteMany({ where: { usuarioId: id } });
       const mudou = diferencas(existente, resto, ["nome", "login", "perfil", "perfilProducao", "ativo"]);
       if (senha) mudou.senha = { de: null, para: "redefinida" };
       if (Object.keys(mudou).length) {

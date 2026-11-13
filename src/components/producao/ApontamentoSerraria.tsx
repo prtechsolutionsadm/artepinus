@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, CloudOff, Printer, Tag } from "lucide-react";
 import { lancarLote, type Resultado } from "@/app/actions/producao";
 import { FichaMadeira, linhaVazia, linhasPreenchidas, validarFicha } from "@/components/producao/FichaMadeira";
+import { diaValido } from "@/lib/constantes";
 import { enviarOuGuardar } from "@/lib/fila-offline";
 import { fmtNum, hojeSP, rotuloLarguras, type LinhaFicha } from "@/lib/producao";
 import { codigoLote } from "@/lib/rastreio";
@@ -27,12 +28,15 @@ export function ApontamentoSerraria({
   const [pendente, iniciar] = useTransition();
   const [data, setData] = useState(dataInicial);
   // "Hoje" só no aparelho: a tela pode ter sido guardada offline num dia anterior.
-  // Um ?data= escolhido de propósito (ex.: boletim de um dia sem apontamento) continua valendo.
+  // Um ?data= escolhido de propósito (ex.: boletim de um dia sem apontamento) continua valendo,
+  // também offline: o SW entrega a cópia guardada sem ?data, então o dia pedido vem da própria URL.
   const [hoje, setHoje] = useState<string>();
   useEffect(() => {
     const h = hojeSP();
     setHoje(h);
-    if (!new URLSearchParams(window.location.search).has("data") && dataInicial < h) setData(h);
+    const q = new URLSearchParams(window.location.search).get("data");
+    if (diaValido(q) && q <= h) setData(q);
+    else if (dataInicial < h) setData(h);
   }, [dataInicial]);
   const [pedidoId, setPedidoId] = useState(pedidos.length === 1 ? pedidos[0].id : "");
   const [linhas, setLinhas] = useState<LinhaFicha[]>([linhaVazia()]);

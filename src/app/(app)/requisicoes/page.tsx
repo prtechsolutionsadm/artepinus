@@ -39,7 +39,8 @@ export default async function RequisicoesPage({ searchParams }: { searchParams: 
   if (f.minhas) where.solicitanteId = eu.id;
   if (f.q?.trim()) {
     const q = f.q.trim();
-    const numero = inteiroPositivo(q.replace(/^#/, ""));
+    // O número aparece com zeros à esquerda (#00002): tira o "#" e os zeros antes de validar
+    const numero = inteiroPositivo(q.replace(/^#/, "").replace(/^0+(?=\d)/, ""));
     where.OR = [
       { titulo: { contains: q, mode: "insensitive" } },
       { descricao: { contains: q, mode: "insensitive" } },

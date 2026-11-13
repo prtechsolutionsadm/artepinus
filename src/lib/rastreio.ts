@@ -32,7 +32,8 @@ export function lerCodigo(texto: string): CodigoLido | null {
 /** "PCT-000123", "pct123", "123" ou o link do QR → 123. */
 export function numeroDoCodigo(texto: string): number | null {
   const t = texto.trim();
-  const doLink = t.match(/\/p\/(\d{1,9})(?!\d)/);
+  // Os dígitos precisam fechar o link: o código aleatório do QR novo pode começar com números
+  const doLink = t.match(/\/p\/(\d{1,9})(?:[?#/]|$)/i);
   const m = doLink ?? t.match(/^(?:PCT[-\s]?)?0*(\d{1,9})$/i);
   const n = m ? Number(m[1]) : NaN;
   return Number.isInteger(n) && n > 0 ? n : null;

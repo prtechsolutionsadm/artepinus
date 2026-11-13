@@ -163,7 +163,8 @@ db.prisma.io ou na Vercel).
    - `CRON_SECRET` (qualquer texto aleatório longo): protege as rotinas `/api/cron/lembretes` e
      `/api/cron/serraria`; sem ele as duas respondem 401 (sem lembretes, alertas nem limpeza LGPD)
    - `NEXT_PUBLIC_SITE_URL` (opcional): o endereço definitivo gravado nos QR das etiquetas impressas e no
-     preview de links; sem ela, vale `EMPRESA.site` (`src/lib/empresa.ts`). Ao trocar para um domínio
+     preview de links; sem ela, vale `EMPRESA.site` (`src/lib/empresa.ts`) na Vercel e, fora dela, os QR
+     usam o host da requisição. Ao trocar para um domínio
      próprio, atualize a variável (ou `EMPRESA.site`) e mantenha o domínio antigo apontando para o app:
      as etiquetas já impressas continuam com ele
    - `ADMIN_SENHA_INICIAL` (opcional): senha provisória do admin criado no banco novo; sem ela, a senha é
@@ -175,10 +176,17 @@ db.prisma.io ou na Vercel).
    `ADMIN_SENHA_INICIAL` antes do primeiro deploy; sem ela, a senha sorteada sai no log de build (troque-a
    no primeiro acesso).
    - Deploys de Preview (`VERCEL_ENV=preview`) **não** migram nem rodam o seed: neste projeto o Preview
-     usa o mesmo `DATABASE_URL` da produção, e a migration de uma branch ainda não revisada mudaria o banco
-     de produção (um Preview com migration nova pode falhar no build, sem afetar a produção).
-     Recomendado: na Vercel, tirar o alvo Preview do `DATABASE_URL` ou apontá-lo para outro banco, porque
-     hoje um Preview também lê e grava dados de produção.
+     usa o mesmo banco da produção, e a migration de uma branch ainda não revisada mudaria o banco de
+     produção (um Preview com migration nova pode falhar no build, sem afetar a produção). Por isso hoje
+     um Preview também lê e grava dados de produção.
+   - Para isolar o Preview, desligue o ambiente Preview na ligação do banco com o projeto (Storage → o
+     banco Prisma Postgres → Projects → ambientes). `DATABASE_URL`, `POSTGRES_URL` e `PRISMA_DATABASE_URL`
+     vêm da integração e o app usa a `POSTGRES_URL` quando não há `DATABASE_URL`: tirar o Preview só do
+     `DATABASE_URL` não adianta. Depois crie um `DATABASE_URL` só para o Preview, apontando para outro
+     banco — o Preview precisa de algum banco (sem nenhum, o seed e o `next build` falham com
+     "DATABASE_URL não configurada"). Como `scripts/migrar.mjs` e o seed não rodam no Preview, prepare
+     esse banco à mão uma vez e depois de cada migration nova:
+     `DATABASE_URL=<url do banco do preview> npx prisma migrate deploy && DATABASE_URL=<url do banco do preview> npm run db:seed`.
    - As migrations rodam antes do `next build` (a página inicial do site já consulta o banco no build),
      então precisam ser compatíveis com a versão anterior do código: coluna nova opcional ou com default,
      e remoção ou renomeação só num deploy seguinte.

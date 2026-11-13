@@ -1,6 +1,7 @@
 import "server-only";
+import { auditar } from "@/lib/auditoria";
 import { db } from "@/lib/db";
-import { arred, dateParaDia, diaParaDate, hojeSP } from "@/lib/producao";
+import { arred, dateParaDia, diaParaDate, formatarDia, hojeSP } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 
 /**
@@ -46,14 +47,20 @@ export function minutosPorDia(inicio: Date, fim: Date, turno: { turnoInicio: str
   return dias;
 }
 
-/** Boletim do dia: o existente ou um novo com a configuração padrão. */
-export async function boletimDoDia(dia: string, responsavelId: string) {
+/**
+ * Início das observações do boletim aberto sozinho por uma parada. Enquanto ele estiver vazio,
+ * o primeiro lote do dia o passa para quem lança (lancarLote).
+ */
+export const MARCA_BOLETIM_PARADA = "Aberto automaticamente pela parada";
+
+/** Boletim do dia: o existente ou um novo com a configuração padrão (`observacoes` só no novo). */
+export async function boletimDoDia(dia: string, responsavelId: string, observacoes?: string) {
   const data = diaParaDate(dia);
   const existente = await db.boletimProducao.findUnique({ where: { data } });
   if (existente) return { boletim: existente, novo: false };
   const cfg = await configSerraria();
   try {
-    const boletim = await db.boletimProducao.create({ data: { data, metaM3: cfg.metaDiariaM3, horasProgramadas: cfg.horasDia, responsavelId } });
+    const boletim = await db.boletimProducao.create({ data: { data, metaM3: cfg.metaDiariaM3, horasProgramadas: cfg.horasDia, responsavelId, observacoes } });
     return { boletim, novo: true };
   } catch (e) {
     if (!(typeof e === "object" && e !== null && "code" in e && e.code === "P2002")) throw e;
@@ -64,11 +71,12 @@ export async function boletimDoDia(dia: string, responsavelId: string) {
 /**
  * Leva uma parada encerrada aos boletins: uma linha por dia com tempo no turno. Todo dia útil
  * (seg–sex, até hoje) com tempo no turno ganha boletim se ainda não tiver; sábado e domingo só
- * entram se o boletim já existir ou quando for aberto. Refaz as linhas a cada chamada (corrigir
- * início/fim na requisição atualiza o boletim).
+ * entram se o boletim já existir ou quando for aberto. O boletim aberto aqui leva a marca nas
+ * observações e fica na auditoria. Refaz as linhas a cada chamada (corrigir início/fim na
+ * requisição atualiza o boletim).
  */
 export async function lancarParadaNoBoletim(paradaId: string) {
-  const p = await db.paradaMaquina.findUnique({ where: { id: paradaId } });
+  const p = await db.paradaMaquina.findUnique({ where: { id: paradaId }, include: { equipamento: { select: { nome: true } } } });
   if (!p) return;
   if (!p.fim) {
     await db.paradaProducao.deleteMany({ where: { paradaMaquinaId: p.id } });
@@ -83,9 +91,20 @@ export async function lancarParadaNoBoletim(paradaId: string) {
     let boletim = await db.boletimProducao.findUnique({ where: { data: diaParaDate(dia) } });
     // O fim da requisição pode estar no futuro: não abre boletim de dia que ainda não chegou
     if (!boletim && diaUtil(dia) && dia <= hoje) {
-      const r = await boletimDoDia(dia, p.encerradaPorId ?? p.abertaPorId);
+      const quem = p.encerradaPorId ?? p.abertaPorId;
+      const r = await boletimDoDia(dia, quem, `${MARCA_BOLETIM_PARADA} de ${p.equipamento.nome}`);
       boletim = r.boletim;
-      if (r.novo) abertos.push(dia);
+      if (r.novo) {
+        abertos.push(dia);
+        await auditar({
+          usuarioId: quem,
+          acao: "boletim.criar",
+          entidade: "BoletimProducao",
+          entidadeId: boletim.id,
+          resumo: `Boletim de ${formatarDia(boletim.data)} aberto automaticamente pela parada de ${p.equipamento.nome}`,
+          detalhes: { paradaMaquinaId: p.id, requisicaoId: p.requisicaoId },
+        });
+      }
     }
     if (!boletim) continue;
     const dados = {

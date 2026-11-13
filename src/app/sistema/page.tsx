@@ -148,7 +148,7 @@ export default async function SistemaPage() {
               <span className="fundo-marca grid h-8 w-8 place-items-center rounded-full text-xs font-semibold text-white">{iniciais(eu.nome)}</span>
               <span className="text-sm font-semibold text-stone-800">{primeiro}</span>
             </Link>
-            <BotaoSair sair={sair} variante="icone" />
+            <BotaoSair sair={sair} usuarioId={eu.id} variante="icone" />
           </div>
         </div>
       </header>

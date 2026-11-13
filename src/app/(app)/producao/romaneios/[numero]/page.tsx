@@ -155,21 +155,45 @@ export default async function RomaneioPage({
 
       {origem.semOrigem.length > 0 && (
         // Aviso só para a equipe: a declaração cita apenas as florestas encontradas
-        <p
+        <div
           role="status"
-          className="mb-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200"
+          className="mb-5 space-y-1 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200"
         >
-          <b>
-            Origem florestal não vinculada em {fmtNum(origem.semOrigem.length)}{" "}
-            de {fmtNum(r.pacotes.length)} pacote(s):
-          </b>{" "}
-          <span className="font-mono">
-            {origem.semOrigem.map((n) => codigoPacote(n)).join(", ")}
-          </span>
-          . A declaração de origem cita só as florestas encontradas. Ligue os
-          boletins ao ciclo de estufa e as cargas de toras ao boletim antes de
-          emitir.
-        </p>
+          <p>
+            <b>
+              Origem florestal não vinculada em{" "}
+              {fmtNum(origem.semOrigem.length)} de {fmtNum(r.pacotes.length)}{" "}
+              pacote(s).
+            </b>{" "}
+            A declaração de origem cita só as florestas encontradas. Antes de
+            emitir:
+          </p>
+          {origem.semCarga.length > 0 && (
+            <p>
+              <span className="font-mono">
+                {origem.semCarga.map((n) => codigoPacote(n)).join(", ")}
+              </span>
+              : ligue os boletins ao ciclo de estufa e as cargas de toras ao
+              boletim.
+            </p>
+          )}
+          {origem.cargaSemFloresta.length > 0 && (
+            <p>
+              <span className="font-mono">
+                {origem.cargaSemFloresta.map((n) => codigoPacote(n)).join(", ")}
+              </span>
+              : as cargas de toras ligadas não têm floresta — informe a
+              floresta em{" "}
+              <Link
+                href="/producao/toras"
+                className="font-medium underline underline-offset-2"
+              >
+                Recebimento de toras
+              </Link>{" "}
+              (editar a carga).
+            </p>
+          )}
+        </div>
       )}
 
       <dl className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-stone-200 bg-stone-200 sm:grid-cols-4">

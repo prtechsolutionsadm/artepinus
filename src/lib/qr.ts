@@ -4,12 +4,13 @@ import QRCode from "qrcode";
 import { EMPRESA } from "@/lib/empresa";
 
 /**
- * Endereço público do sistema (para o link dentro do QR Code): NEXT_PUBLIC_SITE_URL ou, em produção,
- * EMPRESA.site — a mesma base do layout e do robots, e não o host por onde a pessoa entrou (a etiqueta
- * impressa leva o link para sempre). Só em desenvolvimento usa o host da requisição.
+ * Endereço público do sistema (para o link dentro do QR Code): NEXT_PUBLIC_SITE_URL ou, nos deploys da
+ * Vercel, EMPRESA.site — a mesma base do layout e do robots, e não o host por onde a pessoa entrou (a
+ * etiqueta impressa leva o link para sempre). Fora da Vercel (`npm run dev`, `npm start` local ou
+ * homologação) usa o host da requisição, para um teste não imprimir QR apontando para a produção.
  */
 export async function urlBase() {
-  const fixo = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? EMPRESA.site : undefined);
+  const fixo = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL ? EMPRESA.site : undefined);
   if (fixo) return fixo.replace(/\/$/, "");
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";

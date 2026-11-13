@@ -7,7 +7,7 @@ import { formatarData } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
 import { fmtM3, fmtNum } from "@/lib/producao";
-import { STATUS_EM_ESTOQUE, STATUS_PACOTE, bitola, numeroDoCodigo } from "@/lib/rastreio";
+import { STATUS_EM_ESTOQUE, STATUS_PACOTE, bitola, lerCodigo } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
 import type { Prisma } from "@/generated/prisma/client";
 import type { StatusPacote } from "@/generated/prisma/enums";
@@ -33,9 +33,11 @@ export default async function PacotesPage({ searchParams }: { searchParams: Prom
   else if (status in STATUS_PACOTE) where.status = status as StatusPacote;
   const busca = q.trim();
   if (busca) {
-    const n = numeroDoCodigo(busca);
+    // Número, PCT-000123 ou o link do QR (o novo traz o código aleatório do pacote)
+    const c = lerCodigo(busca);
     const medidas = busca.match(/^(\d+)\s*[x×*]\s*(\d+)(?:\s*[x×*]\s*(\d+))?$/i);
-    if (n && !medidas) where.numero = n;
+    if (c?.tipo === "codigo") where.codigoPublico = c.codigo;
+    else if (c?.tipo === "pacote" && !medidas) where.numero = c.numero;
     else if (medidas) Object.assign(where, { espessura: Number(medidas[1]), largura: Number(medidas[2]), ...(medidas[3] ? { comprimento: Number(medidas[3]) } : {}) });
     else
       where.OR = [

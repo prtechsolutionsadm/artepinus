@@ -15,6 +15,8 @@ const selCarga = {
   classeDiametro: true,
   pesoT: true,
   floresta: true,
+  // Dados antigos: a floresta vem pela colheita
+  colheita: { select: { origem: true } },
   fornecedor: { select: { nome: true } },
 } as const;
 
@@ -63,7 +65,10 @@ export async function rastrearPacote(numero: number) {
   const listaCargas = [...cargas.values()].sort((a, b) => a.data.getTime() - b.data.getTime());
 
   const florestas = new Map<string, NonNullable<(typeof listaCargas)[number]["floresta"]>>();
-  for (const c of listaCargas) if (c.floresta) florestas.set(c.floresta.id, c.floresta);
+  for (const c of listaCargas) {
+    const f = c.floresta ?? c.colheita?.origem;
+    if (f) florestas.set(f.id, f);
+  }
 
   return { pacote, dias, cargas: listaCargas, florestas: [...florestas.values()] };
 }
@@ -149,10 +154,17 @@ export async function diasComLotes() {
 /**
  * Origem de um conjunto de pacotes (ex.: os de um romaneio), para a declaração de origem:
  * florestas, período de recebimento das toras e de serragem, e os ciclos de estufa.
- * `semOrigem`: números dos pacotes sem nenhuma floresta vinculada (boletim sem cargas, ciclo sem boletins…).
+ * `semOrigem`: números dos pacotes sem nenhuma floresta vinculada, separados em `semCarga` (boletim sem
+ * cargas, ciclo sem boletins…) e `cargaSemFloresta` (as cargas ligadas não têm floresta).
+ * A floresta da carga é a informada nela ou, nos dados antigos, a da colheita (como no rastreio).
  */
 export async function origemDosPacotes(pacoteIds: string[]) {
-  const selDia = { id: true, data: true, cargas: { select: { data: true, floresta: { select: { id: true, nome: true, municipio: true, uf: true, especie: true } } } } } as const;
+  const selFloresta = { id: true, nome: true, municipio: true, uf: true, especie: true } as const;
+  const selDia = {
+    id: true,
+    data: true,
+    cargas: { select: { data: true, floresta: { select: selFloresta }, colheita: { select: { origem: { select: selFloresta } } } } },
+  } as const;
   const pacotes = await db.pacote.findMany({
     where: { id: { in: pacoteIds } },
     select: {
@@ -168,20 +180,28 @@ export async function origemDosPacotes(pacoteIds: string[]) {
   const ciclos = new Map<string, { estufa: string; numero: number | null; entrada: Date; saida: Date | null; umidadeFinal: number | null }>();
   const porPacote = new Map<string, { secagem: string | null }>();
   const semOrigem: number[] = [];
+  const semCarga: number[] = [];
+  const cargaSemFloresta: number[] = [];
   for (const p of pacotes) {
     const ds = [...(p.boletim ? [p.boletim] : []), ...(p.ciclo?.boletins ?? [])];
+    let temCarga = false;
     let temFloresta = false;
     for (const d of ds) {
       dias.set(d.id, d.data);
       for (const c of d.cargas) {
+        temCarga = true;
         toras.set(`${c.data.toISOString()}`, c.data);
-        if (c.floresta) {
-          florestas.set(c.floresta.id, c.floresta);
+        const f = c.floresta ?? c.colheita?.origem;
+        if (f) {
+          florestas.set(f.id, f);
           temFloresta = true;
         }
       }
     }
-    if (!temFloresta) semOrigem.push(p.numero);
+    if (!temFloresta) {
+      semOrigem.push(p.numero);
+      (temCarga ? cargaSemFloresta : semCarga).push(p.numero);
+    }
     if (p.ciclo) ciclos.set(p.ciclo.id, { estufa: p.ciclo.estufa.nome, numero: p.ciclo.numero, entrada: p.ciclo.entrada, saida: p.ciclo.saida, umidadeFinal: p.ciclo.umidadeFinal });
     porPacote.set(p.id, { secagem: p.ciclo ? `${p.ciclo.estufa.nome}${p.ciclo.numero ? ` #${p.ciclo.numero}` : ""}` : null });
   }
@@ -193,5 +213,7 @@ export async function origemDosPacotes(pacoteIds: string[]) {
     ciclos: [...ciclos.values()].sort((a, b) => a.entrada.getTime() - b.entrada.getTime()),
     porPacote,
     semOrigem: semOrigem.sort((a, b) => a - b),
+    semCarga: semCarga.sort((a, b) => a - b),
+    cargaSemFloresta: cargaSemFloresta.sort((a, b) => a - b),
   };
 }

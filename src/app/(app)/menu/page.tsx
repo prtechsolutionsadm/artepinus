@@ -39,7 +39,7 @@ export default async function MenuPage() {
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Tema</h2>
         <SeletorTema grande />
       </section>
-      <BotaoSair sair={sair} variante="botao" />
+      <BotaoSair sair={sair} usuarioId={eu.id} variante="botao" />
     </div>
   );
 }

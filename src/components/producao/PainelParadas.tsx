@@ -42,6 +42,7 @@ const hora = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: 
  * manutenção liberou.
  */
 export function PainelParadas({
+  usuarioId,
   podeMarcar,
   podeExcluir,
   verManutencao,
@@ -49,6 +50,8 @@ export function PainelParadas({
   motivos,
   abertas,
 }: {
+  /** Usuário logado: as paradas guardadas por outro usuário só vão quando ele entrar. */
+  usuarioId: string;
   podeMarcar: boolean;
   podeExcluir: boolean;
   verManutencao: boolean;
@@ -83,7 +86,10 @@ export function PainelParadas({
   }, []);
 
   const paradasIds = new Set(abertas.map((a) => a.equipamentoId));
-  const pendentesIds = new Set(naFila.map((i) => String(i.dados?.equipamentoId)));
+  const deOutro = (i: ItemFila) => !!i.usuarioId && i.usuarioId !== usuarioId;
+  // Só as paradas deste usuário (e as antigas, sem dono) bloqueiam a máquina: a de outro usuário
+  // espera o login dele, e se chegar com a máquina já parada o servidor recusa
+  const pendentesIds = new Set(naFila.filter((i) => !deOutro(i)).map((i) => String(i.dados?.equipamentoId)));
   // Motivos da máquina escolhida primeiro; depois os gerais (sem máquina)
   const motivosDaMaquina = useMemo(
     () => motivos.filter((m) => m.equipamentoId === f.equipamentoId || !m.equipamentoId).sort((a, b) => Number(!!b.equipamentoId) - Number(!!a.equipamentoId) || a.codigo - b.codigo),
@@ -321,7 +327,13 @@ export function PainelParadas({
                 <CloudOff className="h-4 w-4 shrink-0" />
                 <span className="min-w-0 flex-1">
                   <b>{maquinas.find((m) => m.id === i.dados?.equipamentoId)?.nome ?? i.titulo}</b> · desde {hora(String(i.dados?.registradaEm ?? i.criadoEm))}
-                  <span className="block text-xs opacity-80">Guardada no aparelho, aguardando internet</span>
+                  <span className="block text-xs opacity-80">
+                    {deOutro(i)
+                      ? `Lançada por ${i.usuarioNome ?? "outro usuário"}: só é enviada quando ele entrar neste aparelho`
+                      : navigator.onLine
+                        ? "Guardada no aparelho, enviando…"
+                        : "Guardada no aparelho, aguardando internet"}
+                  </span>
                 </span>
               </li>
             ))}

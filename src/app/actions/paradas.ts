@@ -62,8 +62,15 @@ export async function pararMaquina(entrada: DadosParada): Promise<Resultado> {
   if (d.motivoId && !motivo) return { erro: "Motivo não encontrado" };
   const centro = motivo?.centro ?? d.centro;
 
-  const aberta = await db.paradaMaquina.findFirst({ where: { equipamentoId: equip.id, fim: null }, select: { id: true } });
-  if (aberta) return { erro: `${equip.nome} já está parada — libere a parada aberta antes de marcar outra` };
+  const aberta = await db.paradaMaquina.findFirst({
+    where: { equipamentoId: equip.id, fim: null },
+    select: { id: true, requisicaoId: true, chaveOffline: true },
+  });
+  if (aberta) {
+    // Reenvio do mesmo apontamento (fila/outra aba) que chegou enquanto o primeiro gravava
+    if (d.chaveOffline && aberta.chaveOffline === d.chaveOffline) return { id: aberta.id, requisicaoId: aberta.requisicaoId };
+    return { erro: `${equip.nome} já está parada — libere a parada aberta antes de marcar outra` };
+  }
 
   const agora = new Date();
   // Marcada sem internet: vale a hora do aparelho (até 12 h para trás)

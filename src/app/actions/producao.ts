@@ -25,7 +25,7 @@ import {
 } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 import { codigoLote } from "@/lib/rastreio";
-import { boletimDoDia, sincronizarParadasDoDia } from "@/lib/paradas";
+import { MARCA_BOLETIM_PARADA, boletimDoDia, sincronizarParadasDoDia } from "@/lib/paradas";
 import { criarRequisicaoCompleta } from "@/lib/requisicoes";
 import { exigirUsuario } from "@/lib/session";
 import type { EstadoForm } from "./auth";
@@ -206,6 +206,32 @@ export async function lancarLote(entrada: DadosLote): Promise<Resultado> {
   // Boletim do dia: usa o existente ou abre com a configuração padrão (e traz as paradas do dia)
   const { boletim, novo } = await boletimDoDia(data, eu.id);
   if (novo) await sincronizarParadasDoDia(data);
+  // Aberto sozinho por uma parada (no nome de quem liberou) e ainda vazio: passa a ser de quem lança o primeiro lote
+  if (!novo && boletim.responsavelId !== eu.id && boletim.observacoes?.startsWith(MARCA_BOLETIM_PARADA)) {
+    const { count } = await db.boletimProducao.updateMany({
+      where: {
+        id: boletim.id,
+        responsavelId: boletim.responsavelId,
+        observacoes: { startsWith: MARCA_BOLETIM_PARADA },
+        torasQtd: null,
+        torasM3: null,
+        lotes: { none: {} },
+        itens: { none: {} },
+        cargas: { none: {} },
+        paradas: { none: { paradaMaquinaId: null } },
+      },
+      data: { responsavelId: eu.id },
+    });
+    if (count)
+      await auditar({
+        usuarioId: eu.id,
+        acao: "boletim.responsavel",
+        entidade: "BoletimProducao",
+        entidadeId: boletim.id,
+        resumo: `Assumiu o boletim de ${formatarDia(boletim.data)} (aberto pela parada)`,
+        detalhes: { responsavelId: { de: boletim.responsavelId, para: eu.id } },
+      });
+  }
   const linhas = itens.map((i) => ({
     boletimId: boletim.id,
     espessura: i.espessura,

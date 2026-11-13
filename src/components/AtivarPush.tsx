@@ -2,12 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { BellOff, BellRing, X } from "lucide-react";
-import { enviarTeste, removerInscricaoPush, salvarInscricaoPush } from "@/app/actions/notificacoes";
+import { enviarTeste, inscricaoPushAtiva, removerInscricaoPush, salvarInscricaoPush } from "@/app/actions/notificacoes";
 
 type Estado = "carregando" | "sem-suporte" | "instalar-ios" | "bloqueado" | "desativado" | "ativo";
 
 const CHAVE = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const DISPENSADO = "artepinus:push-dispensado";
+/** Quem ativou os avisos neste aparelho: só ele tem a inscrição de volta ao entrar de novo. */
+const USUARIO_PUSH = "artepinus:push-usuario";
+
+function lerUsuarioPush() {
+  try {
+    return localStorage.getItem(USUARIO_PUSH);
+  } catch {
+    return null;
+  }
+}
+
+function lembrarUsuarioPush(id: string | null) {
+  try {
+    if (id) localStorage.setItem(USUARIO_PUSH, id);
+    else localStorage.removeItem(USUARIO_PUSH);
+  } catch {}
+}
 
 function chaveParaBytes(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -31,7 +48,9 @@ function useEstadoPush() {
       }
       if (Notification.permission === "denied") return setEstado("bloqueado");
       const inscricao = await (await registro()).pushManager.getSubscription();
-      setEstado(inscricao && Notification.permission === "granted" ? "ativo" : "desativado");
+      // O Sair apaga só a linha do servidor: a inscrição do navegador pode ser de quem saiu
+      const minha = inscricao ? await inscricaoPushAtiva(inscricao.endpoint).catch(() => true) : false;
+      setEstado(inscricao && minha && Notification.permission === "granted" ? "ativo" : "desativado");
     })().catch(() => setEstado("sem-suporte"));
   }, []);
   return [estado, setEstado] as const;
@@ -45,9 +64,27 @@ async function ativar() {
   const inscricao =
     (await reg.pushManager.getSubscription()) ??
     (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chaveParaBytes(CHAVE) }));
-  await salvarInscricaoPush(inscricao.toJSON());
+  lembrarUsuarioPush(await salvarInscricaoPush(inscricao.toJSON()));
   await enviarTeste();
   return "ativo";
+}
+
+/**
+ * Ao entrar: o Sair apaga a inscrição deste aparelho no servidor (aparelho compartilhado). Se quem
+ * entrou é quem ativou os avisos aqui, ela volta a valer sem pedir de novo; outro usuário só recebe
+ * depois de ativar no perfil.
+ */
+export async function reativarPush(usuarioId: string) {
+  try {
+    if (!navigator.onLine || !("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+    const inscricao = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription();
+    if (!inscricao) return;
+    const quem = lerUsuarioPush();
+    if (quem === usuarioId) await salvarInscricaoPush(inscricao.toJSON());
+    // Ativado antes de o aparelho guardar quem ativou: se a inscrição ainda é deste usuário, lembra
+    else if (!quem && (await inscricaoPushAtiva(inscricao.endpoint))) lembrarUsuarioPush(usuarioId);
+  } catch {}
 }
 
 /** Cartão completo para a página de perfil. */
@@ -74,6 +111,7 @@ export function AtivarPush() {
       await removerInscricaoPush(inscricao.endpoint);
       await inscricao.unsubscribe();
     }
+    lembrarUsuarioPush(null);
     return "desativado";
   };
 
@@ -87,7 +125,7 @@ export function AtivarPush() {
           <h2 className="font-semibold">Notificações neste aparelho</h2>
           <p className="text-sm text-stone-500">
             {estado === "carregando" && "Verificando…"}
-            {estado === "ativo" && "Ativadas. Você recebe avisos mesmo com o sistema fechado."}
+            {estado === "ativo" && "Ativadas. Você recebe avisos mesmo com o sistema fechado. Ao sair do sistema neste aparelho, eles param até você entrar de novo."}
             {estado === "desativado" && "Receba avisos de estufa passando da previsão, dia sem apontamento e pedido pronto para expedir."}
             {estado === "bloqueado" &&
               "As notificações foram bloqueadas no navegador. Libere nas configurações do site (ícone de cadeado ao lado do endereço) e recarregue a página."}

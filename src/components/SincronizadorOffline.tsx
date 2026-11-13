@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { CloudOff, CloudUpload, RotateCcw, Trash2, X } from "lucide-react";
+import { reativarPush } from "@/components/AtivarPush";
 import { EVENTO_FILA, definirDonoFila, descartarDaFila, limparPaginasGuardadas, listarFila, sincronizarFila, tentarDeNovo, type ItemFila } from "@/lib/fila-offline";
 
 const ULTIMO_USUARIO = "artepinus:usuario-offline";
@@ -48,6 +49,8 @@ export function SincronizadorOffline({ usuarioId, nome }: { usuarioId: string; n
     try {
       localStorage.setItem(ULTIMO_USUARIO, usuarioId);
     } catch {}
+    // O Sair apagou a inscrição no servidor: volta a valer se foi este usuário que ativou aqui
+    reativarPush(usuarioId);
     navigator.serviceWorker?.addEventListener("controllerchange", aquecer);
     const aoOnline = () => (setOnline(true), sincronizar(), aquecer());
     const aoOffline = () => setOnline(false);

@@ -40,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <span className="font-serif text-lg font-bold italic tracking-wide text-[#177009]">ARTEPINUS</span>
             </Link>
             <div className="ml-auto">
-              <BotaoSair sair={sair} variante="botao" />
+              <BotaoSair sair={sair} usuarioId={eu.id} variante="botao" />
             </div>
           </div>
         </header>
@@ -61,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <TemaApp />
       {/* Computador: menu lateral + topo com o caminho da tela */}
-      <MenuLateral menus={menus} salvo={salvo} sair={sair} />
+      <MenuLateral menus={menus} salvo={salvo} sair={sair} usuarioId={eu.id} />
 
       {/* Celular e tablet: topo simples + barra inferior */}
       <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
@@ -93,6 +93,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           salvo={salvo}
           usuario={{ nome: eu.nome, perfilLabel }}
           sair={sair}
+          usuarioId={eu.id}
           acoes={
             <>
               <BotaoTema />

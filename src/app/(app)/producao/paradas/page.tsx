@@ -46,6 +46,7 @@ export default async function ParadasPage({ searchParams }: { searchParams: Prom
       </Titulo>
 
       <PainelParadas
+        usuarioId={eu.id}
         podeMarcar={podeProducao(eu, "lancar")}
         podeExcluir={podeProducao(eu, "gerir")}
         verManutencao={verManutencao}

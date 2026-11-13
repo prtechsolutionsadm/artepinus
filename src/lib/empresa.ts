@@ -15,8 +15,8 @@ export const EMPRESA = {
   /**
    * Endereço público do site: aparece no rodapé dos roteiros impressos e, quando NEXT_PUBLIC_SITE_URL
    * não está definida, vale no preview de compartilhamento (metadataBase em src/app/layout.tsx) e no robots.
-   * Os links do QR (urlBase em src/lib/qr.ts) usam NEXT_PUBLIC_SITE_URL; sem ela, este valor em produção
-   * e o host da requisição em desenvolvimento. Ao usar domínio próprio, troque aqui e defina NEXT_PUBLIC_SITE_URL na Vercel.
+   * Os links do QR (urlBase em src/lib/qr.ts) usam NEXT_PUBLIC_SITE_URL; sem ela, este valor na Vercel
+   * e o host da requisição fora dela. Ao usar domínio próprio, troque aqui e defina NEXT_PUBLIC_SITE_URL na Vercel.
    */
   site: "https://artepinus.vercel.app",
   /**

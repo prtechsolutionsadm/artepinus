@@ -41,6 +41,7 @@ const inscricaoSchema = z.object({
   keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
 });
 
+/** Liga a inscrição ao usuário logado (upsert por endpoint: passa a ser dele). Devolve o id de quem ativou. */
 export async function salvarInscricaoPush(inscricao: unknown) {
   const u = await eu();
   const dados = inscricaoSchema.parse(inscricao);
@@ -49,6 +50,14 @@ export async function salvarInscricaoPush(inscricao: unknown) {
     update: { usuarioId: u.id, p256dh: dados.keys.p256dh, auth: dados.keys.auth },
     create: { usuarioId: u.id, endpoint: dados.endpoint, p256dh: dados.keys.p256dh, auth: dados.keys.auth },
   });
+  return u.id;
+}
+
+/** A inscrição deste aparelho manda os avisos para o usuário logado? (o Sair apaga só a linha do servidor) */
+export async function inscricaoPushAtiva(endpoint: string) {
+  const u = await eu();
+  const url = z.string().url().parse(endpoint);
+  return (await db.inscricaoPush.count({ where: { endpoint: url, usuarioId: u.id } })) > 0;
 }
 
 export async function removerInscricaoPush(endpoint: string) {

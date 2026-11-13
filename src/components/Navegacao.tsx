@@ -78,10 +78,12 @@ export function MenuLateral({
   menus,
   salvo,
   sair,
+  usuarioId,
 }: {
   menus: Menus;
   salvo: Modulo | null;
   sair: () => Promise<void>;
+  usuarioId: string;
 }) {
   const path = usePathname();
   const modulo = useModulo(menus, salvo);
@@ -143,7 +145,7 @@ export function MenuLateral({
         {titulo("Geral")}
         <div className="space-y-0.5">
           {conta.map((i) => item(i, itemAtivo(path, i.href)))}
-          <BotaoSair sair={sair} variante="lateral" />
+          <BotaoSair sair={sair} usuarioId={usuarioId} variante="lateral" />
         </div>
       </nav>
 
@@ -174,12 +176,14 @@ export function TopoComputador({
   salvo,
   usuario,
   sair,
+  usuarioId,
   acoes,
 }: {
   menus: Menus;
   salvo: Modulo | null;
   usuario: Usuario;
   sair: () => Promise<void>;
+  usuarioId: string;
   /** Tema, manual e sininho (lado direito). */
   acoes: React.ReactNode;
 }) {
@@ -264,7 +268,7 @@ export function TopoComputador({
                   </div>
                 </div>
                 <div className="my-1 border-t border-stone-100" />
-                <BotaoSair sair={sair} variante="item" />
+                <BotaoSair sair={sair} usuarioId={usuarioId} variante="item" />
               </div>
             )}
           </div>
