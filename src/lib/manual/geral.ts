@@ -157,7 +157,7 @@ export const GERAL: Secao[] = [
           ),
           texto("Seu usuário ainda não tem acesso a nenhum módulo? A tela avisa: fale com o gerente para ele escolher o seu perfil."),
           texto(
-            "Para voltar a esta tela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita); no celular, em Mais › Módulos. Esses botões só aparecem para quem tem o que escolher aqui (outro módulo ou a administração); os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
+            "Esta tela não tem o ← Voltar: dela você vai para um módulo, para o Painel Administrativo ou para os outros cartões. Para voltar a ela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita), que aparece para quem usa mais de um módulo ou tem o Painel Administrativo; no celular, em Mais › Módulos (para quem usa os dois módulos). Os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
           ),
           imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: os números do momento, o Acesso rápido com os módulos e o painel de Administração.", rota: "/sistema", perfil: "supervisor" }),
         ],
@@ -225,9 +225,15 @@ export const GERAL: Secao[] = [
           texto("No computador não há menu na lateral: as telas de cada módulo ficam em cartões, no Início do módulo (veja o próximo tópico), e o resto fica no topo, sempre igual em todas as telas:"),
           termos(
             ["Logo ARTEPINUS", "No canto esquerdo. Volta ao Início do módulo em que você está."],
-            ["← Voltar", "Ao lado do logo, fora das telas iniciais. Volta para a tela de cima: do detalhe para a lista (ex.: do ciclo para Estufas) e da lista para o Início do módulo. Se você veio dessa tela, ela volta como estava, com os mesmos filtros."],
+            [
+              "← Voltar",
+              "Ao lado do logo. Volta para a tela de cima: do detalhe para a lista (ex.: do ciclo para Estufas) e da lista para o Início do módulo. Usuários e Auditoria voltam ao Painel Administrativo, e o Painel volta à tela de início. Se você veio dessa tela, ela volta como estava, com os mesmos filtros. Não aparece no Início dos módulos nem na tela de início do sistema.",
+            ],
             ["Busca", "No meio do topo: Buscar pacote, lote, carga… na Serraria e Buscar requisição… na Manutenção. A tecla / leva direto a ela, em qualquer tela."],
-            ["Módulos", "O ícone de quadradinhos, à direita: abre a tela de início do sistema, para trocar de módulo ou abrir o Painel Administrativo. Aparece só para quem usa mais de um módulo ou cuida dos usuários e da auditoria."],
+            [
+              "Módulos",
+              "O ícone de quadradinhos, à direita: abre a tela de início do sistema, para trocar de módulo ou abrir o Painel Administrativo. Aparece só para quem usa mais de um módulo ou tem o Painel Administrativo (quem cuida dos usuários, da auditoria ou dos cadastros da Serraria).",
+            ],
             ["Tema, ajuda e avisos", "O botão do tema (sol, lua ou monitor), o botão de ajuda (?), que abre a ajuda da tela em que você está, e o sininho dos avisos, com o número dos não lidos."],
             ["Seu nome", "As suas iniciais e o seu primeiro nome, no canto direito. Toque para abrir um menu com o seu nome completo, o seu perfil, Meu perfil e Sair."],
           ),
@@ -296,15 +302,20 @@ export const GERAL: Secao[] = [
         ],
         blocos: [
           texto(
-            "Quem cuida dos usuários, da auditoria ou dos cadastros da Serraria (gerente e supervisor da Serraria) tem o Painel Administrativo, com as telas de administração do sistema todo em um só lugar. Para abrir: na tela de início (a primeira depois de entrar; no computador, o gerente volta a ela pelo botão Módulos do topo), toque no cartão Administração. No celular, também em Mais › Administração.",
+            "Quem cuida dos usuários, da auditoria ou dos cadastros da Serraria (gerente e supervisor da Serraria) tem o Painel Administrativo, com as telas de administração do sistema todo em um só lugar. Para abrir: na tela de início (a primeira depois de entrar; no computador, volte a ela pelo botão Módulos do topo), toque no cartão Administração. No celular, também em Mais › Administração.",
           ),
+          texto("No computador, o ← Voltar do topo leva de Usuários e de Auditoria de volta ao Painel Administrativo, e do Painel de volta à tela de início."),
           termos(
             ["Pessoas", "Usuários (quem usa o sistema e o que cada um pode fazer) e Entradas e acessos (a Auditoria só com as entradas, saídas, senhas e mudanças nos usuários)."],
             ["Serraria", "Cadastros (pedidos, florestas, fornecedores, motoristas e estufas), Máquinas da linha e Configuração (meta do dia, horas de trabalho e horário do turno)."],
             ["Manutenção", "Setores, Equipamentos e Preventivas, para quem usa a Manutenção com um perfil que cuida deles."],
             [
               "Segurança & dados",
-              `Auditoria (quem fez o quê no sistema, e quando) e a Política de privacidade${ATIVA ? "" : " e, enquanto a Manutenção está em teste, a Triagem do período de teste (só o administrador)"}.`,
+              `Auditoria (quem fez o quê no sistema, e quando) e a Política de privacidade${
+                ATIVA
+                  ? ""
+                  : " e, enquanto a Manutenção está em teste, a Triagem do período de teste (só o administrador), que abre direto o quadro da triagem em Cadastros → Configuração (veja “Triagem do período de teste” (/ajuda/serraria-cadastros#triagem-do-teste))"
+              }.`,
             ],
           ),
           texto("Cada pessoa vê só os cartões das telas que pode abrir: o supervisor da Serraria vê os grupos Serraria e Segurança & dados; o gerente vê também Pessoas."),
@@ -405,10 +416,10 @@ export const GERAL: Secao[] = [
         palavras: ["ajuda", "manual", "?", "interrogação", "dúvida", "duvida", "glossário", "problemas comuns", "roteiros", "imprimir", "como faço"],
         blocos: [
           lista(
-            "O botão ? (Ajuda desta tela), no topo, abre a parte do manual que explica a tela em que você está. Para voltar, toque em Voltar para…, no alto da página do manual.",
+            "O botão ? (Ajuda desta tela), no topo, abre a parte do manual que explica a tela em que você está, do jeito do seu perfil. Por exemplo, na página de uma requisição da Manutenção, ele abre Atender requisições (/ajuda/manutencao-atender) para a equipe da manutenção e A página da requisição (/ajuda/manutencao-acompanhar#pagina) para os outros. Para voltar, toque em Voltar para…, no alto da página do manual.",
             "O Manual do usuário inteiro abre pelo cartão Manual do usuário da tela de início (no celular, também em Mais) ou, numa página do manual, pelo link Manual · …, no alto. Na entrada dele há uma busca: escreva o que você quer fazer (ex.: etiqueta, sem internet, corrigir).",
             "Cada seção do manual tem o botão Imprimir esta seção.",
-            "As páginas do manual que você já abriu ficam guardadas no aparelho e abrem até sem internet.",
+            "As páginas do manual que você já abriu ficam guardadas no aparelho e abrem até sem internet. Sem internet, o ? abre a parte do manual que ele já abriu naquela tela, neste aparelho; se ainda não abriu, abre a entrada do manual.",
             "Na entrada do manual ficam também o Glossário (/ajuda/glossario), com o que quer dizer cada palavra do sistema e do pátio, e os Problemas comuns (/ajuda/problemas), com o que fazer quando algo não sai como esperado.",
           ),
           texto(
@@ -525,7 +536,12 @@ export const GERAL: Secao[] = [
             ["Quem abriu", "Cada mudança de status e os comentários na requisição."],
             ["Responsável", "A requisição passada para você, os comentários, a máquina liberada pela serraria (falta conferir e concluir) e, às 7h, o lembrete do que está agendado para o dia."],
           ),
-          ...se(!ATIVA, atencao("Enquanto a Manutenção está em teste, os avisos dela só chegam ao administrador.")),
+          ...se(
+            !ATIVA,
+            atencao(
+              "Enquanto a Manutenção está em teste, os avisos dela só chegam a quem enxerga o módulo, isto é, ao administrador, e só os das requisições que ele abriu. O lembrete das 7h não sai.",
+            ),
+          ),
           dica("A lista completa está em “Avisos da Manutenção” (/ajuda/manutencao-inicio#avisos)."),
         ],
       },
@@ -569,12 +585,12 @@ export const GERAL: Secao[] = [
         palavras: ["offline", "sem internet", "sem sinal", "sem conexão", "sem conexao", "sem rede", "guardado no aparelho", "fila", "tentar novamente"],
         blocos: [
           texto("Sem sinal no pátio? Algumas telas continuam abrindo, e o que você lança nelas fica guardado no próprio aparelho, numa fila. Quando a internet volta, o sistema envia sozinho."),
-          atencao("Para isso, o aparelho precisa ter entrado no sistema com internet antes: logo depois do login, o app guarda essas telas sozinho. Se você tocou em Sair, as telas guardadas foram apagadas: entre de novo com internet."),
+          atencao("Para isso, o aparelho precisa ter entrado no sistema com internet antes: logo depois do login, o app guarda essas telas sozinho. Se você saiu do sistema neste aparelho, as telas guardadas foram apagadas: entre de novo com internet."),
           lista(
-            "Fica guardado no aparelho: as telas de lançamento e os lançamentos ainda não enviados (com as fotos, no caso de requisição). Ao tocar em Sair, os seus são apagados.",
+            "Fica guardado no aparelho: as telas de lançamento e os lançamentos ainda não enviados (com as fotos, no caso de requisição). Ao sair do sistema, os seus são apagados (o sistema avisa antes).",
             "As telas guardadas mostram os dados da última vez que o aparelho teve internet (por exemplo, a lista de pedidos da ficha da serraria).",
             "As outras telas mostram Sem conexão, com atalhos para as telas que abrem sem internet e o botão Tentar novamente.",
-            "Sair, trocar a senha, ativar avisos e ver as notificações precisam de internet.",
+            "Sair, trocar a senha, ativar avisos e ver as notificações precisam de internet. Sem internet, tocar em Sair só mostra um aviso: nada é apagado do aparelho.",
             "O manual também abre sem internet: a entrada do manual, esta página (Trabalhar sem internet) e os Problemas comuns ficam guardados logo depois do login; as outras páginas do manual, depois de abertas uma vez com internet.",
           ),
           ...se(
@@ -625,10 +641,19 @@ export const GERAL: Secao[] = [
         palavras: ["fila", "faixa amarela", "aguardando", "aguardando envio", "aguardando internet", "enviar agora", "sincronizar", "sincronização", "pendente", "enviado", "ver", "demorou"],
         blocos: [
           termos(
-            ["Sem internet. Continue apontando: …", "Faixa cinza no alto da tela quando o aparelho está sem internet e a fila está vazia."],
-            ["N lançamentos aguardando internet (ou envio)", "Faixa amarela: quantos lançamentos seus estão guardados. Ver mostra a lista (o que é, a data e a hora e as fotos); Ocultar fecha."],
+            [
+              "Sem internet. Continue apontando: …",
+              "Faixa cinza no alto da tela quando o aparelho está sem internet e a fila está vazia. O link O que funciona sem internet? abre esta página do manual.",
+            ],
+            [
+              "N lançamentos aguardando internet (ou envio)",
+              "Faixa amarela: quantos lançamentos seus estão guardados. Ver mostra a lista (o que é, a data e a hora e as fotos); Ocultar fecha. O link O que é isso? abre a explicação nos Problemas comuns.",
+            ],
             ["Enviar agora", "Aparece quando há internet: envia na hora, sem esperar."],
             ["N lançamentos feitos sem internet foram enviados", "Faixa verde quando o envio dá certo. A tela se atualiza com os dados novos."],
+          ),
+          texto(
+            "Com algum lançamento recusado, a faixa fica vermelha e o link vira Como resolver? (veja o tópico abaixo). Os links das faixas abrem o manual mesmo sem internet, se o aparelho já entrou no sistema com internet antes.",
           ),
           texto("O envio é automático: quando a internet volta, quando você abre o app e a cada minuto enquanto houver conexão. Não precisa fazer nada. A faixa amarela não some? Veja “Apareceu uma faixa amarela: lançamentos aguardando internet” (/ajuda/problemas#fila-offline)."),
           lista(
@@ -642,7 +667,9 @@ export const GERAL: Secao[] = [
         titulo: "Lançamento recusado: Tentar de novo ou Descartar",
         palavras: ["recusado", "recusados", "faixa vermelha", "erro", "motivo", "tentar de novo", "descartar", "lixeira", "não foi enviado", "nao foi enviado"],
         blocos: [
-          texto("Às vezes o sistema não aceita um lançamento da fila: por exemplo, a máquina já tinha uma parada aberta, o pedido não existe mais ou o seu perfil não permite. A faixa fica vermelha: N lançamentos recusados pelo servidor."),
+          texto(
+            "Às vezes o sistema não aceita um lançamento da fila: por exemplo, a máquina já tinha uma parada aberta, o pedido não existe mais ou o seu perfil não permite. A faixa fica vermelha: N lançamentos recusados pelo servidor, com o link Como resolver?, que abre a explicação nos Problemas comuns.",
+          ),
           passos(
             "Toque em Ver.",
             "Leia o motivo, em vermelho, embaixo do lançamento: Recusado: … (o motivo).",
@@ -666,7 +693,7 @@ export const GERAL: Secao[] = [
             "Sair também apaga deste aparelho as telas guardadas e desliga os seus avisos nele.",
           ),
           atencao(
-            "Sair precisa de internet. Sem sinal, não toque em Sair: continue conectado até a internet voltar e os seus lançamentos serem enviados. Se tocar em Sair sem internet, o aparelho pode perder as telas guardadas para usar sem sinal (e os seus lançamentos, se você confirmou o aviso).",
+            "Sair precisa de internet. Sem conexão, o sistema avisa (Sair precisa de internet. Ligue o Wi-Fi ou os dados móveis e toque em Sair de novo.) e não apaga nada do aparelho: você continua conectado, com os lançamentos e as telas guardadas. Quando a internet voltar, espere os seus lançamentos serem enviados e só então saia.",
           ),
           dica("Veja também “Ao tocar em Sair, o sistema avisa que lançamentos serão perdidos” (/ajuda/problemas#sair-com-pendentes)."),
         ],
@@ -689,7 +716,10 @@ export const GERAL: Secao[] = [
         blocos: [
           texto(`Para abrir: ${ABRIR_PERFIL} Meu perfil também fica nos cartões da tela de início e, no celular, em Mais.`),
           termos(
-            ["Seus dados", "Nome, login e o seu perfil em cada módulo (ex.: Serraria: Apontador · Manutenção: Operador; o gerente vê Gerente · acesso total). Para mudar o nome, o login ou o perfil, fale com o gerente."],
+            [
+              "Seus dados",
+              "O cartão do alto: o seu nome, o login e o seu perfil em cada módulo que você usa (ex.: Serraria: Apontador · Manutenção: Operador; gerente e administrador veem Gerente · acesso total ou Administrador · acesso total). O mesmo perfil aparece na faixa verde da tela de início, no alto de Mais (celular) e no menu do seu nome (computador). Para mudar o nome, o login ou o perfil, fale com o gerente.",
+            ],
             ["Notificações neste aparelho", "Ativar, testar ou desligar os avisos neste aparelho. Veja “Receber os avisos no celular ou no computador” (/ajuda/avisos#ativar)."],
             ["Tema", "Claro, Escuro ou Automático. Veja “Tema claro, escuro ou automático” (/ajuda/navegacao#tema)."],
             ["Pergunta de segurança", "Para você recuperar a senha sozinho. Veja “Cadastre a pergunta de segurança” (/ajuda/primeiros-passos#pergunta-de-seguranca)."],
@@ -731,7 +761,9 @@ export const GERAL: Secao[] = [
             "As telas guardadas para usar sem internet são apagadas deste aparelho.",
             "Se houver lançamentos seus feitos sem internet e ainda não enviados, o sistema avisa antes: se sair, eles se perdem.",
           ),
-          atencao("Sair precisa de internet: sem sinal, não toque em Sair. Em aparelho usado por várias pessoas, sempre saia no fim do turno: veja “Aparelho usado por várias pessoas” (/ajuda/sem-internet#aparelho-compartilhado)."),
+          atencao(
+            "Sair precisa de internet: sem conexão, o sistema avisa e não apaga nada do aparelho (você continua conectado). Ligue o Wi-Fi ou os dados móveis e toque em Sair de novo. Em aparelho usado por várias pessoas, sempre saia no fim do turno: veja “Aparelho usado por várias pessoas” (/ajuda/sem-internet#aparelho-compartilhado).",
+          ),
         ],
       },
       {

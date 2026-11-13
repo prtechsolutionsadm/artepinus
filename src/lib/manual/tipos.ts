@@ -43,7 +43,14 @@ export type Topico = {
   modulo?: Modulo;
   para?: Acao;
   paraProducao?: AcaoProducao;
-  /** Telas (prefixos de rota) cuja ajuda abre direto neste tópico. */
+  /**
+   * Telas (prefixos de rota) cuja ajuda "?" abre direto neste tópico. "/requisicoes" vale para a tela e
+   * as subpáginas; terminada em "/*", só para as subpáginas ("/requisicoes/*" é a página de uma requisição,
+   * não a lista); com "?", só quando a tela tem os mesmos parâmetros ("/producao/cadastros?aba=config").
+   * Regras em ajudaDaTela (index.ts): vence a rota mais longa (o texto inteiro, com o "?…" e o "/*");
+   * empatado o tamanho, vence a parte com para/paraProducao (na seção ou no tópico; quem não tem a
+   * permissão nem a recebe) e, depois, o tópico vence a seção.
+   */
   rotas?: string[];
   /** Sinônimos e palavras que o usuário digitaria na busca (sem acento não é preciso). */
   palavras?: string[];
@@ -62,7 +69,12 @@ export type Secao = {
   modulo?: Modulo;
   para?: Acao;
   paraProducao?: AcaoProducao;
-  /** Telas (prefixos de rota) cuja ajuda "?" abre esta seção; o prefixo mais longo vence. */
+  /**
+   * Telas (prefixos de rota) cuja ajuda "?" abre esta seção (sem âncora). Mesmo formato das rotas do
+   * tópico: terminada em "/*" vale só para as subpáginas (ex.: "/requisicoes/*"); com "?" exige os mesmos
+   * parâmetros. Em ajudaDaTela (index.ts) vence a rota mais longa; empatado o tamanho, vence a parte com
+   * para/paraProducao e, depois, o tópico (a seção perde para um tópico com rota do mesmo tamanho).
+   */
   rotas?: string[];
   topicos: Topico[];
 };
