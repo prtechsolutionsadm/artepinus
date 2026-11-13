@@ -25,7 +25,7 @@ export const SERRARIA: Secao[] = [
     id: "serraria-inicio",
     grupo: "serraria",
     titulo: "Início da Serraria",
-    resumo: "O que precisa de atenção, a situação agora, os botões de lançar, o menu e quem faz o quê",
+    resumo: "O resumo de hoje, o que precisa de atenção, o Acesso rápido, as estufas e o mês, todas as telas e quem faz o quê",
     rotas: ["/producao"],
     topicos: [
       {
@@ -33,7 +33,7 @@ export const SERRARIA: Secao[] = [
         titulo: "Da tora ao caminhão: o caminho da madeira",
         palavras: ["processo", "etapas", "rastreabilidade", "rastreio", "origem", "como funciona", "fluxo"],
         blocos: [
-          texto("O sistema acompanha a madeira em quatro etapas, na mesma ordem do menu. Cada etapa liga a madeira à anterior: é isso que permite mostrar, no QR do pacote, de qual floresta ela veio."),
+          texto("O sistema acompanha a madeira em quatro etapas, na mesma ordem das telas do grupo Operação (os números 1 a 4 nos cartões). Cada etapa liga a madeira à anterior: é isso que permite mostrar, no QR do pacote, de qual floresta ela veio."),
           passos(
             "Recebimento de toras: cada carga que chega no pátio é registrada com a floresta, o fornecedor e o motorista (código CT-000123).",
             "Serraria: a madeira serrada é apontada na ficha, por pedido. Cada lançamento vira um lote com etiqueta (LOT-000123). Todos os lotes do dia formam o boletim do dia, onde também entram as paradas e as cargas de toras serradas.",
@@ -44,11 +44,30 @@ export const SERRARIA: Secao[] = [
         ],
       },
       {
+        id: "situacao-agora",
+        titulo: "Resumo de hoje, Estufas agora e Serrado no mês",
+        palavras: ["painel", "resumo", "faixa verde", "hoje", "situação agora", "estoque", "meta", "oee", "estufas", "ultimos lancamentos", "quem lançou"],
+        blocos: [
+          termos(
+            ["Faixa verde", "No alto do Início: a saudação com o seu nome, Serraria · (o seu perfil) e a data de hoje."],
+            [
+              "Resumo de hoje",
+              "O cartão branco sobre a faixa. Hoje: … serrados abre o boletim de hoje (sem lote, aparece Hoje: ainda sem apontamento). Depois: as máquinas paradas (em vermelho, só quando há), quantas estufas estão secando (em vermelho se alguma passou da previsão) e os pacotes em estoque, com o m³ e, embaixo, quantos estão verdes, na estufa e secos. Toque num deles para ver a lista.",
+            ],
+            ["Estufas agora", "Um quadrinho por estufa. Cinza: livre (quem lança toca para iniciar um ciclo). Laranja: secando, com o tempo desde a entrada, o volume e a barra até a previsão de saída. Vermelho: passou da previsão. Toque para abrir o ciclo; Ver estufas abre a tela das estufas."],
+            ["Serrado no mês", "O volume serrado no mês (m³), quantos dias tiveram apontamento, quanto isso é da meta (com a barra) e a Meta e o OEE do mês. Toque no cartão para abrir os Indicadores."],
+            ["Últimos lançamentos", "Só para o supervisor e o gerente: o que foi lançado por último na Serraria, com o nome de quem lançou e a hora."],
+          ),
+        ],
+      },
+      {
         id: "o-que-precisa-de-atencao",
         titulo: "O que precisa de atenção",
         palavras: ["pendência", "pendencias", "avisos", "alerta", "atrasado", "atrasada", "tudo em dia"],
         blocos: [
-          texto("O quadro O que precisa de atenção, no alto do Início, lista o que está faltando ou atrasado. Cada linha tem um botão que leva direto à tela de resolver. Quando não há nada, aparece Tudo em dia. Nenhuma pendência."),
+          texto(
+            "O quadro O que precisa de atenção, logo abaixo do resumo de hoje, lista o que está faltando ou atrasado, com quantos são ao lado do título. Cada linha tem um botão que leva direto à tela de resolver. Aparecem até 6; as outras ficam em Ver mais … pendências. Quando não há nada, aparece Tudo em dia. Nenhuma pendência.",
+          ),
           termos(
             [
               "Máquina parada há…",
@@ -66,62 +85,52 @@ export const SERRARIA: Secao[] = [
             ["Boletim de … sem as cargas de toras serradas", "O dia foi apontado, mas não diz quais cargas foram serradas. Marcar cargas abre Paradas e toras do boletim."],
           ),
           dica("Os botões das pendências só aparecem para quem lança na Serraria (supervisor e apontador). Quem tem o perfil Consulta vê a lista, sem os botões."),
-          imagem({ arquivo: "serraria/inicio.webp", legenda: "Início da Serraria no celular: o que precisa de atenção, as estufas agora e os botões de lançar.", rota: "/producao", perfil: "apontador" }),
+          imagem({ arquivo: "serraria/inicio.webp", legenda: "Início da Serraria no celular: a faixa verde, o resumo de hoje e o que precisa de atenção.", rota: "/producao", perfil: "apontador" }),
         ],
       },
       {
         id: "lancar",
-        titulo: "Botões de Lançar",
-        paraProducao: "lancar",
-        palavras: ["atalhos", "lançar", "começar", "novo", "nova", "apontamento"],
+        titulo: "Acesso rápido: as tarefas do dia",
+        palavras: ["atalhos", "acesso rápido", "acesso rapido", "tarefa principal", "lançar", "começar", "novo", "nova", "apontamento", "botões", "onde lanço"],
         blocos: [
-          texto("O quadro Lançar tem um botão para cada etapa, na ordem do processo (o número no ícone é a etapa do menu):"),
+          texto("Logo abaixo do quadro O que precisa de atenção, o Acesso rápido traz a tarefa principal da sua função num cartão grande e as outras tarefas do dia nos cartões ao lado. Para quem lança (supervisor e apontador):"),
           termos(
-            ["Receber toras (1)", "Nova carga de toras no pátio."],
-            ["Apontar serraria (2)", "A ficha da serraria: cada lançamento vira um lote com etiqueta."],
-            ["Máquina parou", "Abre Paradas de máquina para marcar a parada na hora."],
-            ["Iniciar estufa (3)", "Novo ciclo de secagem."],
-            ["Formar pacote (4)", "Forma pacotes e imprime as etiquetas com QR."],
-            ["Inventário do dia", "Contagem da madeira por local (grade, pacote, estufa, verde)."],
-            ["Expedir pacotes", "Abre a lista de pacotes secos para carregar o caminhão."],
+            ["Apontar serraria", "A tarefa principal: a ficha da serraria, onde cada lançamento vira um lote com etiqueta. O cartão diz quantos lotes já foram apontados hoje."],
+            ["Receber toras", "Nova carga de toras no pátio."],
+            ["Marcar parada", "Abre Paradas de máquina para marcar a parada na hora. Com máquina parada, o cartão mostra quantas."],
+            ["Ler etiqueta", "Abre um pacote ou um lote pelo QR."],
+            ["Formar pacotes", "Forma pacotes e imprime as etiquetas com QR. Quando um ciclo de estufa terminou e a madeira ainda não virou pacote, o cartão diz quantos."],
           ),
-          dica("No alto da tela fica também o botão Ler etiqueta, para ler o QR de um pacote ou de um lote."),
-        ],
-      },
-      {
-        id: "situacao-agora",
-        titulo: "Estufas agora, Serrado no mês e Situação agora",
-        palavras: ["painel", "resumo", "estoque", "meta", "oee", "estufas", "ultimos lancamentos", "quem lançou"],
-        blocos: [
-          termos(
-            ["Estufas agora", "Um quadrinho por estufa. Cinza: livre (toque para iniciar um ciclo). Laranja: secando, com o tempo desde a entrada, o volume e a barra até a previsão de saída. Vermelho: passou da previsão. Toque para abrir o ciclo; Ver estufas abre a tela das estufas."],
-            ["Serrado no mês", "O volume serrado no mês (m³), quanto isso é da meta e quantos dias tiveram apontamento. Tocando em Meta · OEE abre os Indicadores."],
-            ["Situação agora", "Boletim de hoje (Lançado abre o boletim; Apontar agora abre a ficha), quantas estufas estão em secagem e os pacotes em estoque, separados em verdes, na estufa e secos (toque para ver a lista)."],
-            ["Últimos lançamentos", "O que foi lançado por último na Serraria, com o nome de quem lançou e a hora."],
+          texto("Quem tem o perfil Consulta vê Indicadores como tarefa principal e, ao lado, Pedidos, Estufas (com as atrasadas), Pacotes e Ler etiqueta."),
+          dica(
+            "Iniciar um ciclo, o Inventário do dia e Expedir pacotes ficam nas próprias telas: Estufas, Inventário de madeira e Pacotes e expedição (no fim do Início, em Todas as telas; no celular, Estufas e Pacotes estão também na barra de baixo).",
           ),
         ],
       },
       {
         id: "menu",
-        titulo: "O menu da Serraria",
-        palavras: ["menu", "onde fica", "navegar", "barra de baixo", "mais", "grupos", "operação", "gestão", "cadastros", "lupa"],
+        titulo: "Todas as telas da Serraria",
+        palavras: ["menu", "todas as telas", "onde fica", "navegar", "cartões", "barra de baixo", "mais", "grupos", "operação", "gestão", "cadastros", "lupa"],
         blocos: [
-          texto("O menu segue a ordem do processo. No computador ele fica à esquerda; no celular, as telas que não estão na barra de baixo ficam em Mais."),
+          texto(
+            "No fim do Início, Todas as telas tem um cartão para cada tela da Serraria que o seu perfil pode abrir, com uma linha dizendo para que serve. Os grupos seguem a ordem do processo. No celular, as mesmas telas ficam em Mais.",
+          ),
           termos(
-            ["Início", "A tela inicial da Serraria."],
             ["Operação", "1 Recebimento de toras → 2 Serraria → Paradas de máquina → 3 Estufas → 4 Pacotes e expedição, Romaneios e Ler etiqueta."],
             ["Gestão", "Pedidos, Disponível para venda, Indicadores, Painel para TV e Inventário de madeira."],
             ["Cadastros", "Cadastros da Serraria (só o supervisor). Usuários e Auditoria aparecem só para o gerente."],
-            ["Geral", "Notificações, Meu perfil, Manual do usuário e Sair, no fim do menu do computador. No celular, em Mais, o grupo se chama Conta."],
+            ["Início", "O logo do topo volta a esta tela, de qualquer lugar (no celular, também a aba Início da barra de baixo)."],
+            ["Sua conta", "Notificações, Meu perfil, Manual do usuário e Sair não são cartões: no computador, use o sininho, o botão de ajuda (?) e o seu nome, no topo; no celular, Mais › Sua conta."],
           ),
-          texto("No celular, a barra de baixo tem Início, Pacotes, o botão do meio Ler etiqueta, Estufas e Mais. A lupa no topo abre a busca (pacote, lote, carga, romaneio, pedido, cliente, motorista, placa)."),
-          dica("Mais sobre o menu, a busca e o botão de ajuda em “Navegação” (/ajuda/navegacao)."),
+          texto("No celular, a barra de baixo tem Início, Pacotes, o botão do meio Ler etiqueta, Estufas e Mais. A lupa no topo abre a busca (pacote, lote, carga, romaneio, pedido, cliente, motorista, placa); no computador, a busca fica no meio do topo."),
+          dica("Mais sobre o topo, a busca e o botão de ajuda em “Navegação” (/ajuda/navegacao)."),
           imagem({
             arquivo: "serraria/inicio-computador.webp",
-            legenda: "No computador, o menu fica à esquerda, com os grupos Operação, Gestão e Cadastros.",
+            legenda: "No computador, Todas as telas, no fim do Início: os grupos Operação, Gestão e Cadastros em cartões.",
             rota: "/producao",
             perfil: "supervisor",
             tela: "computador",
+            acoes: [{ rolarAte: "text=Todas as telas" }],
           }),
         ],
       },
@@ -248,7 +257,7 @@ export const SERRARIA: Secao[] = [
         blocos: [
           texto("Cada lançamento na ficha é a madeira serrada de um pedido e vira um lote com etiqueta (LOT-000123). O boletim do dia é aberto sozinho no primeiro lote e junta todos os lotes do dia."),
           passos(
-            "No Início, toque em Apontar serraria (ou abra Serraria no menu e toque em Apontar serraria).",
+            "No Início, toque em Apontar serraria, o cartão grande do Acesso rápido (ou abra a tela Serraria e toque em Apontar serraria).",
             "Confira a Data (vem a de hoje) e escolha o Pedido. Cada pedido mostra o cliente, o destino e quanto ainda falta serrar. Meta e Horas aparecem só para leitura.",
             "Em Madeira serrada, preencha a ficha igual à de papel: em cada linha, a espessura, as larguras e as peças em cada comprimento (veja “Como preencher a ficha” (/ajuda/serraria-ficha#como-preencher-a-ficha)).",
             "Confira o total de peças e o m³ embaixo da ficha.",
@@ -386,7 +395,7 @@ export const SERRARIA: Secao[] = [
         titulo: "Boletins do mês",
         palavras: ["boletins", "lista", "mês", "mes", "dias", "serrado no mês", "meta acumulada", "tempo parado", "oee do mês", "serraria"],
         blocos: [
-          texto("Em Serraria (no menu, grupo Operação), a tela Boletins da serraria mostra um boletim por dia do mês, do mais novo para o mais antigo."),
+          texto("Em Serraria (no Início, em Todas as telas → Operação), a tela Boletins da serraria mostra um boletim por dia do mês, do mais novo para o mais antigo."),
           lista(
             "Para mudar o mês, use as setas ao lado do nome do mês (ou toque no nome para escolher).",
             "No alto, os totais do mês: Serrado no mês, Meta acumulada, Tempo parado e OEE do mês.",
@@ -490,7 +499,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["parou", "parada", "quebrou", "máquina parada", "maquina parada", "cronômetro", "marcar parada", "falha", "mecânica", "elétrica", "operacional"],
         blocos: [
           passos(
-            "Toque em Paradas de máquina no menu (ou, no Início, em Máquina parou).",
+            "Abra Paradas de máquina: no Início, toque em Marcar parada, no Acesso rápido (ou no cartão Paradas de máquina, em Todas as telas).",
             "Toque no botão vermelho Máquina parou.",
             "Em Máquina, escolha a máquina que parou (a que já está parada aparece como já parada e não pode ser escolhida).",
             "Em Motivo, escolha o motivo, se souber (os da máquina vêm primeiro). Não sabe? Deixe — Outro / não sei —.",
@@ -674,7 +683,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["iniciar", "carregar estufa", "novo ciclo", "entrada", "previsão", "plantão", "grades úmidas", "madeira carregada", "dias de serraria"],
         blocos: [
           passos(
-            "Em Estufas, toque em Iniciar ciclo (no alto ou no cartão da estufa livre). No Início, o botão é Iniciar estufa.",
+            "Em Estufas, toque em Iniciar ciclo (no alto ou no cartão da estufa livre). No Início, dá para tocar direto na estufa livre, em Estufas agora.",
             "Escolha a Estufa (as que estão secando aparecem como em secagem e não podem ser escolhidas). Preencha o Nº do ciclo, a Entrada e a Previsão de saída.",
             "Em Plantão (responsável), escolha quem acompanha o ciclo: ele também recebe o aviso de atraso.",
             "Em Madeira carregada, preencha a ficha da estufa: espessura, larguras, as peças em cada comprimento e as Grades úmidas. O m³ é calculado sozinho.",
@@ -806,7 +815,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["formar", "novo pacote", "empacotar", "montar pacote", "pacote seco", "pacote verde", "quantos pacotes", "peças por pacote"],
         blocos: [
           passos(
-            "Em Pacotes, toque em Formar pacote (no Início, Formar pacote).",
+            "Em Pacotes, toque em Formar pacote (no Início, o cartão Formar pacotes, no Acesso rápido).",
             "Escolha de onde vem a madeira: Da estufa (seco) ou Da serraria (verde).",
             "Da estufa: em Estufa, escolha o ciclo (aparecem os ciclos concluídos nos últimos 90 dias). Da serraria: em Dia de serraria, escolha o dia (dias com lotes nos últimos 30 dias).",
             "Toque na madeira que vai formar o pacote. A bitola e a classe vêm prontas; com várias larguras, escolha a Largura.",
@@ -929,7 +938,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["expedir", "expedição", "expedicao", "saída", "saida", "carregar", "caminhão", "caminhao", "nota fiscal", "NF", "chave", "romaneio", "motorista"],
         blocos: [
           passos(
-            "No Início, toque em Expedir pacotes (abre os pacotes secos), ou abra Pacotes e expedição.",
+            "Abra Pacotes e expedição (no celular, Pacotes, na barra de baixo) e, se quiser, filtre os Secos.",
             "Marque a caixinha de cada pacote que vai no caminhão. Confira o total de pacotes e m³ que aparece no alto.",
             "Toque em Registrar saída de N.",
             "Escolha o Motorista (as placas vêm do cadastro e aparecem embaixo).",
@@ -957,7 +966,7 @@ export const SERRARIA: Secao[] = [
         titulo: "O romaneio",
         palavras: ["romaneio", "ROM-", "pdf", "motorista", "placas", "assinatura", "documento da carga", "romaneios"],
         blocos: [
-          texto("O romaneio é o documento de cada carga expedida. A lista fica em Romaneios (no menu, grupo Operação, ou no botão Romaneios da tela de Pacotes), do mais novo para o mais antigo, com a nota fiscal, o motorista, as placas, os clientes, os pacotes e o m³."),
+          texto("O romaneio é o documento de cada carga expedida. A lista fica em Romaneios (no Início, em Todas as telas → Operação, ou no botão Romaneios da tela de Pacotes), do mais novo para o mais antigo, com a nota fiscal, o motorista, as placas, os clientes, os pacotes e o m³."),
           lista(
             "Abra o romaneio para ver o Motorista, as Placas, a Nota fiscal, os Pacotes e a tabela com pacote, pedido, bitola, classe, peças e m³.",
             "Baixar PDF do romaneio gera o documento para o motorista: pedidos, cliente, destino, placas, a lista de pacotes e os campos de assinatura.",
@@ -992,7 +1001,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["ler", "escanear", "câmera", "camera", "QR", "código de barras", "codigo de barras", "leitor", "android", "iphone", "safari"],
         blocos: [
           passos(
-            "Toque em Ler etiqueta (no celular, o botão do meio da barra de baixo; no Início, no alto da tela).",
+            "Toque em Ler etiqueta (no celular, o botão do meio da barra de baixo; no computador, o cartão Ler etiqueta do Início).",
             "Toque em Abrir câmera e ler a etiqueta e permita o uso da câmera, se o celular pedir.",
             "Aponte para o QR do pacote ou do lote (o lote também tem código de barras). A página abre sozinha.",
             "Para desligar sem ler, toque em Fechar câmera.",
@@ -1023,7 +1032,7 @@ export const SERRARIA: Secao[] = [
         rotas: ["/producao/buscar"],
         palavras: ["buscar", "busca", "procurar", "pesquisar", "achar", "lupa", "nota fiscal", "placa", "cliente", "pedido", "CT-", "ROM-"],
         blocos: [
-          texto("No computador, a busca fica no alto do menu (atalho: tecla /). No celular, toque na lupa do topo."),
+          texto("No computador, a busca fica no meio do topo (atalho: tecla /). No celular, toque na lupa do topo."),
           termos(
             ["Códigos", "PCT- (pacote), LOT- (lote), CT- (carga de toras) e ROM- (romaneio) abrem direto a página."],
             ["Texto", "Pedido, cliente, destino, motorista, placa, floresta, fornecedor ou o número da nota fiscal (ou parte da chave da NF-e)."],
@@ -1135,7 +1144,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["inventário", "inventario", "contagem", "contar", "estoque", "levantamento", "grade", "madeira em", "local"],
         blocos: [
           passos(
-            "Em Inventário de madeira, toque em Inventário do dia (ou no botão Inventário do dia do Início).",
+            "Em Inventário de madeira (no Início, em Todas as telas → Gestão; no celular, em Mais), toque em Inventário do dia.",
             "Confira a Data.",
             "Em cada linha da ficha, escolha em Madeira em onde a madeira está: Grade, Pacote, uma das estufas ou Verde.",
             "Preencha a ficha como na serraria: espessura, larguras e as peças em cada comprimento. Use Adicionar linha para cada local e medida.",
@@ -1238,7 +1247,7 @@ export const SERRARIA: Secao[] = [
         blocos: [
           passos(
             "Na TV ou no monitor do barracão, abra o sistema e entre com um usuário (de preferência um só para a TV, com o perfil Consulta).",
-            "No menu, grupo Gestão, toque em Painel para TV.",
+            "No Início, em Todas as telas → Gestão, toque em Painel para TV.",
             "Toque em Tela cheia e deixe aberto.",
           ),
           texto("O painel mostra o Serrado hoje contra a meta, as Paradas hoje (com as máquinas paradas agora), as Estufas e o mês. Ele se atualiza sozinho a cada minuto e mantém a tela ligada. Para sair, Voltar ao sistema."),
@@ -1262,7 +1271,7 @@ export const SERRARIA: Secao[] = [
         titulo: "Incluir, editar e desativar",
         palavras: ["cadastrar", "novo", "nova", "incluir", "editar", "alterar", "desativar", "inativo", "excluir cadastro", "apagar cadastro"],
         blocos: [
-          texto("Em Cadastros (grupo Cadastros do menu), cada aba é uma lista: Pedidos, Florestas, Fornecedores, Motoristas, Motivos de parada, Máquinas da linha, Estufas e Configuração."),
+          texto("Em Cadastros (no Início, em Todas as telas → Cadastros, ou no Painel Administrativo), cada aba é uma lista: Pedidos, Florestas, Fornecedores, Motoristas, Motivos de parada, Máquinas da linha, Estufas e Configuração."),
           passos(
             "Para incluir: toque em Novo … (por exemplo, Nova floresta) no alto da aba, preencha e toque em Cadastrar.",
             "Para editar: toque na linha (ícone de lápis), corrija e toque em Salvar.",

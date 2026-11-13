@@ -44,8 +44,42 @@ export const GLOSSARIO: Termo[] = [
   },
   {
     termo: "Módulo",
-    definicao: "Cada parte do sistema: a Serraria (toras, serraria, estufas, pacotes, expedição e indicadores) e a Manutenção (requisições, preventivas, checklists e equipamentos). A troca de módulo é feita na tela de início.",
+    definicao:
+      "Cada parte do sistema: a Serraria (toras, serraria, estufas, pacotes, expedição e indicadores) e a Manutenção (requisições, preventivas, checklists e equipamentos). A troca de módulo é feita na tela de início do sistema: no computador, pelo botão Módulos (o ícone de quadradinhos no topo); no celular, em Mais › Módulos.",
+    veja: "/ajuda/navegacao#trocar-de-modulo",
+  },
+  {
+    termo: "Tela de início",
+    definicao:
+      "A primeira tela depois de entrar (o app instalado também abre por ela): os números do momento, os módulos que você pode abrir, o manual, Meu perfil, as notificações e, para quem administra, o Painel Administrativo.",
     veja: "/ajuda/primeiros-passos#tela-de-inicio",
+  },
+  {
+    termo: "Início do módulo",
+    definicao:
+      "A tela inicial da Serraria ou da Manutenção, que o logo do topo sempre abre: a faixa verde com o resumo, O que precisa de atenção, o Acesso rápido e, no fim, Todas as telas.",
+    veja: "/ajuda/navegacao#tela-inicial",
+  },
+  {
+    termo: "Acesso rápido",
+    definicao: "Os cartões grandes do Início do módulo com as tarefas do dia da sua função: a tarefa principal (ex.: Apontar serraria ou Nova requisição) e as outras ao lado. Muda com o perfil.",
+    veja: "/ajuda/navegacao#tela-inicial",
+  },
+  {
+    termo: "Todas as telas",
+    definicao: "No fim do Início do módulo, um cartão para cada tela que você pode abrir, nos grupos Operação, Gestão e Cadastros. No computador, faz o papel do antigo menu; no celular, as mesmas telas estão em Mais.",
+    veja: "/ajuda/navegacao#tela-inicial",
+  },
+  {
+    termo: "Painel Administrativo",
+    definicao:
+      "A tela com a administração do sistema em um só lugar: usuários, entradas e acessos, cadastros da Serraria, auditoria e política de privacidade. Abre pelo cartão Administração da tela de início (no celular, também em Mais). Só para quem administra.",
+    veja: "/ajuda/navegacao#painel-administrativo",
+  },
+  {
+    termo: "Mais",
+    definicao: "A última aba da barra de baixo, no celular: a sua conta (Meu perfil, Notificações, manual, módulos), o tema, Sair e todas as telas do módulo em uso.",
+    veja: "/ajuda/navegacao#celular",
   },
   {
     termo: "Perfil",
@@ -60,7 +94,7 @@ export const GLOSSARIO: Termo[] = [
   },
   {
     termo: "Auditoria",
-    definicao: "O registro de quem fez o quê no sistema e quando, com o valor anterior e o novo de cada alteração. Quem consulta é o gerente.",
+    definicao: "O registro de quem fez o quê no sistema e quando, com o valor anterior e o novo de cada alteração. Quem consulta é o gerente, pelo Painel Administrativo.",
     veja: "/ajuda/auditoria#o-que-fica",
   },
   {

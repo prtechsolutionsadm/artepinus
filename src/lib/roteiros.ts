@@ -45,7 +45,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Registrar a carga",
         itens: [
-          "No celular, toque em Receber toras (no Início) ou em Recebimento de toras → Nova carga.",
+          "No Início, toque em Receber toras (Acesso rápido) ou abra Recebimento de toras → Nova carga.",
           "Confira a Data e escolha a Floresta, o Fornecedor e o Motorista. As placas do caminhão e da julieta aparecem sozinhas.",
           "Toque no Diâmetro da carga: Fina, Média ou Grossa.",
           "Digite o Comprimento médio (m) e o Peso (toneladas) da balança.",
@@ -73,7 +73,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Apontar um lote",
         itens: [
-          "Toque em Apontar serraria. Confira a Data e escolha o Pedido.",
+          "No Início, toque em Apontar serraria (o cartão grande). Confira a Data e escolha o Pedido.",
           "Em cada linha da ficha: escolha a espessura (23, 25, 32 ou 38) e marque as larguras (125, 100, 85, 50 ou Mista).",
           "Digite as peças em cada comprimento (2,50 · 2,10 · 1,65 · 1,30 · 1,00 · 0,70). Enter passa para o próximo.",
           "Outra medida? Toque em Adicionar linha. O botão de repetir (duas folhas) copia a espessura e as larguras na linha de baixo.",
@@ -83,7 +83,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Quando uma máquina parar",
         itens: [
-          "Toque em Paradas de máquina → Máquina parou.",
+          "No Início, toque em Marcar parada (ou abra Paradas de máquina) → Máquina parou.",
           "Escolha a máquina (só aparecem as máquinas da linha), o motivo e o Tipo da falha (Mecânica, Elétrica ou Operacional) → Marcar parada agora.",
           MANUTENCAO_ATIVA
             ? "Mecânica ou elétrica: a manutenção é avisada sozinha. Quando a máquina voltar, toque em Máquina liberada."
@@ -154,7 +154,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Formar pacotes",
         itens: [
-          "Toque em Formar pacote. Escolha Da estufa (seco) e, em Estufa, o ciclo; ou Da serraria (verde) e, em Dia de serraria, o dia.",
+          "No Início, toque em Formar pacotes (ou em Pacotes → Formar pacote). Escolha Da estufa (seco) e, em Estufa, o ciclo; ou Da serraria (verde) e, em Dia de serraria, o dia.",
           "Toque na madeira do pacote: a bitola e a classe vêm prontas (com várias larguras, escolha a Largura).",
           "Peças por pacote vem com o total daquela linha: troque pelas peças de cada pacote. Em Quantos pacotes, quantos pacotes iguais.",
           "Confira o Pedido e toque em Formar pacote (ou Formar … pacotes).",
@@ -189,7 +189,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Lançar o inventário",
         itens: [
-          "Toque em Inventário do dia (no Início) ou em Inventário de madeira → Inventário do dia.",
+          "Abra Inventário de madeira (no Início, em Todas as telas → Gestão; no celular, em Mais) e toque em Inventário do dia.",
           "Em cada linha, escolha em Madeira em onde está a madeira (Grade, Pacote, a estufa ou Verde), a espessura e as larguras.",
           "Digite as peças em cada comprimento. Use Adicionar linha para cada local e medida.",
           "Toque em Registrar. A ficha volta limpa para o próximo local; no fim, toque em Concluir.",
@@ -215,7 +215,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Todo dia",
         itens: [
-          "Abra o Início e resolva o que aparece em O que precisa de atenção (dia sem apontamento, estufa atrasada, pacotes por formar).",
+          "Abra o Início e resolva o que aparece em O que precisa de atenção (dia sem apontamento, estufa atrasada, pacotes por formar). Em Últimos lançamentos, confira o que a equipe lançou.",
           "Cadastre os pedidos novos em Cadastros → Pedidos → Novo pedido (nº, cliente, destino, volume combinado e prazo) antes de a serraria apontar.",
           "Corrija o que foi lançado errado: lote (abra o lote → Excluir) e parada marcada por engano (lixeira em Paradas agora; a requisição aberta junto é cancelada se ninguém da manutenção a assumiu).",
           "Ative os avisos no celular em Meu perfil (estufa atrasada, dia sem apontamento, pedido pronto, máquina parada).",
@@ -226,13 +226,13 @@ export const ROTEIROS: Roteiro[] = [
         itens: [
           "Em Indicadores, escolha o mês e baixe o Relatório PDF (diretoria) ou o Excel.",
           "Acompanhe os pedidos em Pedidos e os romaneios do mês em Romaneios.",
-          "Na TV do barracão, deixe aberto o Painel para TV (Gestão → Painel para TV → Tela cheia).",
+          "Na TV do barracão, deixe aberto o Painel para TV (Início → Todas as telas → Gestão → Painel para TV → Tela cheia).",
         ],
       },
     ],
     atencao: [
       "O Máquina parou só lista as máquinas marcadas em Cadastros → Máquinas da linha (Na linha ✓). Confira essa lista antes de a equipe começar a usar e quando entrar uma máquina nova.",
-      "Meta, horas por dia e turno: Cadastros → Configuração (valem para os boletins novos).",
+      "Meta, horas por dia e turno: Cadastros → Configuração (valem para os boletins novos). Cadastros, Máquinas da linha e Configuração também ficam no Painel Administrativo (tela de início → Administração).",
       "Pedido todo expedido? Conclua em Cadastros → Pedidos → lápis do pedido → Situação: Concluído → Salvar, para ele sair da lista da serraria.",
     ],
   },
@@ -249,7 +249,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Abrir pelo celular",
         itens: [
-          "Toque no botão + do meio da barra de baixo (no computador, em Requisições → Nova requisição).",
+          "Toque no botão + do meio da barra de baixo (no computador, em Nova requisição, no Início).",
           "Em O que precisa ser feito?, escreva um título curto. Em Descrição detalhada, conte o problema.",
           "Escolha o Equipamento (não sabe? — Não se aplica / não sei —), a Prioridade e, em Local, onde fica.",
           "A máquina parou de funcionar? Marque A máquina está parada.",
@@ -290,7 +290,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Assumir",
         itens: [
-          "Abra a requisição pelo aviso, pelo Início (Aguardando análise ou Atribuídas a mim) ou pela lista Requisições.",
+          "Abra a requisição pelo aviso, pelo Início (Atribuídas a mim ou Sem responsável) ou pela lista Requisições.",
           "No quadro Atualizar requisição (no celular, no fim da página), escolha o seu nome em Responsável e o Status Em análise ou Em andamento → Salvar.",
           "Vai fazer depois? Status Agendada, com a Data agendada. Falta peça? Aguardando peças.",
         ],
@@ -328,7 +328,7 @@ export const ROTEIROS: Roteiro[] = [
         titulo: "Todo dia: triagem",
         itens: [
           "No Início, veja Máquinas paradas agora e Prioridade alta e urgente.",
-          "Toque em Aguardando análise para ver as requisições ainda Abertas.",
+          "Toque em Sem responsável (Acesso rápido do Início) para ver as que ninguém assumiu; para as ainda Abertas, filtre o Status Aberta em Requisições.",
           "Em cada uma, no quadro Atualizar requisição, escolha o Responsável e o Status (Em análise, Planejada ou Agendada, com a Data agendada) → Salvar.",
           "Repetida ou sem motivo? Status Cancelada, com o motivo em Observação / motivo.",
         ],

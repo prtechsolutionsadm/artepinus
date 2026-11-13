@@ -32,30 +32,31 @@ export const MANUTENCAO: Secao[] = [
       {
         id: "entrar",
         titulo: "Como chegar à Manutenção",
-        palavras: ["modulo", "trocar de modulo", "escolher modulo", "menu", "barra de baixo", "serraria"],
+        palavras: ["modulo", "trocar de modulo", "escolher modulo", "modulos", "menu", "todas as telas", "barra de baixo", "serraria"],
         blocos: [
           {
             tipo: "texto",
-            texto: "Quem usa só a Manutenção entra direto nela. Quem usa a Serraria e a Manutenção entra primeiro na Serraria e troca de módulo quando precisar.",
+            texto:
+              "Depois de entrar, toque no cartão Manutenção da tela de início (quem usa só a Manutenção vê ela no cartão grande, Módulo principal). Quem usa a Serraria e a Manutenção troca de módulo quando precisar:",
           },
           {
             tipo: "termos",
             itens: [
-              ["No computador", "Toque em Módulo Serraria, no rodapé do menu à esquerda (Trocar de módulo), e escolha Manutenção. Também dá pelo menu do seu nome, no canto direito do topo: Escolher módulo."],
-              ["No celular", "Toque em Mais, na barra de baixo, e depois em Escolher módulo (Serraria / Manutenção)."],
+              ["No computador", "Toque em Módulos (o ícone de quadradinhos no topo, à direita) e, na tela de início, no cartão Manutenção."],
+              ["No celular", "Toque em Mais, na barra de baixo, depois em Módulos e, na tela de início, no cartão Manutenção."],
             ],
           },
           {
             tipo: "texto",
             texto:
-              "Na Manutenção, a barra de baixo do celular tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, o menu à esquerda tem Início, Operação (Requisições e Agenda), Gestão (Indicadores, Relatórios e Auditoria) e Cadastros (Equipamentos, Preventivas, Checklists, Usuários e Setores). Cada pessoa vê só o que o perfil dela permite.",
+              "Na Manutenção, a barra de baixo do celular tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, as telas ficam em cartões no Início: o Acesso rápido, com as tarefas do dia da sua função, e, no fim, Todas as telas, com Operação (Requisições e Agenda), Gestão (Indicadores, Relatórios e Auditoria) e Cadastros (Equipamentos, Preventivas, Checklists, Usuários e Setores). No celular, as mesmas telas ficam em Mais. Cada pessoa vê só o que o perfil dela permite.",
           },
-          { tipo: "dica", texto: "No computador, a busca do alto do menu (atalho: tecla /) procura requisições enquanto você está na Manutenção. No celular, use a lupa do topo." },
+          { tipo: "dica", texto: "No computador, a busca do meio do topo (atalho: tecla /) procura requisições enquanto você está na Manutenção. No celular, use a lupa do topo." },
           ...se(
             !ATIVA,
             {
               tipo: "atencao",
-              texto: "A Manutenção está em teste: só o administrador abre o módulo. Para os outros usuários, ela aparece como Em breve na tela de escolha do módulo.",
+              texto: "A Manutenção está em teste: só o administrador abre o módulo. Para os outros usuários, ela aparece como Em breve na tela de início.",
             },
           ),
         ],
@@ -67,18 +68,43 @@ export const MANUTENCAO: Secao[] = [
           "inicio",
           "painel",
           "resumo",
+          "faixa verde",
           "pendentes",
-          "aguardando analise",
-          "agendadas",
+          "atrasadas na agenda",
           "concluidas no mes",
           "maquinas paradas agora",
+          "o que precisa de atencao",
+          "acesso rapido",
+          "tarefa principal",
+          "atribuidas a mim",
           "sem responsavel",
+          "minhas requisicoes",
+          "todas as pendentes",
           "ver todas",
           "maquina liberada",
           "conferir e concluir",
+          "todas as telas",
         ],
         blocos: [
-          { tipo: "texto", texto: "A tela Início mostra como está a manutenção agora. Toque num número ou numa requisição para abrir a lista ou a página dela." },
+          {
+            tipo: "texto",
+            texto: "O Início mostra primeiro o que fazer agora e, no fim, todas as telas da Manutenção. Toque num número, num cartão ou numa requisição para abrir a lista ou a página dela. De cima para baixo:",
+          },
+          {
+            tipo: "termos",
+            itens: [
+              ["Faixa verde", "A saudação com o seu nome, Manutenção · (o seu perfil) e a data de hoje."],
+              [
+                "Resumo",
+                "O cartão branco sobre a faixa: quantas requisições estão pendentes (não concluídas nem canceladas), as máquinas paradas (em vermelho, quando há), as atrasadas na agenda (em amarelo, quando há) e as concluídas no mês. Toque num número para abrir a lista.",
+              ],
+              ["Ative as notificações", "Convite que aparece enquanto os avisos não estão ligados neste aparelho. Toque em Ativar, ou no X para dispensar."],
+            ],
+          },
+          {
+            tipo: "texto",
+            texto: "O que precisa de atenção junta o que não pode esperar. Sem nada, aparece Tudo em dia: nenhuma máquina parada nem requisição urgente.",
+          },
           {
             tipo: "termos",
             itens: [
@@ -86,21 +112,36 @@ export const MANUTENCAO: Secao[] = [
                 "Máquinas paradas agora",
                 "Quadro vermelho que só aparece quando alguma máquina está parada: o equipamento, o número da requisição, há quanto tempo está parada e o responsável. Parada que veio da serraria mostra “serraria (mecânica)” ou “serraria (elétrica)”.",
               ],
-              ["Pendentes", "Todas as requisições que ainda não foram concluídas nem canceladas."],
-              ["Aguardando análise", "Requisições com status Aberta: ninguém da manutenção mexeu nelas ainda."],
-              ["Agendadas", "Requisições com data marcada. Abre a Agenda."],
-              ["Concluídas no mês", "Requisições concluídas desde o dia 1º do mês."],
-              ["Pendentes por status", "Barra colorida com quantas pendentes há em cada status. Toque num status para ver a lista dele."],
+              ["Serviços agendados com a data vencida", "Faixa amarela quando alguma requisição agendada passou da data. Ver agenda abre a Agenda."],
               ["Prioridade alta e urgente", "As 5 pendentes mais urgentes. Ver todas abre a lista com todas as pendentes de prioridade Alta e Urgente."],
-              ["Agendadas nos próximos 7 dias", "O que já tem data marcada para a semana. Ver todas abre a Agenda."],
-              [
-                "Minhas requisições, Atribuídas a mim ou Sem responsável",
-                "Este quadro muda com o perfil. Operador: Minhas requisições, as que você abriu. Supervisor e manutentor: Atribuídas a mim, as pendentes em que você é o responsável. Gerente: Sem responsável, as pendentes que ainda não têm responsável, as mais urgentes primeiro (para distribuir). Ver todas abre a lista com o mesmo filtro.",
-              ],
               [
                 "Máquina liberada: conferir e concluir",
                 "Só para a equipe da manutenção, e só quando há alguma: requisições pendentes cuja máquina já voltou a funcionar (liberada na serraria ou na manutenção). Abra, confira o serviço e conclua.",
               ],
+            ],
+          },
+          {
+            tipo: "texto",
+            texto: "O Acesso rápido muda com o perfil: a tarefa principal num cartão grande e as outras tarefas do dia ao lado. O número no cartão mostra quantas esperam.",
+          },
+          {
+            tipo: "termos",
+            itens: [
+              ["Operador", "Nova requisição (tarefa principal), Minhas requisições (as que você abriu) e Agenda."],
+              ["Manutentor e supervisor", "Atribuídas a mim (tarefa principal: as pendentes em que você é o responsável), Sem responsável (as que ninguém assumiu), Agenda, Nova requisição e Todas as pendentes."],
+              ["Gerente", "Sem responsável (tarefa principal: para distribuir), Todas as pendentes, Agenda, Nova requisição e Indicadores."],
+            ],
+          },
+          {
+            tipo: "termos",
+            itens: [
+              ["Pendentes por status", "Barra colorida com quantas pendentes há em cada status. Toque num status para ver a lista dele."],
+              [
+                "Minhas requisições, Atribuídas a mim ou Sem responsável",
+                "As 5 primeiras da sua lista do dia. Operador: as que você abriu. Supervisor e manutentor: as pendentes em que você é o responsável. Gerente: as pendentes sem responsável, as mais urgentes primeiro. Ver todas abre a lista com o mesmo filtro.",
+              ],
+              ["Agendadas nos próximos 7 dias", "O que já tem data marcada para a semana. Ver agenda abre a Agenda."],
+              ["Todas as telas", "No fim: um cartão para cada tela da Manutenção que você pode abrir, nos grupos Operação, Gestão e Cadastros."],
             ],
           },
           {
@@ -111,7 +152,7 @@ export const MANUTENCAO: Secao[] = [
           { tipo: "texto", texto: "Para quem usa a Manutenção, o Início também abre sem internet, com os números da última vez que o aparelho teve conexão." },
           {
             tipo: "imagem",
-            imagem: { arquivo: "manutencao/inicio.webp", legenda: "Início da Manutenção no celular, visto por um manutentor", rota: "/manutencao", perfil: "manutentor" },
+            imagem: { arquivo: "manutencao/inicio.webp", legenda: "Início da Manutenção no celular, visto por um manutentor: a faixa verde, o resumo e o que precisa de atenção", rota: "/manutencao", perfil: "manutentor" },
           },
         ],
       },
@@ -218,7 +259,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "No celular, toque no botão + do meio da barra de baixo. No computador, toque em Nova requisição, no alto do Início ou da tela Requisições.",
+              "No celular, toque no botão + do meio da barra de baixo. No computador, toque em Nova requisição, no Acesso rápido do Início ou no alto da tela Requisições.",
               "Em O que precisa ser feito?, escreva um título curto (ex.: Lixadeira 02 fazendo barulho no rolamento).",
               "Em Descrição detalhada, conte o problema: quando começou, barulho, cheiro, se piorou…",
               "Se a máquina parou de funcionar, marque A máquina está parada (veja o tópico abaixo).",
@@ -381,7 +422,7 @@ export const MANUTENCAO: Secao[] = [
         blocos: [
           {
             tipo: "texto",
-            texto: "Requisições (barra de baixo do celular, ou menu Operação no computador) mostra todas as requisições, das mais novas para as mais antigas, 30 por página (Anterior e Próxima no fim).",
+            texto: "Requisições (barra de baixo do celular; no computador, o cartão Requisições do Início, em Todas as telas → Operação) mostra todas as requisições, das mais novas para as mais antigas, 30 por página (Anterior e Próxima no fim).",
           },
           {
             tipo: "passos",
@@ -391,7 +432,7 @@ export const MANUTENCAO: Secao[] = [
               "Toque em Filtrar. Limpar volta à lista completa.",
             ],
           },
-          { tipo: "texto", texto: "Os links Ver todas do Início abrem esta lista já com o filtro do quadro (por exemplo, Prioridade: Alta e urgente ou Responsável: Sem responsável)." },
+          { tipo: "texto", texto: "Os números do resumo, os cartões do Acesso rápido e os links Ver todas do Início abrem esta lista já com o filtro (por exemplo, Prioridade: Alta e urgente ou Responsável: Sem responsável)." },
           { tipo: "dica", texto: "A Agenda (/ajuda/manutencao-agenda) mostra só as requisições com data marcada, separadas por dia." },
           {
             tipo: "imagem",
@@ -513,7 +554,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "A requisição chega com status Aberta: aviso no celular e o número em Aguardando análise, no Início.",
+              "A requisição chega com status Aberta: aviso no celular e, no Início, ela entra nas pendentes e em Sem responsável (no Acesso rápido).",
               "Quem vai atender assume: em Responsável, escolha o seu nome e mude o status para Em análise (ou direto para Em andamento).",
               "Precisa de data? Escolha Agendada e preencha a Data agendada. Falta peça? Aguardando peças.",
               "Durante o serviço: Em andamento. Lance as horas, marque o checklist e tire fotos do serviço.",
@@ -886,7 +927,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "texto",
             texto:
-              "Agenda (barra de baixo do celular, ou menu Operação no computador) abre a Agenda de manutenção: as requisições com status Agendada, separadas por dia, a partir de hoje. Cada dia tem um título como Sábado, 14 de novembro (com o ano, quando não é o ano atual). Toque numa requisição para abrir.",
+              "Agenda (barra de baixo do celular; no computador, o cartão Agenda do Acesso rápido, no Início) abre a Agenda de manutenção: as requisições com status Agendada, separadas por dia, a partir de hoje. Cada dia tem um título como Sábado, 14 de novembro (com o ano, quando não é o ano atual). Toque numa requisição para abrir.",
           },
           {
             tipo: "texto",
@@ -967,7 +1008,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Preventivas (menu Cadastros), toque em Novo plano de preventiva. Pela ficha do equipamento, + Novo plano já abre com a máquina escolhida.",
+              "Em Preventivas (no Início, em Todas as telas → Cadastros; ou no Painel Administrativo), toque em Novo plano de preventiva. Pela ficha do equipamento, + Novo plano já abre com a máquina escolhida.",
               "Escolha o Equipamento e escreva O que será feito (ex.: Troca de óleo e filtros). Em Instruções, detalhes para o manutentor.",
               "Em Repetir a cada, informe o número e escolha dias, semanas ou meses.",
               "Em Próxima execução, a data e a hora da próxima vez.",
@@ -1004,7 +1045,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Checklists (menu Cadastros), toque em Novo checklist.",
+              "Em Checklists (no Início, em Todas as telas → Cadastros), toque em Novo checklist.",
               "Dê um Nome (ex.: Preventiva mensal – serra circular).",
               "Em Itens (um por linha), escreva um item em cada linha.",
               "Toque em Criar checklist.",
@@ -1042,7 +1083,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Equipamentos (menu Cadastros), toque em Cadastrar equipamento.",
+              "Em Equipamentos (no Início, em Todas as telas → Cadastros; ou no Painel Administrativo), toque em Cadastrar equipamento.",
               "Preencha o Código / TAG (ex.: LIX-02) e o Nome, e escolha o Setor. Fabricante, Modelo, Nº de série e Observações são opcionais, mas ajudam.",
               "Se a máquina é da linha da serraria, marque Máquina da linha da serraria: ela passa a aparecer no botão Máquina parou e as paradas dela entram no boletim.",
               "Toque em Cadastrar.",
@@ -1134,7 +1175,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "texto",
             texto:
-              "Em Indicadores (menu Gestão), escolha o período (30 dias, 90 dias, 6 meses ou 12 meses; o padrão é 90 dias) e, se quiser, um setor, e toque em Aplicar. Toque nas colunas do gráfico para ver os números, ou em Ver tabela para os valores exatos.",
+              "Em Indicadores (no Início, no Acesso rápido do gerente ou em Todas as telas → Gestão), escolha o período (30 dias, 90 dias, 6 meses ou 12 meses; o padrão é 90 dias) e, se quiser, um setor, e toque em Aplicar. Toque nas colunas do gráfico para ver os números, ou em Ver tabela para os valores exatos.",
           },
           {
             tipo: "termos",
@@ -1182,7 +1223,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Relatórios (menu Gestão), escolha o período em De e Até (conta a data de abertura; o padrão é do dia 1º do mês até hoje) e, se quiser, Status, Tipo, Prioridade e Setor.",
+              "Em Relatórios (no Início, em Todas as telas → Gestão), escolha o período em De e Até (conta a data de abertura; o padrão é do dia 1º do mês até hoje) e, se quiser, Status, Tipo, Prioridade e Setor.",
               "Toque em Gerar relatório para ver na tela os totais, os gráficos por status, tipo e setor e a lista das requisições.",
               "Exportar PDF abre a impressão: escolha Salvar como PDF. Exportar Excel baixa a planilha, com as abas Requisições e Resumo.",
             ],
@@ -1216,7 +1257,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Setores (menu Cadastros), escreva o nome em Novo setor e toque em Adicionar.",
+              "Em Setores (no Início, em Todas as telas → Cadastros; ou no Painel Administrativo), escreva o nome em Novo setor e toque em Adicionar.",
               "Para renomear, toque no setor, mude o nome e toque em Salvar.",
             ],
           },

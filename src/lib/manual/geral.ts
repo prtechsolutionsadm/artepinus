@@ -2,9 +2,11 @@ import { MODULOS_ATIVOS } from "@/lib/permissoes";
 import type { Bloco, Captura, Secao } from "./tipos";
 
 // Parte geral do manual (vale para os dois módulos): entrar, navegar, avisos, uso sem internet, a própria
-// conta e, para o gerente, usuários e auditoria. Os nomes de botões, menus e campos são os da tela
-// (src/app/login, recuperar, trocar-senha, sistema, (app)/perfil, menu, notificacoes, usuarios, auditoria,
-// src/components/Navegacao.tsx, Tema.tsx, AtivarPush.tsx, SincronizadorOffline.tsx, BotaoSair.tsx): mudou a tela, mude aqui.
+// conta e, para o gerente, usuários e auditoria. Os nomes de botões, cartões e campos são os da tela
+// (src/app/login, recuperar, trocar-senha, sistema, (app)/perfil, menu, administracao, notificacoes, usuarios, auditoria,
+// src/components/Navegacao.tsx, painel/*, inicio/PecasInicio.tsx, Tema.tsx, AtivarPush.tsx, SincronizadorOffline.tsx,
+// BotaoSair.tsx): mudou a tela, mude aqui. No computador não há menu lateral: o topo (logo, Voltar, busca, Módulos,
+// tema, ajuda, avisos e o seu nome) e os cartões das telas iniciais; no celular, o topo, a barra de baixo e Mais.
 // Tópicos que só valem para um módulo levam `modulo`; os textos que mudam com a liberação da Manutenção usam ATIVA.
 
 /** A Manutenção já foi liberada a todos (sai de "Em breve"; os perfis dela passam a valer). */
@@ -21,7 +23,7 @@ const imagem = (c: Captura): Bloco => ({ tipo: "imagem", imagem: c });
 /** Blocos que só entram quando `cond` vale. */
 const se = (cond: boolean, ...blocos: Bloco[]): Bloco[] => (cond ? blocos : []);
 
-const ABRIR_PERFIL = "No celular, toque nas suas iniciais, no canto de cima à direita. No computador, clique no seu nome, no topo à direita, e escolha Meu perfil.";
+const ABRIR_PERFIL = "No celular, toque nas suas iniciais, no canto de cima à direita. No computador, clique no seu nome, no canto direito do topo, e escolha Meu perfil.";
 
 /** Conta, navegação, avisos, uso sem internet e administração (valem para os dois módulos). */
 export const GERAL: Secao[] = [
@@ -113,33 +115,51 @@ export const GERAL: Secao[] = [
         id: "tela-de-inicio",
         titulo: "Tela de início: escolher o módulo",
         rotas: ["/sistema"],
-        palavras: ["início", "inicio", "módulo", "modulo", "escolher módulo", "serraria", "manutenção", "em breve", "em teste", "sistema", "administração", "números"],
+        palavras: [
+          "início",
+          "inicio",
+          "módulo",
+          "modulo",
+          "escolher módulo",
+          "módulos",
+          "serraria",
+          "manutenção",
+          "em breve",
+          "em teste",
+          "sistema",
+          "administração",
+          "painel",
+          "acesso rápido",
+          "números",
+          "olá",
+        ],
         blocos: [
-          texto("Depois de entrar, abre a tela de início do sistema: a saudação com o seu nome e o seu perfil em cada módulo (ex.: Serraria: Apontador), os números do momento e os módulos que você pode abrir."),
+          texto("Depois de entrar, abre a tela de início do sistema. O app instalado também abre sempre por ela. De cima para baixo:"),
           termos(
-            ["Números do momento", "Máquinas paradas, estufas secando e pacotes em estoque (para quem usa a Serraria) e requisições abertas (para quem usa a Manutenção). Máquina parada aparece em vermelho. Toque num número para abrir a lista."],
-            ["Cadastre a sua pergunta de segurança", "Faixa amarela que aparece até você cadastrar a pergunta. Toque para abrir Meu perfil."],
+            ["Faixa verde", "Olá, com o seu nome, e o seu perfil em cada módulo (ex.: Artepinus · Serraria: Apontador)."],
+            ["Números do momento", "O cartão branco sobre a faixa: máquinas paradas, estufas secando e pacotes em estoque (para quem usa a Serraria) e requisições abertas (para quem usa a Manutenção). Máquina parada aparece em vermelho. Toque num número para abrir a lista."],
+            ["Cadastre a sua pergunta de segurança", "Faixa amarela embaixo dos números, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
             [
-              "Módulo principal",
+              "Acesso rápido: Módulo principal",
               ATIVA
-                ? "O cartão grande, em destaque: a Serraria, para quem usa a Serraria (quem usa só a Manutenção vê a Manutenção). Toque em Acessar. Quem usa os dois módulos entra primeiro na Serraria."
-                : "O cartão grande, em destaque: a Serraria. Toque em Acessar.",
+                ? "O cartão grande, à esquerda: a Serraria, para quem usa a Serraria (quem usa só a Manutenção vê a Manutenção). Toque em Acessar. À direita do título, quantos módulos você tem."
+                : "O cartão grande, à esquerda: a Serraria, com o selo Ativo. Toque em Acessar. À direita do título, quantos módulos você tem.",
             ],
             [
               "Manutenção",
               ATIVA
-                ? "Requisições, preventivas, checklists e equipamentos. Toque em Acessar. Quem não usa a Manutenção vê Sem acesso: fale com o gerente."
-                : "Ainda em teste: aparece como Em breve, com Disponível em breve. Só o administrador abre (selo Em teste).",
+                ? "Cartão ao lado do principal: requisições, preventivas, checklists e equipamentos. Toque em Acessar. Quem não usa a Manutenção vê o cartão tracejado, com Sem acesso: fale com o gerente."
+                : "Cartão ao lado do principal, ainda em teste: aparece tracejado, com o selo Em breve e Disponível em breve. Só o administrador abre (selo Em teste).",
             ],
-            ["Paradas de máquina e Ler etiqueta", "Atalhos para quem usa a Serraria: marcar uma parada na hora e ler o QR de um pacote ou de um lote."],
-            ["Ajuda", "Abre o Manual do usuário e os roteiros por função para imprimir."],
-            ["Administração", "Só para o gerente: Usuários, acessos e histórico de alterações."],
+            ["Manual do usuário, Meu perfil e Notificações", "Os outros cartões do Acesso rápido. Notificações mostra quantos avisos novos você tem."],
+            ["Administração", "Cartão largo embaixo do Acesso rápido, só para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria: abre o Painel Administrativo. Veja “Painel Administrativo” (/ajuda/navegacao#painel-administrativo)."],
+            ["Atalhos da serraria", "Ler etiqueta e Paradas de máquina, para quem usa a Serraria: ler o QR de um pacote ou de um lote e marcar uma parada na hora."],
           ),
           texto("Seu usuário ainda não tem acesso a nenhum módulo? A tela avisa: fale com o gerente para ele escolher o seu perfil."),
           texto(
-            "Para voltar a esta tela depois: no computador, toque no cartão Módulo, no pé do menu à esquerda, ou em Escolher módulo, no menu do seu nome; no celular, em Mais › Escolher módulo (Serraria / Manutenção). Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
+            "Para voltar a esta tela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita); no celular, em Mais › Módulos. Esses botões só aparecem para quem tem o que escolher aqui (outro módulo ou a administração); os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
           ),
-          imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: os números do momento e a escolha do módulo.", rota: "/sistema", perfil: "supervisor" }),
+          imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: os números do momento, o Acesso rápido com os módulos e o painel de Administração.", rota: "/sistema", perfil: "supervisor" }),
         ],
       },
       {
@@ -177,27 +197,44 @@ export const GERAL: Secao[] = [
   {
     id: "navegacao",
     grupo: "geral",
-    titulo: "Navegação: menu, busca e ajuda",
-    resumo: "Onde ficam o menu, a busca, o botão de ajuda, o tema e a troca de módulo, no computador e no celular",
+    titulo: "Navegação: topo, telas, busca e ajuda",
+    resumo: "O topo, a tela inicial de cada módulo, o Painel Administrativo, a busca, o botão de ajuda, o tema e a troca de módulo, no computador e no celular",
     rotas: ["/menu"],
     topicos: [
       {
         id: "computador",
-        titulo: "No computador: menu à esquerda e topo",
-        palavras: ["computador", "menu", "menu lateral", "esquerda", "topo", "voltar", "avançar", "caminho", "menu do usuário", "seu nome", "geral", "sair"],
+        titulo: "No computador: o topo",
+        palavras: [
+          "computador",
+          "topo",
+          "barra de cima",
+          "menu",
+          "menu lateral",
+          "esquerda",
+          "voltar",
+          "logo",
+          "módulos",
+          "modulos",
+          "quadradinhos",
+          "menu do usuário",
+          "seu nome",
+          "sair",
+          "onde está o menu",
+        ],
         blocos: [
+          texto("No computador não há menu na lateral: as telas de cada módulo ficam em cartões, no Início do módulo (veja o próximo tópico), e o resto fica no topo, sempre igual em todas as telas:"),
           termos(
-            ["Menu à esquerda", "No alto, a busca. Depois, o nome do módulo em uso, o Início e os grupos de telas do módulo (Operação, Gestão e Cadastros), nos dois módulos. Cada pessoa vê só as telas que o perfil dela permite."],
-            ["Grupo Geral", "No fim do menu: Notificações, Meu perfil, Manual do usuário e Sair."],
-            ["Cartão Módulo", "No pé do menu, Módulo Serraria (ou Módulo Manutenção): abre a tela de início, para trocar de módulo (Trocar de módulo) ou ver os módulos (Ver os módulos)."],
-            ["Voltar e Avançar", "As duas setas no canto esquerdo do topo voltam e avançam entre as telas, como no navegador."],
-            ["Caminho da tela", "Ao lado das setas: módulo › grupo › tela (ex.: Serraria › Operação › Estufas). Toque no nome do módulo para voltar ao Início."],
-            ["Lado direito do topo", "O botão do tema, o botão de ajuda (?), que abre a ajuda da tela em que você está, o sininho dos avisos e o seu nome."],
-            ["Menu do seu nome", "Escolher módulo, Notificações, Meu perfil, Manual do usuário, Tema (Claro, Escuro ou Automático) e Sair."],
+            ["Logo ARTEPINUS", "No canto esquerdo. Volta ao Início do módulo em que você está."],
+            ["← Voltar", "Ao lado do logo, fora das telas iniciais. Volta para a tela de cima: do detalhe para a lista (ex.: do ciclo para Estufas) e da lista para o Início do módulo. Se você veio dessa tela, ela volta como estava, com os mesmos filtros."],
+            ["Busca", "No meio do topo: Buscar pacote, lote, carga… na Serraria e Buscar requisição… na Manutenção. A tecla / leva direto a ela, em qualquer tela."],
+            ["Módulos", "O ícone de quadradinhos, à direita: abre a tela de início do sistema, para trocar de módulo ou abrir o Painel Administrativo. Aparece só para quem usa mais de um módulo ou cuida dos usuários e da auditoria."],
+            ["Tema, ajuda e avisos", "O botão do tema (sol, lua ou monitor), o botão de ajuda (?), que abre a ajuda da tela em que você está, e o sininho dos avisos, com o número dos não lidos."],
+            ["Seu nome", "As suas iniciais e o seu primeiro nome, no canto direito. Toque para abrir um menu com o seu nome completo, o seu perfil, Meu perfil e Sair."],
           ),
+          dica("Procurando o menu que ficava à esquerda? As mesmas telas, nos mesmos grupos (Operação, Gestão e Cadastros), estão em Todas as telas, no fim do Início de cada módulo."),
           imagem({
             arquivo: "geral/menu-do-usuario.webp",
-            legenda: "No computador: o menu à esquerda, o topo com o caminho da tela e o menu do seu nome aberto.",
+            legenda: "No computador: o topo (logo, busca, Módulos, tema, ajuda, avisos e o seu nome) com o menu do seu nome aberto: Meu perfil e Sair.",
             rota: "/producao",
             perfil: "supervisor",
             tela: "computador",
@@ -206,41 +243,116 @@ export const GERAL: Secao[] = [
         ],
       },
       {
+        id: "tela-inicial",
+        titulo: "A tela inicial de cada módulo",
+        palavras: [
+          "início",
+          "inicio",
+          "tela inicial",
+          "painel",
+          "faixa verde",
+          "resumo",
+          "atenção",
+          "acesso rápido",
+          "acesso rapido",
+          "tarefa principal",
+          "todas as telas",
+          "cartões",
+          "cartoes",
+          "atalhos",
+          "onde fica",
+        ],
+        blocos: [
+          texto("O Início da Serraria e o da Manutenção seguem a mesma ordem: primeiro o que fazer agora, depois o caminho para todas as telas. Cada pessoa vê só o que o perfil dela permite."),
+          termos(
+            ["Faixa verde", "No alto: a saudação (Bom dia, Boa tarde ou Boa noite, com o seu nome), o módulo e o seu perfil (ex.: Serraria · Apontador) e a data de hoje."],
+            ["Resumo", "O cartão branco sobre a faixa, com poucos números do momento. Vermelho é máquina parada ou estufa atrasada. Toque num número para abrir a lista dele."],
+            ["O que precisa de atenção", "O que está faltando ou atrasado, com o botão para resolver. Sem nada pendente, aparece Tudo em dia."],
+            ["Acesso rápido", "A tarefa principal da sua função num cartão grande (ex.: Apontar serraria ou Nova requisição) e as outras tarefas do dia nos cartões menores ao lado. Um número no cartão mostra quantos esperam por você (em amarelo, quando pede atenção)."],
+            ["Todas as telas", "No fim do Início: um cartão para cada tela do módulo que você pode abrir, com uma linha dizendo para que serve, nos grupos Operação, Gestão e Cadastros. É o antigo menu."],
+          ),
+          dica("Não acha uma tela? Role o Início até Todas as telas ou use a busca do topo. No celular, as mesmas telas estão em Mais. Cada Início está explicado em “Início da Serraria” (/ajuda/serraria-inicio) e “Início da Manutenção” (/ajuda/manutencao-inicio)."),
+        ],
+      },
+      {
+        id: "painel-administrativo",
+        titulo: "Painel Administrativo",
+        rotas: ["/administracao"],
+        palavras: [
+          "administração",
+          "administracao",
+          "painel administrativo",
+          "admin",
+          "usuários",
+          "entradas e acessos",
+          "cadastros",
+          "máquinas da linha",
+          "configuração",
+          "setores",
+          "auditoria",
+          "segurança",
+          "dados",
+          "privacidade",
+        ],
+        blocos: [
+          texto(
+            "Quem cuida dos usuários, da auditoria ou dos cadastros da Serraria (gerente e supervisor da Serraria) tem o Painel Administrativo, com as telas de administração do sistema todo em um só lugar. Para abrir: na tela de início (a primeira depois de entrar; no computador, o gerente volta a ela pelo botão Módulos do topo), toque no cartão Administração. No celular, também em Mais › Administração.",
+          ),
+          termos(
+            ["Pessoas", "Usuários (quem usa o sistema e o que cada um pode fazer) e Entradas e acessos (a Auditoria só com as entradas, saídas, senhas e mudanças nos usuários)."],
+            ["Serraria", "Cadastros (pedidos, florestas, fornecedores, motoristas e estufas), Máquinas da linha e Configuração (meta do dia, horas de trabalho e horário do turno)."],
+            ["Manutenção", "Setores, Equipamentos e Preventivas, para quem usa a Manutenção com um perfil que cuida deles."],
+            [
+              "Segurança & dados",
+              `Auditoria (quem fez o quê no sistema, e quando) e a Política de privacidade${ATIVA ? "" : " e, enquanto a Manutenção está em teste, a Triagem do período de teste (só o administrador)"}.`,
+            ],
+          ),
+          texto("Cada pessoa vê só os cartões das telas que pode abrir: o supervisor da Serraria vê os grupos Serraria e Segurança & dados; o gerente vê também Pessoas."),
+          dica("Os detalhes estão em “Usuários e perfis de acesso” (/ajuda/usuarios), “Auditoria” (/ajuda/auditoria) e “Cadastros da Serraria” (/ajuda/serraria-cadastros)."),
+          imagem({ arquivo: "geral/administracao.webp", legenda: "Painel Administrativo, visto pelo gerente: Pessoas, Serraria e Segurança & dados.", rota: "/administracao", perfil: "gerente", tela: "computador" }),
+        ],
+      },
+      {
         id: "celular",
         titulo: "No celular: topo, barra de baixo e Mais",
         rotas: ["/menu"],
-        palavras: ["celular", "barra de baixo", "barra inferior", "mais", "menu", "topo", "iniciais", "lupa", "botão do meio"],
+        palavras: ["celular", "barra de baixo", "barra inferior", "mais", "menu", "topo", "iniciais", "lupa", "botão do meio", "sua conta", "sair", "tema"],
         blocos: [
           termos(
-            ["Topo", "O logo ARTEPINUS volta ao Início. À direita ficam a lupa (busca), o botão de ajuda (?), que abre a ajuda da tela em que você está, o sininho e as suas iniciais, que abrem Meu perfil. No celular de tela estreita o botão do tema não fica no topo: ele está em Mais e em Meu perfil (em tablet ou celular deitado, aparece no topo)."],
+            ["Topo", "O logo ARTEPINUS volta ao Início. À direita ficam a lupa (busca), o botão do tema, o botão de ajuda (?), que abre a ajuda da tela em que você está, o sininho e as suas iniciais, que abrem Meu perfil."],
             ["Barra de baixo", "Os atalhos principais do módulo em uso, com o botão redondo do meio em destaque. A tela em que você está fica verde."],
-            ["Mais", "O seu nome e o seu perfil em cada módulo; o menu completo do módulo em uso, por grupo (Notificações, Meu perfil e Manual do usuário ficam no grupo Conta); Escolher módulo (Serraria / Manutenção); Tema; e Sair, no fim. Quem usa os dois módulos vê também, no alto, as abas Serraria e Manutenção, para trocar na hora."],
+            [
+              "Mais",
+              "No alto, o seu nome, o seu perfil e o seu login. Depois, Sua conta: Meu perfil, Notificações, Manual do usuário, Módulos (para quem usa os dois módulos) e Administração (para quem administra). Em seguida o Tema e o botão Sair. No fim, todas as telas do módulo em uso, nos mesmos cartões do Início (ex.: Serraria · Operação, Serraria · Gestão).",
+            ],
           ),
-          imagem({ arquivo: "geral/mais.webp", legenda: "Mais, no celular: o menu completo do módulo, Escolher módulo, Tema e Sair.", rota: "/menu", perfil: "apontador" }),
+          imagem({ arquivo: "geral/mais.webp", legenda: "Mais, no celular: a sua conta, o tema, Sair e todas as telas do módulo.", rota: "/menu", perfil: "apontador" }),
         ],
       },
       {
         id: "menu-serraria",
-        titulo: "Barra de baixo e menu na Serraria",
+        titulo: "Barra de baixo e telas da Serraria",
         modulo: "producao",
-        palavras: ["serraria", "barra de baixo", "pacotes", "ler etiqueta", "estufas", "operação", "gestão", "cadastros", "etapas"],
+        palavras: ["serraria", "barra de baixo", "pacotes", "ler etiqueta", "estufas", "operação", "gestão", "cadastros", "etapas", "menu", "todas as telas"],
         blocos: [
-          texto("No celular, a barra de baixo tem Início, Pacotes, o botão do meio Ler etiqueta, Estufas e Mais."),
+          texto("No celular, a barra de baixo tem Início, Pacotes, o botão do meio Ler etiqueta, Estufas e Mais. As telas da Serraria ficam em Todas as telas, no fim do Início (no celular, também em Mais), em três grupos:"),
           termos(
             ["Operação", "1 Recebimento de toras, 2 Serraria, Paradas de máquina, 3 Estufas, 4 Pacotes e expedição, Romaneios e Ler etiqueta. Os números 1 a 4 são as etapas do processo."],
             ["Gestão", "Pedidos, Disponível para venda, Indicadores, Painel para TV e Inventário de madeira."],
             ["Cadastros", "Cadastros (só o supervisor). Usuários e Auditoria aparecem só para o gerente."],
           ),
-          dica("Mais detalhes em “O menu da Serraria” (/ajuda/serraria-inicio#menu)."),
+          dica("Mais detalhes em “Todas as telas da Serraria” (/ajuda/serraria-inicio#menu)."),
         ],
       },
       {
         id: "menu-manutencao",
-        titulo: "Barra de baixo e menu na Manutenção",
+        titulo: "Barra de baixo e telas da Manutenção",
         modulo: "manutencao",
-        palavras: ["manutenção", "barra de baixo", "requisições", "nova requisição", "agenda", "botão +", "operação", "gestão", "cadastros"],
+        palavras: ["manutenção", "barra de baixo", "requisições", "nova requisição", "agenda", "botão +", "operação", "gestão", "cadastros", "menu", "todas as telas"],
         blocos: [
-          texto("No celular, a barra de baixo tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, o menu à esquerda começa pelo Início (sem título de grupo), como na Serraria, e Nova requisição fica no botão da tela Requisições."),
+          texto(
+            "No celular, a barra de baixo tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, Nova requisição fica no Acesso rápido do Início e no botão da tela Requisições. As telas da Manutenção ficam em Todas as telas, no fim do Início (no celular, também em Mais):",
+          ),
           termos(
             ["Operação", "Requisições e Agenda."],
             ["Gestão", "Indicadores, Relatórios e Auditoria, conforme o perfil."],
@@ -252,14 +364,14 @@ export const GERAL: Secao[] = [
       {
         id: "trocar-de-modulo",
         titulo: "Trocar de módulo",
-        palavras: ["trocar de módulo", "trocar modulo", "escolher módulo", "mudar de módulo", "serraria", "manutenção", "outro módulo"],
+        palavras: ["trocar de módulo", "trocar modulo", "escolher módulo", "mudar de módulo", "módulos", "quadradinhos", "serraria", "manutenção", "outro módulo"],
         blocos: [
-          texto("Quem usa a Serraria e a Manutenção troca de módulo assim:"),
+          texto("Quem usa a Serraria e a Manutenção troca de módulo pela tela de início do sistema:"),
           termos(
-            ["No computador", "Toque no cartão Módulo, no pé do menu à esquerda (Trocar de módulo), ou em Escolher módulo, no menu do seu nome. Abre a tela de início: toque no módulo."],
-            ["No celular", "Toque em Mais e, no alto, na aba Serraria ou Manutenção. Também dá por Escolher módulo (Serraria / Manutenção)."],
+            ["No computador", "Toque em Módulos (o ícone de quadradinhos no topo, à direita). Abre a tela de início: toque no cartão do módulo."],
+            ["No celular", "Toque em Mais › Módulos e, na tela de início, no cartão do módulo."],
           ),
-          texto("O sistema lembra o último módulo usado: Notificações, Meu perfil e o manual abrem com o menu do módulo em que você estava. Quem usa os dois módulos tem a Serraria como módulo principal: ao entrar, cai primeiro na Serraria."),
+          texto("O sistema lembra o último módulo usado: Notificações, Meu perfil e o manual abrem com a busca e a barra de baixo do módulo em que você estava. Quem usa os dois módulos tem a Serraria como módulo principal: ela é o cartão grande da tela de início."),
           ...se(!ATIVA, atencao("Enquanto a Manutenção está em teste, só o administrador troca de módulo. Para os demais, ela aparece como Em breve.")),
         ],
       },
@@ -269,7 +381,7 @@ export const GERAL: Secao[] = [
         modulo: "producao",
         palavras: ["buscar", "busca", "procurar", "pesquisar", "lupa", "atalho", "tecla /", "código", "PCT-", "LOT-", "CT-", "ROM-", "nota fiscal", "placa"],
         blocos: [
-          texto("No computador, a busca fica no alto do menu à esquerda (Buscar pacote, lote, carga…). Aperte a tecla / em qualquer tela para ir direto a ela. No celular, toque na lupa do topo."),
+          texto("No computador, a busca fica no meio do topo (Buscar pacote, lote, carga…). Aperte a tecla / em qualquer tela para ir direto a ela. No celular, toque na lupa do topo."),
           lista(
             "Pelo código, abre direto: pacote (PCT-000123), lote (LOT-000123), carga de toras (CT-000123) e romaneio (ROM-000123). Também aceita o link lido do QR da etiqueta.",
             "Por texto (pelo menos 2 letras), procura pedido, cliente, destino, motorista, placa, floresta, fornecedor e nº ou chave da nota fiscal. Os resultados aparecem por grupo: toque num para abrir.",
@@ -294,7 +406,7 @@ export const GERAL: Secao[] = [
         blocos: [
           lista(
             "O botão ? (Ajuda desta tela), no topo, abre a parte do manual que explica a tela em que você está. Para voltar, toque em Voltar para…, no alto da página do manual.",
-            "O Manual do usuário também fica no menu (grupo Geral; no celular, em Mais). Na entrada dele há uma busca: escreva o que você quer fazer (ex.: etiqueta, sem internet, corrigir).",
+            "O Manual do usuário inteiro abre pelo cartão Manual do usuário da tela de início (no celular, também em Mais) ou, numa página do manual, pelo link Manual · …, no alto. Na entrada dele há uma busca: escreva o que você quer fazer (ex.: etiqueta, sem internet, corrigir).",
             "Cada seção do manual tem o botão Imprimir esta seção.",
             "As páginas do manual que você já abriu ficam guardadas no aparelho e abrem até sem internet.",
             "Na entrada do manual ficam também o Glossário (/ajuda/glossario), com o que quer dizer cada palavra do sistema e do pátio, e os Problemas comuns (/ajuda/problemas), com o que fazer quando algo não sai como esperado.",
@@ -313,9 +425,8 @@ export const GERAL: Secao[] = [
         blocos: [
           texto("A tela pode ficar clara, escura ou automática (segue o claro/escuro do aparelho). A escolha fica salva neste aparelho."),
           termos(
-            ["Botão do topo", "O botão do sol, da lua ou do monitor. Cada toque passa para o próximo: Claro → Escuro → Automático. No celular de tela estreita ele não aparece no topo: use Mais › Tema ou Meu perfil."],
+            ["Botão do topo", "O botão do sol, da lua ou do monitor, no topo do computador e do celular. Cada toque passa para o próximo: Claro → Escuro → Automático."],
             ["Meu perfil › Tema", "Escolha Claro, Escuro ou Automático."],
-            ["Menu do seu nome (computador)", "Tema, com as mesmas três opções."],
             ["Mais (celular)", "Tema, com as mesmas três opções."],
           ),
           dica("Impressões, PDFs e etiquetas saem sempre claros, qualquer que seja o tema."),
@@ -346,7 +457,7 @@ export const GERAL: Secao[] = [
             "Ver todas abre a tela Notificações, com os seus últimos 100 avisos. Os não lidos ficam em negrito.",
           ),
           lista(
-            "A tela Notificações também fica no menu (grupo Geral; no celular, em Mais).",
+            "A tela Notificações também abre pelo cartão Notificações da tela de início (no celular, também em Mais).",
             "Com o app instalado, o ícone do app pode mostrar o número de avisos não lidos (depende do celular).",
             "Os avisos já lidos são apagados depois de um tempo; o prazo está na Política de Privacidade.",
           ),
@@ -576,7 +687,7 @@ export const GERAL: Secao[] = [
         titulo: "O que tem em Meu perfil",
         palavras: ["meu perfil", "perfil", "conta", "minha conta", "dados", "nome", "login", "iniciais"],
         blocos: [
-          texto(`Para abrir: ${ABRIR_PERFIL} Meu perfil também fica no menu (grupo Geral; no celular, em Mais).`),
+          texto(`Para abrir: ${ABRIR_PERFIL} Meu perfil também fica nos cartões da tela de início e, no celular, em Mais.`),
           termos(
             ["Seus dados", "Nome, login e o seu perfil em cada módulo (ex.: Serraria: Apontador · Manutenção: Operador; o gerente vê Gerente · acesso total). Para mudar o nome, o login ou o perfil, fale com o gerente."],
             ["Notificações neste aparelho", "Ativar, testar ou desligar os avisos neste aparelho. Veja “Receber os avisos no celular ou no computador” (/ajuda/avisos#ativar)."],
@@ -611,9 +722,9 @@ export const GERAL: Secao[] = [
         palavras: ["sair", "logout", "deslogar", "desconectar", "encerrar", "trocar de usuário", "porta"],
         blocos: [
           termos(
-            ["No computador", "Sair, no fim do menu à esquerda (grupo Geral), ou no menu do seu nome, no topo."],
-            ["No celular", "Mais › Sair, no fim da tela."],
-            ["Na tela de início", "O ícone de sair (a porta), no canto de cima à direita."],
+            ["No computador", "Toque no seu nome, no canto direito do topo, e em Sair."],
+            ["No celular", "Mais › Sair (logo depois do Tema)."],
+            ["Sem nenhum módulo liberado", "O ícone de sair (a porta), no canto de cima à direita."],
           ),
           lista(
             "Os seus avisos param de chegar neste aparelho até você entrar de novo.",
@@ -632,7 +743,7 @@ export const GERAL: Secao[] = [
             "A Política de Privacidade explica quais dados pessoais o sistema guarda (nome, login, o que cada um lança e altera, as entradas no sistema com o endereço IP, as fotos e os avisos no aparelho), para quê, com quem são compartilhados e por quanto tempo ficam guardados.",
           ),
           lista(
-            "Para ler, toque em Privacidade, no rodapé da tela de entrada e da tela de início. No celular, o link aparece também no fim de cada tela.",
+            "Para ler, toque em Privacidade, no rodapé (o pé da página) da tela de entrada e de cada tela do sistema. Quem administra encontra também o cartão Política de privacidade no Painel Administrativo.",
             "Os registros que passam do prazo são apagados sozinhos, todos os dias.",
             "Para pedir acesso, correção ou exclusão dos seus dados, use os contatos que estão no fim da Política de Privacidade.",
           ),
@@ -656,7 +767,7 @@ export const GERAL: Secao[] = [
         palavras: ["novo usuário", "novo usuario", "cadastrar usuário", "criar usuário", "criar login", "funcionário novo", "senha inicial"],
         blocos: [
           passos(
-            "Abra Usuários (menu Cadastros; ou, na tela de início, o cartão Administração).",
+            "Abra Usuários: no Painel Administrativo (cartão Administração da tela de início) ou, no Início, em Todas as telas → Cadastros.",
             "Toque em Novo usuário.",
             "Preencha o Nome e o Login no formato nome.sobrenome, sem acento (ex.: joao.silva).",
             `Escolha o Perfil na Serraria e o Perfil na Manutenção (este vem com ${ATIVA ? "Operador" : "Sem acesso"}). Quem não usa um módulo fica com Sem acesso nele. Para acesso total, escolha Gerente no Perfil na Manutenção.`,
@@ -763,6 +874,9 @@ export const GERAL: Secao[] = [
         blocos: [
           texto(
             "Em Auditoria fica registrado quem fez o quê e quando: entradas e saídas do sistema (inclusive senha errada, bloqueio e recuperação de senha, com o endereço IP), lotes, boletins, paradas, ciclos de estufa, pacotes e romaneios, cargas de toras, inventários, cadastros e usuários e, na Manutenção, requisições, fotos, horas, checklists, equipamentos e planos.",
+          ),
+          texto(
+            "Para abrir: no Painel Administrativo, toque em Auditoria (tudo) ou em Entradas e acessos (só as entradas, as saídas, as senhas e as mudanças nos usuários). Também fica no Início, em Todas as telas (grupo Cadastros na Serraria; Gestão na Manutenção).",
           ),
           lista(
             "Cada linha mostra quem fez, o que foi feito e a data e a hora. Sistema aparece quando não há usuário (por exemplo, a tentativa de entrar com um login que não existe).",

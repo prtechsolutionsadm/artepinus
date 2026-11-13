@@ -289,15 +289,17 @@ const GERAIS: Problema[] = [
   {
     id: "nao-acho-tela",
     pergunta: "Não encontro um botão, um menu ou uma tela",
-    palavras: ["nao aparece", "sumiu", "onde fica", "menu", "botao", "perfil", "permissao", "sem permissao", "mais", "busca", "modulo"],
+    palavras: ["nao aparece", "sumiu", "onde fica", "menu", "menu lateral", "lateral", "todas as telas", "administracao", "botao", "perfil", "permissao", "sem permissao", "mais", "busca", "modulo"],
     blocos: [
       lista(
         "Cada perfil vê só o que pode usar: o botão que você não pode usar não aparece. Se precisa dele no seu trabalho, peça ao gerente para mudar o seu perfil.",
-        "No computador, use a busca do alto do menu (tecla /). No celular, as telas que não estão na barra de baixo ficam em Mais.",
-        "Usa a Serraria e a Manutenção? Troque de módulo: no celular, em Mais → Escolher módulo; no computador, no rodapé do menu à esquerda.",
+        "No computador não há menu na lateral: todas as telas do módulo ficam em cartões no fim do Início (Todas as telas), nos grupos Operação, Gestão e Cadastros. No celular, as telas que não estão na barra de baixo ficam em Mais.",
+        "Procura um pacote, um lote, uma carga ou uma requisição? Use a busca do meio do topo (tecla /; no celular, a lupa).",
+        "Meu perfil e Sair ficam no seu nome, no canto direito do topo (no celular, em Mais). Usuários, cadastros e auditoria também estão no Painel Administrativo, para quem administra.",
+        "Usa a Serraria e a Manutenção? Troque de módulo: no computador, em Módulos (o ícone de quadradinhos no topo); no celular, em Mais → Módulos.",
       ),
       dica(
-        "O que cada perfil faz: “Quem faz o quê na Serraria” (/ajuda/serraria-inicio#perfis) e “O que cada perfil faz na Manutenção” (/ajuda/manutencao-inicio#perfis). O menu está em “Navegação” (/ajuda/navegacao).",
+        "O que cada perfil faz: “Quem faz o quê na Serraria” (/ajuda/serraria-inicio#perfis) e “O que cada perfil faz na Manutenção” (/ajuda/manutencao-inicio#perfis). O topo e as telas iniciais estão em “Navegação” (/ajuda/navegacao).",
       ),
     ],
   },
@@ -536,7 +538,7 @@ const DA_SERRARIA: Problema[] = [
     blocos: [
       lista(
         "Só saem pacotes verdes ou secos. Pacote Na estufa sai seco quando o ciclo é concluído: abra Estufas → o ciclo → Concluir ciclo.",
-        "Expedir pacotes, no Início, abre a lista só com os secos. Para um pacote verde, troque o filtro para Verdes ou Em estoque.",
+        "A lista de Pacotes abre com Em estoque (verdes, na estufa e secos). Se o filtro estiver em Secos, troque para Verdes ou Em estoque para ver um pacote verde.",
         "Pacote Expedido ou Cancelado não sai de novo. Veja a situação dele no filtro Todos da lista de Pacotes.",
       ),
       dica("Veja “Carregar o caminhão e gerar o romaneio” (/ajuda/serraria-expedicao#carregar-caminhao)."),
