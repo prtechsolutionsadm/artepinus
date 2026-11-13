@@ -320,6 +320,8 @@ model PlanoPreventivo {
   intervalo        Int
   unidade          UnidadeFrequencia @default(DIAS)
   proximaData      DateTime // data/hora da próxima execução
+  /// dia do mês de referência (Brasília) dos planos mensais: evita que o plano escorregue para o dia 28
+  diaDoMes         Int?
   antecedenciaDias Int               @default(3) // gera a requisição N dias antes
   prioridade       Prioridade        @default(MEDIA)
   responsavelId    String?
@@ -783,6 +785,9 @@ model Pacote {
   @@index([boletimId])
   @@index([cicloId])
   @@index([criadoEm])
+  @@index([pedidoId])
+  @@index([romaneioId])
+  @@index([expedidoEm])
 }
 
 /// Linha do tempo do pacote (cada leitura/movimentação registrada).
