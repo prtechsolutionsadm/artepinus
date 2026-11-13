@@ -19,7 +19,7 @@ export default async function NovaRequisicaoPage({ searchParams }: { searchParam
       <Titulo subtitulo={`Solicitante: ${eu.nome}`}>Nova requisição</Titulo>
       <FormNovaRequisicao
         setores={setores}
-        equipamentos={equipamentos.map((e) => ({ id: e.id, codigo: e.codigo, nome: e.nome, setor: e.setor?.nome ?? null }))}
+        equipamentos={equipamentos.map((e) => ({ id: e.id, codigo: e.codigo, nome: e.nome, setor: e.setor?.nome ?? null, linhaSerraria: e.linhaSerraria }))}
         equipamentoInicial={equipamentos.some((e) => e.id === equipamento) ? equipamento : undefined}
       />
     </div>

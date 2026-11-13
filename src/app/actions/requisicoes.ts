@@ -479,8 +479,8 @@ export async function registrarHoras(_: EstadoForm, form: FormData): Promise<Est
 export async function removerHoras(apontamentoId: string) {
   const eu = await exigirModulo("manutencao");
   const ap = await db.apontamento.findUnique({ where: { id: apontamentoId } });
-  if (!ap) return;
-  if (ap.usuarioId !== eu.id && !pode(eu.perfil, "atribuirResponsavel")) throw new Error("Sem permissão");
+  if (!ap) return { erro: "Lançamento não encontrado" };
+  if (ap.usuarioId !== eu.id && !pode(eu.perfil, "atribuirResponsavel")) return { erro: "Sem permissão" };
   await db.apontamento.delete({ where: { id: apontamentoId } });
   await auditar({ usuarioId: eu.id, acao: "requisicao.horas.remover", entidade: "Requisicao", entidadeId: ap.requisicaoId, resumo: `Removeu lançamento de ${formatarDuracao(ap.minutos)} de ${numeroRequisicao(ap.requisicaoId)}` });
   revalidatePath(`/requisicoes/${ap.requisicaoId}`);
@@ -507,7 +507,7 @@ export async function aplicarChecklist(_: EstadoForm, form: FormData): Promise<E
 
 export async function marcarItemChecklist(itemId: string, feito: boolean) {
   const eu = await exigirModulo("manutencao");
-  if (!pode(eu.perfil, "apontarHoras")) throw new Error("Sem permissão");
+  if (!pode(eu.perfil, "apontarHoras")) return { erro: "Sem permissão" };
   // Requisição encerrada: o checklist fica como foi concluído
   const atual = await db.checklistItem.findUnique({ where: { id: itemId }, select: { requisicao: { select: { status: true } } } });
   if (!atual || STATUS_FINAIS.includes(atual.requisicao.status)) return;
