@@ -4,6 +4,9 @@
   /* derivada do verde do logo Artepinus (#177009) */
   --color-marca-50: #f1f8ef;
   --color-marca-100: #ddefd8;
+  --color-marca-200: #bfe0b5;
+  --color-marca-300: #95cb87;
+  --color-marca-400: #5fac4f;
   --color-marca-500: #2b8a1d;
   --color-marca-600: #1d7a10;
   --color-marca-700: #17650c;
@@ -143,6 +146,9 @@
     /* marca: fundos claros viram verdes escuros; textos escuros viram verdes claros */
     --color-marca-50: #142a10;
     --color-marca-100: #1b3a16;
+    --color-marca-200: #22471c;
+    --color-marca-300: #2a5a22;
+    --color-marca-400: #33752a;
     --color-marca-500: #3fa52f;
     --color-marca-600: #2e8c21;
     --color-marca-700: #45ad35;
@@ -155,6 +161,7 @@
     --color-emerald-700: #5fd3a3;
     --color-emerald-800: #7fdcb5;
     --color-emerald-900: #a5e9cc;
+    --color-emerald-950: #c4efdc;
     --color-rose-50: #33151b;
     --color-rose-100: #401a22;
     --color-rose-200: #5c2430;
@@ -163,8 +170,10 @@
     --color-amber-50: #2e2410;
     --color-amber-100: #3a2d12;
     --color-amber-200: #57431a;
+    --color-amber-700: #f0a94b;
     --color-amber-800: #f6c35b;
     --color-amber-900: #f9d585;
+    --color-amber-950: #fbe2ae;
     --color-sky-50: #10243a;
     --color-sky-100: #142d48;
     --color-sky-200: #1e4266;
@@ -181,6 +190,11 @@
     --color-indigo-800: #b3b9fb;
     --color-slate-100: #222831;
     --color-slate-700: #c3cbd6;
+    --color-blue-50: #0f1f3a;
+    --color-blue-100: #142a4d;
+    --color-blue-200: #1e3a66;
+    --color-blue-300: #2c4f86;
+    --color-blue-700: #8fb6fa;
     --color-blue-800: #9cc0fb;
     --color-red-700: #fb8a8a;
   }
@@ -192,6 +206,10 @@
   .dark .btn-primario,
   .dark .btn-perigo {
     --color-white: #ffffff;
+  }
+  /* Anel de "recorte" dos selos (ring-white) acompanha a superfície, mesmo dentro de text-white */
+  .dark .ring-white {
+    --tw-ring-color: #171b16;
   }
   /* Painéis claros dentro de áreas de texto branco (ex.: menu do usuário no menu lateral) */
   .dark .superficie {

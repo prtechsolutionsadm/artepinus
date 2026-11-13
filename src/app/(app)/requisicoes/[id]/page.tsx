@@ -30,6 +30,7 @@ import {
   formatarDuracao,
   minutosEntre,
   numeroRequisicao,
+  inteiroPositivo,
 } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { CREDITO, EMPRESA, direitos } from "@/lib/empresa";
@@ -45,8 +46,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function RequisicaoPage({ params }: Params) {
   const eu = await exigirModulo("manutencao");
-  const id = Number((await params).id);
-  if (!Number.isInteger(id)) notFound();
+  const id = inteiroPositivo((await params).id);
+  if (!id) notFound();
 
   const req = await db.requisicao.findUnique({
     where: { id },

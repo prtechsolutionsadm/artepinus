@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { ListaRequisicoes, selectItemRequisicao } from "@/components/ListaRequisicoes";
 import { Titulo } from "@/components/ui";
-import { PRIORIDADE, STATUS, STATUS_ORDEM, STATUS_PENDENTES, TIPO } from "@/lib/constantes";
+import { PRIORIDADE, STATUS, STATUS_ORDEM, STATUS_PENDENTES, TIPO, inteiroPositivo } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { exigirModulo } from "@/lib/session";
 import type { Prisma } from "@/generated/prisma/client";
@@ -39,12 +39,12 @@ export default async function RequisicoesPage({ searchParams }: { searchParams: 
   if (f.minhas) where.solicitanteId = eu.id;
   if (f.q?.trim()) {
     const q = f.q.trim();
-    const numero = Number(q.replace(/^#/, ""));
+    const numero = inteiroPositivo(q.replace(/^#/, ""));
     where.OR = [
       { titulo: { contains: q, mode: "insensitive" } },
       { descricao: { contains: q, mode: "insensitive" } },
       { equipamento: { is: { OR: [{ codigo: { contains: q, mode: "insensitive" } }, { nome: { contains: q, mode: "insensitive" } }] } } },
-      ...(Number.isInteger(numero) && numero > 0 ? [{ id: numero }] : []),
+      ...(numero ? [{ id: numero }] : []),
     ];
   }
 

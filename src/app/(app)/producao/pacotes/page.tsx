@@ -126,6 +126,8 @@ export default async function PacotesPage({ searchParams }: { searchParams: Prom
         </Vazio>
       ) : (
         <ListaPacotes
+          // Trocar o filtro zera a seleção (os pacotes marcados saem da lista)
+          key={`${status}|${busca}|${boletim ?? ""}|${ciclo ?? ""}`}
           podeExpedir={podeProducao(eu, "lancar")}
           motoristas={motoristas}
           linhas={pacotes.map((p) => ({

@@ -1,16 +1,28 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { listarFila, limparFila } from "@/lib/fila-offline";
+import { removerInscricaoPush } from "@/app/actions/notificacoes";
+import { limparPaginasGuardadas, listarFila, limparFila } from "@/lib/fila-offline";
 
-/** Sair: avisa se há lançamentos não enviados e apaga as páginas guardadas no aparelho. */
+/** Sair: avisa se há lançamentos não enviados, desliga os avisos e apaga as páginas guardadas no aparelho. */
 export function BotaoSair({ sair, variante = "icone" }: { sair: () => Promise<void>; variante?: "icone" | "botao" | "item" | "lateral" }) {
   const aoSair = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const pendentes = (await listarFila()).length;
     if (pendentes && !confirm(`Há ${pendentes} lançamento(s) feito(s) sem internet que ainda não foram enviados. Se sair agora, eles serão perdidos. Sair mesmo assim?`)) return;
+    // Aparelho compartilhado: os avisos de quem saiu não continuam chegando nele.
+    // Ainda com a sessão valendo; sem internet, o unsubscribe local já corta o push.
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      const inscricao = await reg?.pushManager?.getSubscription();
+      if (inscricao) {
+        await removerInscricaoPush(inscricao.endpoint).catch(() => {});
+        await inscricao.unsubscribe().catch(() => {});
+      }
+    } catch {}
     await limparFila();
     navigator.serviceWorker?.controller?.postMessage({ tipo: "limpar" });
+    await limparPaginasGuardadas(); // também sem o SW controlar a aba
     await sair();
   };
   return (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FileCheck } from "lucide-react";
-import { CINZA, TEXTO, VERDE, cabecalho, novoPdf, rodape } from "@/lib/pdf-cliente";
+import { CINZA, TEXTO, VERDE, avisarFalhaPdf, cabecalho, novoPdf, rodape } from "@/lib/pdf-cliente";
 
 export type DadosDeclaracaoOrigem = {
   romaneio: string;
@@ -213,6 +213,8 @@ export function BotaoDeclaracaoOrigem({ dados, lang }: { dados: DadosDeclaracaoO
 
       rodape(doc);
       doc.save(`${t.arquivo}-${dados.romaneio}.pdf`);
+    } catch (e) {
+      avisarFalhaPdf(e);
     } finally {
       setGerando(false);
     }

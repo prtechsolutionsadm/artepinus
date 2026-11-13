@@ -6,8 +6,8 @@ import { z } from "zod";
 import { auditar, diferencas } from "@/lib/auditoria";
 import { db } from "@/lib/db";
 import { LOGIN_REGEX } from "@/lib/constantes";
-import { PERFIS_ATRIBUIVEIS, modulosDe, pode } from "@/lib/permissoes";
-import { exigirPermissao, exigirUsuario } from "@/lib/session";
+import { PERFIS_ATRIBUIVEIS, modulosDe } from "@/lib/permissoes";
+import { exigirPermissao } from "@/lib/session";
 import type { EstadoForm } from "./auth";
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
@@ -64,6 +64,8 @@ export async function salvarUsuario(_: EstadoForm, form: FormData): Promise<Esta
           ...(senha || (existente.ativo && !resto.ativo) ? { versaoSessao: { increment: 1 } } : {}),
         },
       });
+      // Desativado: o celular dele deixa de receber os avisos
+      if (existente.ativo && !resto.ativo) await db.inscricaoPush.deleteMany({ where: { usuarioId: id } });
       const mudou = diferencas(existente, resto, ["nome", "login", "perfil", "perfilProducao", "ativo"]);
       if (senha) mudou.senha = { de: null, para: "redefinida" };
       if (Object.keys(mudou).length) {
@@ -120,8 +122,7 @@ const equipamentoSchema = z.object({
 });
 
 export async function salvarEquipamento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const eu = await exigirUsuario();
-  if (!pode(eu.perfil, "equipamentos")) return { erro: "Sem permissão" };
+  const eu = await exigirPermissao("equipamentos");
   const dados = equipamentoSchema.safeParse(Object.fromEntries(form));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { id, ...resto } = dados.data;

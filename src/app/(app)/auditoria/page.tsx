@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Titulo, Vazio } from "@/components/ui";
-import { PERFIL, PERFIL_PRODUCAO, STATUS, formatarData } from "@/lib/constantes";
+import { PERFIL, PERFIL_PRODUCAO, STATUS, formatarData, diaValido } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { exigirPermissao } from "@/lib/session";
 import type { Prisma } from "@/generated/prisma/client";
@@ -66,8 +66,8 @@ export default async function AuditoriaPage({ searchParams }: { searchParams: Pr
   if (f.entidade && f.entidade in ENTIDADES) where.entidade = f.entidade;
   if (f.q?.trim()) where.resumo = { contains: f.q.trim(), mode: "insensitive" };
   const criado: Prisma.DateTimeFilter = {};
-  if (f.de && /^\d{4}-\d{2}-\d{2}$/.test(f.de)) criado.gte = new Date(`${f.de}T00:00:00-03:00`);
-  if (f.ate && /^\d{4}-\d{2}-\d{2}$/.test(f.ate)) criado.lt = new Date(new Date(`${f.ate}T00:00:00-03:00`).getTime() + 86400000);
+  if (diaValido(f.de)) criado.gte = new Date(`${f.de}T00:00:00-03:00`);
+  if (diaValido(f.ate)) criado.lt = new Date(new Date(`${f.ate}T00:00:00-03:00`).getTime() + 86400000);
   if (criado.gte || criado.lt) where.criadoEm = criado;
 
   const [total, itens, usuarios, setores] = await Promise.all([

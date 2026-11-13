@@ -12,6 +12,7 @@ import {
   CENTRO,
   CHECKLIST_ESTUFA,
   arred,
+  dateParaDia,
   diaParaDate,
   formatarDia,
   hojeSP,
@@ -33,11 +34,16 @@ export type Resultado = { erro?: string; id?: string | number; numero?: number }
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
 const opcional = <T extends z.ZodTypeAny>(t: T) => z.preprocess(vazioParaNull, t.nullable());
-const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
+const dia = z.iso.date({ message: "Data inválida" });
 const positivo = (msg: string) => z.coerce.number({ message: msg }).positive(msg);
 
 function erroUnico(e: unknown) {
   return typeof e === "object" && e !== null && "code" in e && e.code === "P2002";
+}
+
+/** P2025: o registro não existe (outros erros não podem virar "não encontrado"). */
+function registroNaoEncontrado(e: unknown) {
+  return typeof e === "object" && e !== null && "code" in e && e.code === "P2025";
 }
 
 async function exigirAcao(acao: "lancar" | "gerir") {
@@ -86,6 +92,7 @@ export async function salvarBoletim(entrada: DadosBoletim): Promise<Resultado> {
   const cfg = await configSerraria();
   const antes = id ? await db.boletimProducao.findUnique({ where: { id } }) : null;
   if (id && !antes) return { erro: "Boletim não encontrado" };
+  if (antes && dateParaDia(antes.data) !== campos.data) return { erro: "A data do boletim não pode ser alterada" };
   const horas = antes?.horasProgramadas ?? cfg.horasDia;
   // As paradas marcadas na hora (botão "Máquina parou") não passam pelo formulário
   const automaticas = id
@@ -228,8 +235,14 @@ export async function lancarLote(entrada: DadosLote): Promise<Resultado> {
 export async function excluirLote(id: string): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("gerir");
   if (!ok) return { erro: "Sem permissão" };
-  const l = await db.lote.delete({ where: { id } }).catch(() => null);
-  if (!l) return { erro: "Lote não encontrado" };
+  let l;
+  try {
+    l = await db.lote.delete({ where: { id } });
+  } catch (e) {
+    if (registroNaoEncontrado(e)) return { erro: "Lote não encontrado" };
+    console.error("Falha ao excluir lote", e);
+    return { erro: "Não foi possível excluir o lote. Tente novamente." };
+  }
   await auditar({ usuarioId: eu.id, acao: "boletim.lote.excluir", entidade: "Lote", entidadeId: id, resumo: `Excluiu o lote ${codigoLote(l.numero)}` });
   revalidatePath("/producao", "layout");
   return {};
@@ -238,9 +251,34 @@ export async function excluirLote(id: string): Promise<Resultado> {
 export async function excluirBoletim(id: string): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("gerir");
   if (!ok) return { erro: "Sem permissão" };
-  const b = await db.boletimProducao.delete({ where: { id } }).catch(() => null);
-  if (!b) return { erro: "Boletim não encontrado" };
-  await auditar({ usuarioId: eu.id, acao: "boletim.excluir", entidade: "BoletimProducao", entidadeId: id, resumo: `Excluiu o boletim da serraria de ${formatarDia(b.data)}` });
+  const atual = await db.boletimProducao.findUnique({
+    where: { id },
+    select: { _count: { select: { pacotes: true, ciclos: true } }, lotes: { select: { numero: true }, orderBy: { numero: "asc" } } },
+  });
+  if (!atual) return { erro: "Boletim não encontrado" };
+  // A origem (rastreio e declaração) dos pacotes e ciclos chega às florestas por este boletim
+  const { pacotes, ciclos } = atual._count;
+  if (pacotes || ciclos)
+    return {
+      erro: `Há ${[pacotes ? `${pacotes} pacote(s)` : "", ciclos ? `${ciclos} ciclo(s) de estufa` : ""].filter(Boolean).join(" e ")} com a madeira deste dia; o boletim não pode ser excluído porque a origem deles depende dele.`,
+    };
+  let b;
+  try {
+    b = await db.boletimProducao.delete({ where: { id } });
+  } catch (e) {
+    if (registroNaoEncontrado(e)) return { erro: "Boletim não encontrado" };
+    console.error("Falha ao excluir boletim", e);
+    return { erro: "Não foi possível excluir o boletim. Tente novamente." };
+  }
+  // Os lotes do dia saem junto (cascade): registra os códigos apagados
+  const lotes = atual.lotes.map((l) => codigoLote(l.numero));
+  await auditar({
+    usuarioId: eu.id,
+    acao: "boletim.excluir",
+    entidade: "BoletimProducao",
+    entidadeId: id,
+    resumo: `Excluiu o boletim da serraria de ${formatarDia(b.data)}${lotes.length ? ` e os lotes ${lotes.join(", ")}` : ""}`,
+  });
   revalidatePath("/producao", "layout");
   return {};
 }
@@ -404,20 +442,29 @@ export async function salvarCiclo(entrada: DadosCiclo): Promise<Resultado> {
   };
   if (!dados.entrada) return { erro: "Data de entrada inválida" };
   if (dados.previsaoSaida && dados.previsaoSaida < dados.entrada) return { erro: "A previsão de saída é anterior à entrada" };
+  const antes = id ? await db.cicloSecagem.findUnique({ where: { id } }) : null;
+  if (id && !antes) return { erro: "Ciclo não encontrado" };
+  if (antes && antes.status !== "EM_SECAGEM") return { erro: "O ciclo já foi encerrado" };
   const estufa = await db.estufa.findUnique({ where: { id: c.estufaId } });
   if (!estufa) return { erro: "Estufa não encontrada" };
   const outro = await db.cicloSecagem.findFirst({ where: { estufaId: c.estufaId, status: "EM_SECAGEM", ...(id ? { id: { not: id } } : {}) } });
   if (outro) return { erro: `A ${estufa.nome} já tem um ciclo em secagem — conclua-o antes` };
 
   const volume = arred(cargas.reduce((s, x) => s + x.m3, 0), 3);
-  if (id) {
-    const antes = await db.cicloSecagem.findUnique({ where: { id } });
-    if (!antes) return { erro: "Ciclo não encontrado" };
+  if (id && antes) {
+    // Previsão mudou: o aviso de estufa atrasada pode sair de novo
+    const mudouPrevisao = (antes.previsaoSaida?.getTime() ?? null) !== (dados.previsaoSaida?.getTime() ?? null);
     await db.$transaction([
       db.cargaCiclo.deleteMany({ where: { cicloId: id } }),
       db.cicloSecagem.update({
         where: { id },
-        data: { ...dados, entrada: dados.entrada, cargas: { create: cargas }, boletins: { set: boletimIds.map((b) => ({ id: b })) } },
+        data: {
+          ...dados,
+          entrada: dados.entrada,
+          ...(mudouPrevisao ? { alertaAtrasoEm: null } : {}),
+          cargas: { create: cargas },
+          boletins: { set: boletimIds.map((b) => ({ id: b })) },
+        },
       }),
     ]);
     await auditar({ usuarioId: eu.id, acao: "ciclo.editar", entidade: "CicloSecagem", entidadeId: id, resumo: `Editou o ciclo da ${estufa.nome} (${volume} m³)` });
@@ -440,20 +487,40 @@ export async function salvarCiclo(entrada: DadosCiclo): Promise<Resultado> {
   return { id: novo.id };
 }
 
+const marcarItemSchema = z.object({
+  itemId: z.string().min(1, "Item inválido").max(64, "Item inválido"),
+  conforme: z.boolean({ message: "Marcação inválida" }).nullable(),
+  observacao: z.string().max(2000, "Observação muito longa").optional(),
+});
+
 export async function marcarItemCiclo(itemId: string, conforme: boolean | null, observacao?: string): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("lancar");
   if (!ok) return { erro: "Sem permissão" };
-  const item = await db.itemChecklistCiclo.findUnique({ where: { id: itemId }, include: { ciclo: { select: { id: true, status: true } } } });
+  const parse = marcarItemSchema.safeParse({ itemId, conforme, observacao });
+  if (!parse.success) return { erro: parse.error.issues[0].message };
+  const item = await db.itemChecklistCiclo.findUnique({
+    where: { id: itemId },
+    include: { ciclo: { select: { id: true, status: true, estufa: { select: { nome: true } } } } },
+  });
   if (!item) return { erro: "Item não encontrado" };
   if (item.ciclo.status !== "EM_SECAGEM") return { erro: "O ciclo já foi encerrado" };
+  const obs = observacao === undefined ? undefined : observacao.trim().slice(0, 300) || null;
   await db.itemChecklistCiclo.update({
     where: { id: itemId },
     data: {
       conforme,
-      observacao: observacao === undefined ? undefined : observacao.trim().slice(0, 300) || null,
+      observacao: obs,
       marcadoPorId: conforme === null ? null : eu.id,
       marcadoEm: conforme === null ? null : new Date(),
     },
+  });
+  await auditar({
+    usuarioId: eu.id,
+    acao: "ciclo.checklist.item",
+    entidade: "CicloSecagem",
+    entidadeId: item.ciclo.id,
+    resumo: `${conforme === null ? "Desmarcou" : conforme ? "Marcou OK" : "Marcou não conforme"} "${item.texto}" no ciclo da ${item.ciclo.estufa.nome}`,
+    detalhes: { itemId, de: item.conforme, para: conforme, ...(obs !== undefined ? { observacao: obs } : {}) },
   });
   revalidatePath(`/producao/estufas/ciclos/${item.ciclo.id}`);
   return {};
@@ -584,8 +651,14 @@ export async function salvarCargaToras(entrada: DadosCargaToras): Promise<Result
 export async function excluirCargaToras(id: string): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("gerir");
   if (!ok) return { erro: "Sem permissão" };
-  const c = await db.cargaToras.delete({ where: { id } }).catch(() => null);
-  if (!c) return { erro: "Carga não encontrada" };
+  let c;
+  try {
+    c = await db.cargaToras.delete({ where: { id } });
+  } catch (e) {
+    if (registroNaoEncontrado(e)) return { erro: "Carga não encontrada" };
+    console.error("Falha ao excluir carga de toras", e);
+    return { erro: "Não foi possível excluir a carga. Tente novamente." };
+  }
   await auditar({ usuarioId: eu.id, acao: "toras.excluir", entidade: "CargaToras", entidadeId: id, resumo: `Excluiu a carga de toras de ${c.origem} (${formatarDia(c.data)})` });
   revalidatePath("/producao", "layout");
   return {};
@@ -666,8 +739,14 @@ export async function salvarLevantamento(entrada: DadosLevantamento): Promise<Re
 export async function excluirLevantamento(id: string): Promise<Resultado> {
   const { eu, ok } = await exigirAcao("gerir");
   if (!ok) return { erro: "Sem permissão" };
-  const l = await db.levantamentoEstoque.delete({ where: { id } }).catch(() => null);
-  if (!l) return { erro: "Levantamento não encontrado" };
+  let l;
+  try {
+    l = await db.levantamentoEstoque.delete({ where: { id } });
+  } catch (e) {
+    if (registroNaoEncontrado(e)) return { erro: "Levantamento não encontrado" };
+    console.error("Falha ao excluir levantamento de estoque", e);
+    return { erro: "Não foi possível excluir o levantamento. Tente novamente." };
+  }
   await auditar({ usuarioId: eu.id, acao: "estoque.excluir", entidade: "LevantamentoEstoque", entidadeId: id, resumo: `Excluiu o levantamento de estoque de ${formatarDia(l.data)}` });
   revalidatePath("/producao", "layout");
   return {};

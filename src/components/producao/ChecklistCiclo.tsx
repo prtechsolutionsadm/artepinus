@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, X } from "lucide-react";
 import { marcarItemCiclo } from "@/app/actions/producao";
+import { mensagemFalha } from "@/lib/falha-acao";
 
 type Item = { id: string; secao: string | null; texto: string; conforme: boolean | null; observacao: string | null; marcadoPor: string | null };
 
@@ -16,9 +17,14 @@ export function ChecklistCiclo({ itens: iniciais, editavel }: { itens: Item[]; e
     const antes = itens;
     setItens((l) => l.map((i) => (i.id === id ? { ...i, conforme, ...(observacao !== undefined ? { observacao } : {}) } : i)));
     iniciar(async () => {
-      const r = await marcarItemCiclo(id, conforme, observacao);
-      if (r.erro) {
-        setErro(r.erro);
+      try {
+        const r = await marcarItemCiclo(id, conforme, observacao);
+        if (r.erro) {
+          setErro(r.erro);
+          setItens(antes);
+        }
+      } catch (e) {
+        setErro(mensagemFalha(e));
         setItens(antes);
       }
     });

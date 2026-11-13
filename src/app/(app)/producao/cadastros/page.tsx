@@ -14,6 +14,7 @@ import { salvarEstufa, salvarMotivo } from "@/app/actions/producao";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
 import { Badge, Titulo, Vazio } from "@/components/ui";
 import { db } from "@/lib/db";
+import { situacaoPedidos } from "@/lib/pedidos";
 import { CENTRO, fmtM3, fmtNum } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 import { exigirProducao } from "@/lib/session";
@@ -293,13 +294,11 @@ export default async function CadastrosPage({
 }
 
 async function Pedidos() {
-  const pedidos = await db.pedido.findMany({
-    orderBy: [{ status: "asc" }, { criadoEm: "desc" }],
-    include: {
-      lotes: { select: { itens: { select: { m3: true } } } },
-      _count: { select: { pacotes: true } },
-    },
-  });
+  const [pedidos, situacao] = await Promise.all([
+    db.pedido.findMany({ orderBy: [{ status: "asc" }, { criadoEm: "desc" }] }),
+    situacaoPedidos(),
+  ]);
+  const sit = new Map(situacao.map((s) => [s.id, s]));
   return (
     <Lista
       novo="Novo pedido"
@@ -322,16 +321,9 @@ async function Pedidos() {
             {p.status === "ABERTO" ? "Aberto" : "Concluído"}
           </Badge>
           <span className="text-xs text-stone-500">
-            {fmtM3(
-              p.lotes.reduce(
-                (t, l) => t + l.itens.reduce((x, i) => x + i.m3, 0),
-                0,
-              ),
-              1,
-            )}{" "}
-            serrados
+            {fmtM3(sit.get(p.id)?.serrado ?? 0, 1)} serrados
             {p.volumeM3 ? ` de ${fmtM3(p.volumeM3, 1)}` : ""} ·{" "}
-            {p._count.pacotes} pacote(s)
+            {sit.get(p.id)?.pacotes ?? 0} pacote(s)
             {p.prazo
               ? ` · prazo ${p.prazo.toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
               : ""}

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { verificarPedidosProntos } from "@/lib/alertas-serraria";
 import { z } from "zod";
+import type { Motorista, Prisma } from "@/generated/prisma/client";
 import { auditar } from "@/lib/auditoria";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
@@ -61,6 +62,7 @@ export async function criarPacotes(entrada: DadosPacote): Promise<Resultado> {
     const c = await db.cicloSecagem.findUnique({ where: { id: cicloId! }, include: { estufa: { select: { nome: true } } } });
     if (!c) return { erro: "Ciclo de estufa não encontrado" };
     if (c.status === "CANCELADO") return { erro: "Este ciclo foi cancelado" };
+    if (c.status !== "CONCLUIDO") return { erro: "O ciclo ainda não foi concluído" };
     descricao = `Formado com a madeira seca da ${c.estufa.nome}${c.numero ? ` (ciclo nº ${c.numero})` : ""}`;
   }
   const m3 = m3Pecas(p.espessura, p.largura, p.comprimento, p.pecas);
@@ -96,16 +98,25 @@ export async function criarPacotes(entrada: DadosPacote): Promise<Resultado> {
   return { numeros };
 }
 
-/** Cria o romaneio (documento da carga) com o motorista e as placas do cadastro. */
-async function criarRomaneio(
+/** Pacote mudou de status entre a leitura e a gravação (outra expedição, cancelamento ou estufa): desfaz a transação. */
+class ConflitoExpedicao extends Error {}
+const semConflito = (e: unknown) => {
+  if (e instanceof ConflitoExpedicao) return null;
+  throw e;
+};
+
+const buscarMotorista = (id: string | null | undefined) => (id ? db.motorista.findUnique({ where: { id } }) : null);
+
+/** Cria o romaneio (documento da carga) com o motorista e as placas do cadastro, dentro da transação da expedição. */
+function criarRomaneio(
+  tx: Prisma.TransactionClient,
   criadoPorId: string,
   pacoteIds: string[],
-  motoristaId: string | null | undefined,
+  m: Motorista | null,
   observacoes: string | null | undefined,
   nf: { notaFiscal?: string | null; chaveNfe?: string | null } = {},
 ) {
-  const m = motoristaId ? await db.motorista.findUnique({ where: { id: motoristaId } }) : null;
-  return db.romaneio.create({
+  return tx.romaneio.create({
     data: {
       criadoPorId,
       motoristaId: m?.id ?? null,
@@ -175,12 +186,23 @@ export async function registrarEventoPacote(_: EstadoForm, form: FormData): Prom
       if (encerrado) return { erro: "Pacote já expedido ou cancelado" };
       if (pacote.status === "EM_ESTUFA") return { erro: "O pacote ainda está na estufa" };
       const pedido = pacote.pedidoId ? await db.pedido.findUnique({ where: { id: pacote.pedidoId } }) : null;
-      const rom = await criarRomaneio(eu.id, [pacote.id], d.motoristaId, d.texto, { notaFiscal: d.notaFiscal, chaveNfe: d.chaveNfe });
-      await evento(
-        "EXPEDIDO",
-        `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}${pedido ? ` · pedido ${pedido.numero} · ${pedido.cliente}` : ""}`,
-        { status: "EXPEDIDO", expedidoEm: new Date() },
-      );
+      const m = await buscarMotorista(d.motoristaId);
+      const descricao = await db
+        .$transaction(async (tx) => {
+          // Trava otimista: só expede se ainda está verde/seco (dois aparelhos ao mesmo tempo não geram dois romaneios)
+          const { count } = await tx.pacote.updateMany({
+            where: { id: pacote.id, status: { in: ["VERDE", "SECO"] } },
+            data: { status: "EXPEDIDO", expedidoEm: new Date() },
+          });
+          if (count === 0) throw new ConflitoExpedicao();
+          const rom = await criarRomaneio(tx, eu.id, [pacote.id], m, d.texto, { notaFiscal: d.notaFiscal, chaveNfe: d.chaveNfe });
+          const texto = `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}${pedido ? ` · pedido ${pedido.numero} · ${pedido.cliente}` : ""}`;
+          await tx.eventoPacote.create({ data: { pacoteId: pacote.id, tipo: "EXPEDIDO", descricao: texto, usuarioId: eu.id } });
+          return texto;
+        })
+        .catch(semConflito);
+      if (descricao === null) return { erro: "Pacote já expedido, cancelado ou na estufa" };
+      await auditar({ usuarioId: eu.id, acao: "pacote.expedir", entidade: "Pacote", entidadeId: pacote.id, resumo: `${codigo}: ${descricao}` });
       break;
     }
     case "local":
@@ -215,17 +237,28 @@ export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): 
   if (!ok) return { erro: "Sem permissão" };
   const parse = expedicaoSchema.safeParse(entrada);
   if (!parse.success) return { erro: parse.error.issues[0].message };
-  const { numeros, motoristaId, observacoes, notaFiscal, chaveNfe } = parse.data;
-  const pacotes = await db.pacote.findMany({ where: { numero: { in: numeros } }, select: { id: true, numero: true, status: true } });
+  const { motoristaId, observacoes, notaFiscal, chaveNfe } = parse.data;
+  const numeros = [...new Set(parse.data.numeros)];
+  const pacotes = await db.pacote.findMany({ where: { numero: { in: numeros } }, select: { id: true, numero: true, status: true, pedidoId: true } });
+  const faltando = numeros.filter((n) => !pacotes.some((p) => p.numero === n));
+  if (faltando.length) return { erro: `Pacote não encontrado: ${faltando.map((n) => codigoPacote(n)).join(", ")}` };
   const invalidos = pacotes.filter((p) => p.status !== "VERDE" && p.status !== "SECO");
   if (invalidos.length) return { erro: `Não dá para expedir: ${invalidos.map((p) => codigoPacote(p.numero)).join(", ")} (na estufa, expedido ou cancelado)` };
+  const m = await buscarMotorista(motoristaId);
   const agora = new Date();
-  const rom = await criarRomaneio(eu.id, pacotes.map((p) => p.id), motoristaId, observacoes, { notaFiscal, chaveNfe });
-  const descricao = `Saída registrada no romaneio ${codigoRomaneio(rom.numero)}${rom.notaFiscal ? ` · NF ${rom.notaFiscal}` : ""}${rom.motorista ? ` · ${rom.motorista} (${[rom.placa, rom.placaJulieta].filter(Boolean).join(" + ")})` : ""}`;
-  await db.$transaction([
-    db.pacote.updateMany({ where: { id: { in: pacotes.map((p) => p.id) } }, data: { status: "EXPEDIDO", expedidoEm: agora } }),
-    db.eventoPacote.createMany({ data: pacotes.map((p) => ({ pacoteId: p.id, tipo: "EXPEDIDO" as const, descricao, usuarioId: eu.id, criadoEm: agora })) }),
-  ]);
+  const ids = pacotes.map((p) => p.id);
+  const rom = await db
+    .$transaction(async (tx) => {
+      // Trava otimista: todos precisam continuar verdes/secos; senão desfaz tudo (nada de romaneio duplicado ou órfão)
+      const { count } = await tx.pacote.updateMany({ where: { id: { in: ids }, status: { in: ["VERDE", "SECO"] } }, data: { status: "EXPEDIDO", expedidoEm: agora } });
+      if (count !== ids.length) throw new ConflitoExpedicao();
+      const novo = await criarRomaneio(tx, eu.id, ids, m, observacoes, { notaFiscal, chaveNfe });
+      const descricao = `Saída registrada no romaneio ${codigoRomaneio(novo.numero)}${novo.notaFiscal ? ` · NF ${novo.notaFiscal}` : ""}${novo.motorista ? ` · ${novo.motorista} (${[novo.placa, novo.placaJulieta].filter(Boolean).join(" + ")})` : ""}`;
+      await tx.eventoPacote.createMany({ data: ids.map((pacoteId) => ({ pacoteId, tipo: "EXPEDIDO" as const, descricao, usuarioId: eu.id, criadoEm: agora })) });
+      return novo;
+    })
+    .catch(semConflito);
+  if (!rom) return { erro: "Algum pacote acabou de ser expedido, cancelado ou foi para a estufa. Atualize a lista." };
   await auditar({
     usuarioId: eu.id,
     acao: "pacote.expedir",
@@ -234,5 +267,6 @@ export async function expedirPacotes(entrada: z.input<typeof expedicaoSchema>): 
     detalhes: { pacotes: pacotes.map((p) => codigoPacote(p.numero)) },
   });
   revalidatePath("/producao", "layout");
+  after(() => verificarPedidosProntos([...new Set(pacotes.map((p) => p.pedidoId))]).catch((e) => console.error(e)));
   return { numeros: pacotes.map((p) => p.numero), romaneio: rom.numero };
 }

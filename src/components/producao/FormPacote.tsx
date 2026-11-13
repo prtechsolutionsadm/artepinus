@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2, Printer } from "lucide-react";
 import { criarPacotes } from "@/app/actions/rastreio";
+import { mensagemFalha } from "@/lib/falha-acao";
 import { CLASSE_MADEIRA, LARGURAS, classeDoComprimento, fmtComprimento, fmtM3, fmtNum, m3Pecas } from "@/lib/producao";
 import { codigoPacote } from "@/lib/rastreio";
 
@@ -84,19 +85,24 @@ export function FormPacote({
     if (!materialId) return setErro("Toque na madeira que vai formar o pacote");
     if (!f.largura) return setErro("Escolha a largura");
     iniciar(async () => {
-      const r = await criarPacotes({
-        origem,
-        cicloId: origem === "ciclo" ? cicloId : null,
-        boletimId: origem === "boletim" ? boletimId : null,
-        espessura: f.espessura,
-        largura: f.largura,
-        comprimento: f.comprimento,
-        pecas: f.pecas,
-        quantidade: f.quantidade,
-        classe,
-        pedidoId: f.pedidoId,
-        observacoes: f.observacoes,
-      });
+      let r: Awaited<ReturnType<typeof criarPacotes>>;
+      try {
+        r = await criarPacotes({
+          origem,
+          cicloId: origem === "ciclo" ? cicloId : null,
+          boletimId: origem === "boletim" ? boletimId : null,
+          espessura: f.espessura,
+          largura: f.largura,
+          comprimento: f.comprimento,
+          pecas: f.pecas,
+          quantidade: f.quantidade,
+          classe,
+          pedidoId: f.pedidoId,
+          observacoes: f.observacoes,
+        });
+      } catch (e) {
+        return setErro(mensagemFalha(e));
+      }
       if (r.erro) return setErro(r.erro);
       setCriados(r.numeros ?? []);
       setMaterialId("");

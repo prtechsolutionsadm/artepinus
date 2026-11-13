@@ -14,6 +14,8 @@ export type Sessao = {
 function chave() {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error("AUTH_SECRET não configurado");
+  // Recusa o valor de exemplo publicado no .env.example (qualquer um poderia assinar sessões)
+  if (secret.startsWith("troque-por")) throw new Error("AUTH_SECRET ainda com o valor de exemplo do .env.example (gere com: openssl rand -base64 32)");
   return new TextEncoder().encode(secret);
 }
 

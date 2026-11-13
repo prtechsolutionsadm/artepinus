@@ -18,11 +18,14 @@ export default async function TorasPage({ searchParams }: { searchParams: Promis
   const atual = mesDe(hojeSP());
   const { mes: q } = await searchParams;
   const mes = q && /^\d{4}-\d{2}$/.test(q) ? q : atual;
-  const cargas = await db.cargaToras.findMany({
-    where: { data: intervaloMes(mes) },
-    orderBy: [{ data: "desc" }, { criadoEm: "desc" }],
-    include: { floresta: { select: { nome: true } }, fornecedor: { select: { nome: true } } },
-  });
+  const [cargas, comDados] = await Promise.all([
+    db.cargaToras.findMany({
+      where: { data: intervaloMes(mes) },
+      orderBy: [{ data: "desc" }, { criadoEm: "desc" }],
+      include: { floresta: { select: { nome: true } }, fornecedor: { select: { nome: true } } },
+    }),
+    mesesComCargas(),
+  ]);
   const totalPeso = cargas.reduce((t, c) => t + (c.pesoT ?? 0), 0);
   const porClasse = (Object.keys(CLASSE_DIAMETRO) as ClasseDiametro[]).map((k) => ({
     k,
@@ -46,7 +49,7 @@ export default async function TorasPage({ searchParams }: { searchParams: Promis
         Recebimento de toras
       </Titulo>
       <div className="mb-5">
-        <SeletorMes mes={mes} atual={atual} base="/producao/toras" comDados={await mesesComCargas()} />
+        <SeletorMes mes={mes} atual={atual} base="/producao/toras" comDados={comDados} />
       </div>
 
       {cargas.length === 0 ? (

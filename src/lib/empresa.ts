@@ -12,7 +12,12 @@ export const EMPRESA = {
   /** PNG (transparente) para o Excel, que não aceita SVG. */
   logoPng: "/logo.png",
   desenvolvedor: "PR Tech Solutions",
-  /** Endereço público do site (preview de compartilhamento e links do QR). Troque ao usar domínio próprio. */
+  /**
+   * Endereço público do site: aparece no rodapé dos roteiros impressos e, quando NEXT_PUBLIC_SITE_URL
+   * não está definida, vale no preview de compartilhamento (metadataBase em src/app/layout.tsx) e no robots.
+   * Os links do QR (urlBase em src/lib/qr.ts) usam NEXT_PUBLIC_SITE_URL; sem ela, este valor em produção
+   * e o host da requisição em desenvolvimento. Ao usar domínio próprio, troque aqui e defina NEXT_PUBLIC_SITE_URL na Vercel.
+   */
   site: "https://artepinus.vercel.app",
   /**
    * Contato mostrado no site. Preencha com os dados reais: o site só mostra o que
@@ -26,6 +31,14 @@ export const EMPRESA = {
     cidade: "Caçador – SC · CEP 89503-575",
     mapa: "https://maps.app.goo.gl/Q7RT7KDz8AQyWkZMA", // link do Google Maps
     instagram: "artepinus_ind", // usuário, sem @
+  },
+  /**
+   * Encarregado pelo tratamento de dados (LGPD art. 41), mostrado na Política de Privacidade.
+   * Preencha com os dados reais; vazio, a política indica os contatos da empresa.
+   */
+  encarregado: {
+    nome: "",
+    email: "",
   },
 };
 

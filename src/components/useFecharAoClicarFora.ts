@@ -6,12 +6,13 @@ import { useEffect, type RefObject } from "react";
 export function useFecharAoClicarFora(aberto: boolean, ref: RefObject<HTMLElement | null>, fechar: () => void) {
   useEffect(() => {
     if (!aberto) return;
-    const fora = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && fechar();
+    // pointerdown (e não mousedown): no iOS o toque fora de algo "clicável" não gera mousedown
+    const fora = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && fechar();
     const esc = (e: KeyboardEvent) => e.key === "Escape" && fechar();
-    document.addEventListener("mousedown", fora);
+    document.addEventListener("pointerdown", fora);
     document.addEventListener("keydown", esc);
     return () => {
-      document.removeEventListener("mousedown", fora);
+      document.removeEventListener("pointerdown", fora);
       document.removeEventListener("keydown", esc);
     };
   }, [aberto, ref, fechar]);

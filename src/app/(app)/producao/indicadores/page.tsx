@@ -190,7 +190,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
                 },
                 { r: "Tempo parado", v: formatarDuracao(k.minutosParados), d: `${fmtPct(k.minutosProgramados ? k.minutosParados / k.minutosProgramados : null)} do tempo programado` },
                 { r: "Classe Ótimo", v: fmtM3(k.porClasse.OTIMO, 1), d: `${fmtPct(k.producaoM3 ? k.porClasse.OTIMO / k.producaoM3 : null)} do serrado (2,50 e 2,10 m)` },
-                { r: "Rendimento", v: fmtPct(k.rendimento), d: k.torasM3 ? `sobre ${fmtM3(k.torasM3, 0)} de toras` : "informe as toras no boletim" },
+                { r: "Rendimento", v: fmtPct(k.rendimento), d: k.torasM3 ? `sobre ${fmtM3(k.torasM3, 0)} de toras (${k.diasComToras} ${k.diasComToras === 1 ? "dia" : "dias"})` : "informe as toras no boletim" },
               ].map((x) => (
                 <div key={x.r} className="min-w-0 bg-white px-5 py-3.5">
                   <dt className="text-xs font-medium text-stone-500">{x.r}</dt>

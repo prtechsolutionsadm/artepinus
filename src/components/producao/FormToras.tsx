@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CloudOff } from "lucide-react";
 import { salvarCargaToras, type Resultado } from "@/app/actions/producao";
@@ -51,6 +51,13 @@ export function FormToras({
     observacoes: inicial.observacoes ?? "",
   });
   const [classe, setClasse] = useState<ClasseDiametro | null>(inicial.classeDiametro);
+  // "Hoje" só no aparelho: a tela pode ter sido guardada offline num dia anterior
+  const [hoje, setHoje] = useState<string>();
+  useEffect(() => {
+    const h = hojeSP();
+    setHoje(h);
+    if (!inicial.id && inicial.data < h) setF((x) => ({ ...x, data: h }));
+  }, [inicial.id, inicial.data]);
   const set = (c: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF((x) => ({ ...x, [c]: e.target.value }));
   const motorista = motoristas.find((m) => m.id === f.motoristaId);
 
@@ -88,7 +95,7 @@ export function FormToras({
         <section className="cartao grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="t-data">Data *</label>
-            <input id="t-data" type="date" required max={hojeSP()} value={f.data} onChange={set("data")} className="campo" />
+            <input id="t-data" type="date" required max={hoje} value={f.data} onChange={set("data")} className="campo" />
           </div>
           <div>
             <label htmlFor="t-flo">Floresta *</label>

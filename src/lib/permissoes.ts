@@ -35,7 +35,7 @@ export const PERFIS_RESPONSAVEIS: Perfil[] = ["SUPERVISOR", "MANUTENTOR"];
 /** Perfis que podem ser atribuídos na tela de usuários (ADMIN fica de fora). */
 export const PERFIS_ATRIBUIVEIS: Perfil[] = ["GERENTE", "SUPERVISOR", "MANUTENTOR", "OPERADOR", "SEM_ACESSO"];
 
-/** Quem é avisado de uma requisição nova (gerente só nas de prioridade alta/urgente). */
+/** Quem é avisado de uma requisição nova (gerente só nas de prioridade alta/urgente ou com máquina parada). */
 export const AVISO_NOVA = { todas: ["SUPERVISOR", "MANUTENTOR"] as Perfil[], urgentes: ["GERENTE"] as Perfil[] };
 
 // ============================ Módulos ============================
@@ -49,8 +49,8 @@ export const MODULOS: Record<Modulo, { nome: string; inicio: string }> = {
 };
 
 /**
- * Módulos ligados no sistema. A manutenção está desligada por enquanto: código e
- * dados continuam no banco; para religar, inclua "manutencao" aqui.
+ * Módulos liberados a todos. A manutenção está em MODULOS_EM_TESTE (só o ADMIN abre);
+ * para liberar, mova-a para cá.
  */
 export const MODULOS_ATIVOS: Modulo[] = ["producao"];
 
@@ -60,7 +60,7 @@ export const MODULOS_ATIVOS: Modulo[] = ["producao"];
  */
 export const MODULOS_EM_TESTE: Modulo[] = ["manutencao"];
 
-/** Admin e Gerente enxergam todos os módulos com acesso total. */
+/** Admin e Gerente têm acesso total aos módulos ativos (módulo em teste: só o ADMIN). */
 const GLOBAL: Perfil[] = ["ADMIN", "GERENTE"];
 
 export function temModulo(u: UsuarioComPerfis, m: Modulo) {

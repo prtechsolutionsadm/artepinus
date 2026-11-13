@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { auditar, diferencas } from "@/lib/auditoria";
-import { fotosDoForm, processarFoto } from "@/lib/fotos";
+import { ErroFoto, fotosDoForm, processarFoto } from "@/lib/fotos";
 import { criarRequisicaoCompleta, novaRequisicaoSchema } from "@/lib/requisicoes";
 import { exigirModulo } from "@/lib/session";
 import { PERFIS_RESPONSAVEIS, pode } from "@/lib/permissoes";
@@ -30,7 +30,8 @@ export async function criarRequisicao(form: FormData): Promise<ResultadoNova> {
     revalidatePath("/manutencao");
     return { id: req.id };
   } catch (e) {
-    return { erro: e instanceof Error && e.message.includes("imagem") ? e.message : "Não foi possível salvar as fotos. Tente novamente." };
+    console.error("Falha ao criar requisição", e);
+    return { erro: e instanceof ErroFoto ? e.message : "Não foi possível salvar a requisição. Tente novamente." };
   }
 }
 
@@ -270,7 +271,8 @@ export async function enviarFotos(_: EstadoForm, form: FormData): Promise<Estado
       data: processadas.map((f) => ({ ...f, dados: new Uint8Array(f.dados), miniatura: new Uint8Array(f.miniatura), requisicaoId: id, autorId: eu.id, tipo })),
     });
   } catch (e) {
-    return { erro: e instanceof Error && e.message.includes("imagem") ? e.message : "Não foi possível salvar as fotos" };
+    console.error("Falha ao anexar fotos", e);
+    return { erro: e instanceof ErroFoto ? e.message : "Não foi possível salvar as fotos" };
   }
   await auditar({
     usuarioId: eu.id,
@@ -352,6 +354,10 @@ export async function aplicarChecklist(_: EstadoForm, form: FormData): Promise<E
   const eu = await exigirModulo("manutencao");
   if (!pode(eu.perfil, "apontarHoras")) return { erro: "Sem permissão" };
   const id = Number(form.get("id"));
+  if (!Number.isInteger(id)) return { erro: "Requisição inválida" };
+  const req = await db.requisicao.findUnique({ where: { id }, select: { status: true } });
+  if (!req) return { erro: "Requisição não encontrada" };
+  if (STATUS_FINAIS.includes(req.status)) return { erro: "Requisição encerrada: o checklist não pode mais ser alterado" };
   const modeloId = String(form.get("modeloId") ?? "");
   const modelo = await db.checklistModelo.findUnique({ where: { id: modeloId }, include: { itens: { orderBy: { ordem: "asc" } } } });
   if (!modelo) return { erro: "Escolha um checklist" };
@@ -366,6 +372,9 @@ export async function aplicarChecklist(_: EstadoForm, form: FormData): Promise<E
 export async function marcarItemChecklist(itemId: string, feito: boolean) {
   const eu = await exigirModulo("manutencao");
   if (!pode(eu.perfil, "apontarHoras")) throw new Error("Sem permissão");
+  // Requisição encerrada: o checklist fica como foi concluído
+  const atual = await db.checklistItem.findUnique({ where: { id: itemId }, select: { requisicao: { select: { status: true } } } });
+  if (!atual || STATUS_FINAIS.includes(atual.requisicao.status)) return;
   const item = await db.checklistItem.update({
     where: { id: itemId },
     data: { feito, feitoPorId: feito ? eu.id : null, feitoEm: feito ? new Date() : null },

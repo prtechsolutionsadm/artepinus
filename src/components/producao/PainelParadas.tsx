@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, CloudOff, OctagonAlert, Trash2, Wrench, X } from "lucide-react";
 import { excluirParadaMaquina, liberarMaquina, pararMaquina, type Resultado } from "@/app/actions/paradas";
-import { enviarOuGuardar } from "@/lib/fila-offline";
+import { mensagemFalha } from "@/lib/falha-acao";
+import { EVENTO_FILA, enviarOuGuardar, listarFila, type ItemFila } from "@/lib/fila-offline";
 import { CENTRO } from "@/lib/producao";
 import type { CentroParada, OrigemParada } from "@/generated/prisma/enums";
 
@@ -33,6 +34,8 @@ function cronometro(ms: number) {
   return h ? `${h}h${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
+const hora = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+
 /**
  * Botão "Máquina parou" (máquina → motivo → tipo da falha) e as paradas abertas com o
  * cronômetro e o botão "Máquina liberada". Recarrega a cada minuto para ver o que a
@@ -58,7 +61,9 @@ export function PainelParadas({
   const [aberto, setAberto] = useState(false);
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ texto: string; guardado: boolean } | null>(null);
+  // Paradas guardadas no aparelho (sem internet) que ainda não chegaram ao servidor
+  const [naFila, setNaFila] = useState<ItemFila[]>([]);
   const [f, setF] = useState({ equipamentoId: "", motivoId: "", centro: "" as CentroParada | "", descricao: "" });
 
   useEffect(() => {
@@ -70,7 +75,15 @@ export function PainelParadas({
     };
   }, [router]);
 
+  useEffect(() => {
+    const ler = () => listarFila().then((l) => setNaFila(l.filter((i) => i.tipo === "parada" && !i.erro)));
+    ler();
+    window.addEventListener(EVENTO_FILA, ler);
+    return () => window.removeEventListener(EVENTO_FILA, ler);
+  }, []);
+
   const paradasIds = new Set(abertas.map((a) => a.equipamentoId));
+  const pendentesIds = new Set(naFila.map((i) => String(i.dados?.equipamentoId)));
   // Motivos da máquina escolhida primeiro; depois os gerais (sem máquina)
   const motivosDaMaquina = useMemo(
     () => motivos.filter((m) => m.equipamentoId === f.equipamentoId || !m.equipamentoId).sort((a, b) => Number(!!b.equipamentoId) - Number(!!a.equipamentoId) || a.codigo - b.codigo),
@@ -93,17 +106,24 @@ export function PainelParadas({
     const maquina = maquinas.find((m) => m.id === f.equipamentoId);
     const dados = { ...f, centro, registradaEm: new Date().toISOString() };
     iniciar(async () => {
-      const r = await enviarOuGuardar("parada", `Parada: ${maquina?.nome ?? "máquina"}`, dados, (d) => pararMaquina(d as Parameters<typeof pararMaquina>[0]));
-      if ("guardado" in r) {
-        setAviso("Sem internet: a parada foi guardada no aparelho com a hora de agora e será enviada quando a conexão voltar. Avise a manutenção pessoalmente.");
+      try {
+        const r = await enviarOuGuardar("parada", `Parada: ${maquina?.nome ?? "máquina"}`, dados, (d) => pararMaquina(d as Parameters<typeof pararMaquina>[0]));
+        if ("guardado" in r) {
+          setAviso({
+            guardado: true,
+            texto: "Sem internet: a parada foi guardada no aparelho com a hora de agora e será enviada quando a conexão voltar. Avise a manutenção pessoalmente.",
+          });
+          fechar();
+          return;
+        }
+        const res = r as Resultado;
+        if (res.erro) return setErro(res.erro);
+        setAviso({ guardado: false, texto: res.requisicaoId ? "Parada marcada. A manutenção foi avisada." : "Parada marcada. O cronômetro está correndo." });
         fechar();
-        return;
+        router.refresh();
+      } catch (e) {
+        setErro(mensagemFalha(e));
       }
-      const res = r as Resultado;
-      if (res.erro) return setErro(res.erro);
-      setAviso(res.requisicaoId ? "Parada marcada. A manutenção foi avisada." : "Parada marcada. O cronômetro está correndo.");
-      fechar();
-      router.refresh();
     });
   }
 
@@ -111,28 +131,39 @@ export function PainelParadas({
     const obs = window.prompt(`${a.maquina} voltou a operar?\nSe quiser, anote o que foi feito (opcional):`, "");
     if (obs === null) return;
     iniciar(async () => {
-      const r = await liberarMaquina(a.id, obs);
-      if (r.erro) return window.alert(r.erro);
-      setAviso(`${a.maquina} liberada. O tempo parado foi para o boletim.`);
-      router.refresh();
+      try {
+        const r = await liberarMaquina(a.id, obs);
+        if (r.erro) return window.alert(r.erro);
+        setAviso({ guardado: false, texto: `${a.maquina} liberada. O tempo parado foi para o boletim.` });
+        router.refresh();
+      } catch (e) {
+        window.alert(mensagemFalha(e));
+      }
     });
   }
 
   function excluir(a: Aberta) {
     if (!window.confirm(`Excluir a parada de ${a.maquina}? Use só se foi marcada por engano.`)) return;
     iniciar(async () => {
-      const r = await excluirParadaMaquina(a.id);
-      if (r.erro) return window.alert(r.erro);
-      router.refresh();
+      try {
+        const r = await excluirParadaMaquina(a.id);
+        if (r.erro) return window.alert(r.erro);
+        router.refresh();
+      } catch (e) {
+        window.alert(mensagemFalha(e));
+      }
     });
   }
 
   return (
     <div className="space-y-4">
       {aviso && (
-        <p role="status" className="flex items-start gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-200">
-          {aviso.startsWith("Sem internet") ? <CloudOff className="mt-0.5 h-4 w-4 shrink-0" /> : <Check className="mt-0.5 h-4 w-4 shrink-0" />}
-          <span className="flex-1">{aviso}</span>
+        <p
+          role="status"
+          className={`flex items-start gap-2 rounded-md px-3 py-2 text-sm ring-1 ${aviso.guardado ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-emerald-900 ring-emerald-200"}`}
+        >
+          {aviso.guardado ? <CloudOff className="mt-0.5 h-4 w-4 shrink-0" /> : <Check className="mt-0.5 h-4 w-4 shrink-0" />}
+          <span className="flex-1">{aviso.texto}</span>
           <button type="button" onClick={() => setAviso(null)} aria-label="Fechar aviso">
             <X className="h-4 w-4" />
           </button>
@@ -177,9 +208,9 @@ export function PainelParadas({
               >
                 <option value="">— Escolha —</option>
                 {maquinas.map((m) => (
-                  <option key={m.id} value={m.id} disabled={paradasIds.has(m.id)}>
+                  <option key={m.id} value={m.id} disabled={paradasIds.has(m.id) || pendentesIds.has(m.id)}>
                     {m.codigo} · {m.nome}
-                    {paradasIds.has(m.id) ? " (já parada)" : ""}
+                    {paradasIds.has(m.id) ? " (já parada)" : pendentesIds.has(m.id) ? " (guardada no aparelho)" : ""}
                   </option>
                 ))}
               </select>
@@ -235,7 +266,7 @@ export function PainelParadas({
           Paradas agora {abertas.length > 0 && <span className="ml-1 rounded-full bg-rose-600 px-2 py-0.5 text-xs text-white">{abertas.length}</span>}
         </h2>
         {abertas.length === 0 ? (
-          <p className="cartao text-sm text-stone-500">Nenhuma máquina parada. 👍</p>
+          naFila.length === 0 && <p className="cartao text-sm text-stone-500">Nenhuma máquina parada. 👍</p>
         ) : (
           <ul className="grid gap-3 md:grid-cols-2">
             {abertas.map((a) => (
@@ -250,9 +281,7 @@ export function PainelParadas({
                   </div>
                   <div className="text-right">
                     <div suppressHydrationWarning className="font-mono text-2xl font-bold tabular-nums text-rose-700">{cronometro(agora - new Date(a.inicio).getTime())}</div>
-                    <div className="text-xs text-stone-500">
-                      desde {new Date(a.inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
-                    </div>
+                    <div className="text-xs text-stone-500">desde {hora(a.inicio)}</div>
                   </div>
                 </div>
                 {a.descricao && <p className="text-sm text-stone-600">{a.descricao}</p>}
@@ -281,6 +310,19 @@ export function PainelParadas({
                     </button>
                   )}
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {naFila.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {naFila.map((i) => (
+              <li key={i.chave} className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
+                <CloudOff className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 flex-1">
+                  <b>{maquinas.find((m) => m.id === i.dados?.equipamentoId)?.nome ?? i.titulo}</b> · desde {hora(String(i.dados?.registradaEm ?? i.criadoEm))}
+                  <span className="block text-xs opacity-80">Guardada no aparelho, aguardando internet</span>
+                </span>
               </li>
             ))}
           </ul>

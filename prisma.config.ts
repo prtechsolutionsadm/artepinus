@@ -8,6 +8,7 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Mesmo fallback do app (src/lib/adaptador.ts): a integração da Vercel também cria POSTGRES_URL
+    url: process.env["DATABASE_URL"] ?? process.env["POSTGRES_URL"],
   },
 });

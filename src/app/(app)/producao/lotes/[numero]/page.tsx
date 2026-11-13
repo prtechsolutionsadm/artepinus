@@ -5,7 +5,7 @@ import { Printer, Trash2 } from "lucide-react";
 import { excluirLote } from "@/app/actions/producao";
 import { BotaoAcao } from "@/components/producao/BotaoAcao";
 import { Titulo } from "@/components/ui";
-import { formatarData } from "@/lib/constantes";
+import { formatarData, inteiroPositivo } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
 import { fmtM3, fmtNum, formatarDia, linhasParaTabela } from "@/lib/producao";
@@ -14,15 +14,15 @@ import { codigoLote } from "@/lib/rastreio";
 import { exigirProducao } from "@/lib/session";
 
 export async function generateMetadata({ params }: { params: Promise<{ numero: string }> }): Promise<Metadata> {
-  const n = Number((await params).numero);
-  return { title: Number.isInteger(n) && n > 0 ? codigoLote(n) : "Lote" };
+  const n = inteiroPositivo((await params).numero);
+  return { title: n ? codigoLote(n) : "Lote" };
 }
 
 /** Lote da serraria (destino do QR da etiqueta): ficha lançada, pedido e dia. */
 export default async function LotePage({ params }: { params: Promise<{ numero: string }> }) {
   const eu = await exigirProducao();
-  const numero = Number((await params).numero);
-  if (!Number.isInteger(numero) || numero <= 0) notFound();
+  const numero = inteiroPositivo((await params).numero);
+  if (!numero) notFound();
   const l = await db.lote.findUnique({
     where: { numero },
     include: { itens: { orderBy: [{ linha: "asc" }, { comprimento: "desc" }] }, pedido: true, boletim: { select: { id: true, data: true } }, criadoPor: { select: { nome: true } } },

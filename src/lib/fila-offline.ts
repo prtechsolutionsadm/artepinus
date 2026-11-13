@@ -15,6 +15,9 @@ export type ItemFila = {
   /** Apontamento da produção (sem `tipo` é uma requisição de manutenção). */
   tipo?: TipoEnvio;
   dados?: Record<string, unknown>;
+  /** Quem lançou: num aparelho compartilhado, só esse usuário envia (sem isso: itens antigos). */
+  usuarioId?: string;
+  usuarioNome?: string;
 };
 
 const BANCO = "artepinus-offline";
@@ -42,6 +45,15 @@ async function transacao<T>(modo: IDBTransactionMode, fn: (s: IDBObjectStore) =>
 
 const avisar = () => window.dispatchEvent(new Event(EVENTO_FILA));
 
+/** Usuário logado neste aparelho (definido pelo SincronizadorOffline). */
+let dono: { id: string; nome: string } | undefined;
+
+export function definirDonoFila(id: string, nome: string) {
+  dono = { id, nome };
+}
+
+const doDono = () => (dono ? { usuarioId: dono.id, usuarioNome: dono.nome } : {});
+
 export async function enfileirar(form: FormData) {
   const campos: Record<string, string> = {};
   const fotos: ItemFila["fotos"] = [];
@@ -57,6 +69,7 @@ export async function enfileirar(form: FormData) {
     campos,
     fotos,
     tentativas: 0,
+    ...doDono(),
   };
   await transacao("readwrite", (s) => s.put(item));
   avisar();
@@ -66,19 +79,27 @@ export async function enfileirar(form: FormData) {
 /** Guarda um apontamento no aparelho para enviar quando a internet voltar. */
 async function guardarEnvio(tipo: TipoEnvio, titulo: string, dados: Record<string, unknown>) {
   const chave = crypto.randomUUID();
-  const item: ItemFila = { chave, criadoEm: new Date().toISOString(), titulo, campos: {}, fotos: [], tentativas: 0, tipo, dados: { ...dados, chaveOffline: chave } };
+  const item: ItemFila = { chave, criadoEm: new Date().toISOString(), titulo, campos: {}, fotos: [], tentativas: 0, tipo, dados: { ...dados, chaveOffline: chave }, ...doDono() };
   await transacao("readwrite", (s) => s.put(item));
   avisar();
   return item;
 }
 
 /** Erro de rede (sem internet) ao chamar o servidor. */
-function semConexao(e: unknown) {
+/** Erro de rede (sem internet) ao chamar o servidor. */
+export function semConexao(e: unknown) {
   return !navigator.onLine || e instanceof TypeError || (e instanceof Error && /fetch|network|Failed to/i.test(e.message));
 }
 
+/** Sem resposta nesse tempo (sinal fraco), o lançamento vai para a fila. */
+const LIMITE_ENVIO_MS = 20_000;
+class TempoEsgotado extends Error {}
+
+/** Prazo para os envios da fila (onde o navegador suporta). */
+const prazo = (ms: number) => (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(ms) : undefined);
+
 /**
- * Envia agora; sem internet (ou se a conexão cair no meio), guarda no aparelho.
+ * Envia agora; sem internet (ou se a conexão cair no meio ou demorar demais), guarda no aparelho.
  * Retorna o resultado do servidor ou `{ guardado: true }`.
  */
 export async function enviarOuGuardar<R>(tipo: TipoEnvio, titulo: string, dados: Record<string, unknown>, enviar: (d: Record<string, unknown>) => Promise<R>): Promise<R | { guardado: true }> {
@@ -86,16 +107,23 @@ export async function enviarOuGuardar<R>(tipo: TipoEnvio, titulo: string, dados:
     await guardarEnvio(tipo, titulo, dados);
     return { guardado: true };
   }
-  // A chave vai junto também no envio direto: se a resposta se perder, o reenvio não duplica
+  // A chave vai junto também no envio direto: se a resposta se perder (ou chegar depois do
+  // prazo), o reenvio da fila não duplica
   const comChave = { ...dados, chaveOffline: crypto.randomUUID() };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<never>((_, rejeitar) => {
+    timer = setTimeout(() => rejeitar(new TempoEsgotado()), LIMITE_ENVIO_MS);
+  });
   try {
-    return await enviar(comChave);
+    return await Promise.race([enviar(comChave), limite]);
   } catch (e) {
-    if (!semConexao(e)) throw e;
-    const item: ItemFila = { chave: comChave.chaveOffline as string, criadoEm: new Date().toISOString(), titulo, campos: {}, fotos: [], tentativas: 0, tipo, dados: comChave };
+    if (!(e instanceof TempoEsgotado) && !semConexao(e)) throw e;
+    const item: ItemFila = { chave: comChave.chaveOffline, criadoEm: new Date().toISOString(), titulo, campos: {}, fotos: [], tentativas: 0, tipo, dados: comChave, ...doDono() };
     await transacao("readwrite", (s) => s.put(item));
     avisar();
     return { guardado: true };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -123,6 +151,20 @@ export async function limparFila() {
   } catch {}
 }
 
+/** Apaga as telas guardadas pelo service worker (têm dados do usuário); não depende do SW controlar a aba. */
+export async function limparPaginasGuardadas() {
+  try {
+    if (!("caches" in window)) return;
+    const chaves = await caches.keys();
+    await Promise.all(chaves.filter((k) => k.startsWith("artepinus-paginas")).map((k) => caches.delete(k)));
+  } catch {}
+}
+
+/** Item que não vai: recusado pelo servidor (espera o usuário) ou lançado por outro usuário. */
+function esperando(item: ItemFila) {
+  return !!item.erro || (!!item.usuarioId && item.usuarioId !== dono?.id);
+}
+
 let enviando = false;
 
 /** Envia a fila para o servidor. Retorna quantas foram enviadas. */
@@ -132,48 +174,41 @@ export async function sincronizarFila(): Promise<{ enviadas: number; restantes: 
   let enviadas = 0;
   try {
     for (const item of await listarFila()) {
-      if (item.tipo) {
-        // Apontamento da produção: JSON para /api/offline
-        try {
-          const r = await fetch("/api/offline", {
+      if (esperando(item)) continue;
+      let r: Response;
+      try {
+        if (item.tipo) {
+          // Apontamento da produção: JSON para /api/offline
+          r = await fetch("/api/offline", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ tipo: item.tipo, dados: item.dados }),
             credentials: "same-origin",
+            signal: prazo(30_000),
           });
-          if (r.ok) {
-            await remover(item.chave);
-            enviadas++;
-          } else if (r.status === 422) {
-            await salvar({ ...item, tentativas: item.tentativas + 1, erro: (await r.json().catch(() => ({}))).erro ?? "Dados inválidos" });
-          } else {
-            await salvar({ ...item, tentativas: item.tentativas + 1 });
-            if (r.status === 401) break;
-          }
-        } catch {
-          break;
-        }
-        continue;
-      }
-      const form = new FormData();
-      for (const [k, v] of Object.entries(item.campos)) form.append(k, v);
-      form.set("chaveOffline", item.chave);
-      form.set("registradaEm", item.criadoEm);
-      item.fotos.forEach((f) => form.append("fotos", new File([f.dados], f.nome, { type: f.tipo })));
-      try {
-        const r = await fetch("/api/requisicoes/offline", { method: "POST", body: form, credentials: "same-origin" });
-        if (r.ok) {
-          await remover(item.chave);
-          enviadas++;
-        } else if (r.status === 422) {
-          // Dados inválidos não vão passar numa nova tentativa: guarda o motivo para o usuário ver
-          await salvar({ ...item, tentativas: item.tentativas + 1, erro: (await r.json().catch(() => ({}))).erro ?? "Dados inválidos" });
         } else {
-          await salvar({ ...item, tentativas: item.tentativas + 1 });
-          if (r.status === 401) break; // sessão expirou: espera novo login
+          const form = new FormData();
+          for (const [k, v] of Object.entries(item.campos)) form.append(k, v);
+          form.set("chaveOffline", item.chave);
+          form.set("registradaEm", item.criadoEm);
+          item.fotos.forEach((f) => form.append("fotos", new File([f.dados], f.nome, { type: f.tipo })));
+          // Com fotos o envio demora mais
+          r = await fetch("/api/requisicoes/offline", { method: "POST", body: form, credentials: "same-origin", signal: prazo(120_000) });
         }
       } catch {
-        break; // caiu a conexão de novo
+        break; // caiu a conexão de novo (ou o servidor não respondeu a tempo)
+      }
+      if (r.ok) {
+        await remover(item.chave);
+        enviadas++;
+      } else if (r.status === 422 || r.status === 403) {
+        // Recusado: não vai passar numa nova tentativa sozinho. Guarda o motivo para o usuário ver
+        // e só reenvia quando ele pedir (Tentar de novo)
+        const motivo = (await r.json().catch(() => ({}))).erro;
+        await salvar({ ...item, tentativas: item.tentativas + 1, erro: motivo ?? (r.status === 403 ? "Sem acesso" : "Dados inválidos") });
+      } else {
+        await salvar({ ...item, tentativas: item.tentativas + 1 });
+        if (r.status === 401) break; // sessão expirou: espera novo login
       }
     }
   } finally {
@@ -185,5 +220,13 @@ export async function sincronizarFila(): Promise<{ enviadas: number; restantes: 
 
 export async function descartarDaFila(chave: string) {
   await remover(chave);
+  avisar();
+}
+
+/** Tira o motivo da recusa: o item volta a ser enviado na próxima sincronização. */
+export async function tentarDeNovo(chave: string) {
+  const item = await transacao<ItemFila | undefined>("readonly", (s) => s.get(chave) as IDBRequest<ItemFila | undefined>);
+  if (!item) return;
+  await salvar({ ...item, erro: undefined });
   avisar();
 }

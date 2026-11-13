@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sem conexão · Manutenção Artepinus</title>
+<title>Sem conexão · Artepinus</title>
 <style>
   body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f5f5f4;color:#1c1917;padding:16px}
   main{max-width:360px;text-align:center}
   img{height:96px;width:auto} a{color:#1d7a10;font-weight:600}
+  ul{list-style:none;margin:12px 0 0;padding:0;text-align:left}
+  li a{display:block;margin-top:8px;padding:12px 14px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px #e7e5e4;text-decoration:none}
   button{margin-top:16px;padding:10px 18px;border:0;border-radius:8px;background:#1d7a10;color:#fff;font-weight:600;font-size:15px}
 </style>
 </head>
@@ -15,8 +17,16 @@
 <main>
   <img src="/logo.svg" alt="Artepinus">
   <h1>Sem conexão</h1>
-  <p>Não foi possível acessar o sistema de manutenção. Verifique sua internet e tente novamente.</p>
-  <p>Você ainda pode <a href="/requisicoes/nova">abrir uma requisição</a>: ela fica guardada no aparelho e é enviada quando a conexão voltar.</p>
+  <p>Não foi possível acessar o sistema. Verifique sua internet e tente novamente.</p>
+  <p>Estas telas abrem sem internet se o app já foi aberto com internet neste aparelho. O que você lançar fica guardado e é enviado quando a conexão voltar:</p>
+  <ul>
+    <li><a href="/producao">Início</a></li>
+    <li><a href="/producao/boletins/novo">Apontar serraria</a></li>
+    <li><a href="/producao/toras/nova">Nova carga de toras</a></li>
+    <li><a href="/producao/estoque/novo">Inventário</a></li>
+    <li><a href="/producao/paradas">Paradas de máquina</a></li>
+    <li><a href="/producao/escanear">Ler etiqueta</a></li>
+  </ul>
   <button onclick="location.reload()">Tentar novamente</button>
   <p style="margin-top:32px;font-size:12px;color:#a8a29e">© Artepinus Indústria e Comércio de Madeiras LTDA. Todos os direitos reservados.<br>Desenvolvido por PR Tech Solutions</p>
 </main>

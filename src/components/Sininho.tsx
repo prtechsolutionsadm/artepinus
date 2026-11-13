@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useFecharAoClicarFora } from "@/components/useFecharAoClicarFora";
 import { Bell, CheckCheck } from "lucide-react";
 import { contarNaoLidas, listarNotificacoes, marcarLida, marcarTodasLidas } from "@/app/actions/notificacoes";
+import { mensagemFalha } from "@/lib/falha-acao";
 
 type Item = Awaited<ReturnType<typeof listarNotificacoes>>["itens"][number];
 
@@ -39,22 +40,29 @@ export function Sininho({ naoLidasInicial }: { naoLidasInicial: number }) {
       .catch(() => {});
   }, []);
 
-  // Contagem: a cada minuto, ao voltar para a aba e quando chega um push
+  // Contagem: a cada minuto, ao voltar para a aba e quando chega um push. O layout monta
+  // um sino no celular e outro no computador (um fica oculto por CSS): só o visível consulta.
   useEffect(() => {
-    const id = setInterval(atualizarContagem, 60_000);
-    const aoVoltar = () => document.visibilityState === "visible" && atualizarContagem();
+    const visivel = () => (ref.current?.getClientRects().length ?? 0) > 0;
+    const id = setInterval(() => visivel() && atualizarContagem(), 60_000);
+    const aoVoltar = () => document.visibilityState === "visible" && visivel() && atualizarContagem();
     const aoPush = (e: MessageEvent) => {
-      if (e.data?.tipo === "notificacao") {
+      if (e.data?.tipo === "notificacao" && visivel()) {
         atualizarContagem();
         router.refresh();
       }
     };
+    // Tela que cruza o ponto do computador (ex.: tablet girado): o sino que aparece se atualiza
+    const largura = window.matchMedia("(min-width: 1024px)");
+    const aoMudarLargura = () => visivel() && atualizarContagem();
     document.addEventListener("visibilitychange", aoVoltar);
     navigator.serviceWorker?.addEventListener("message", aoPush);
+    largura.addEventListener("change", aoMudarLargura);
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", aoVoltar);
       navigator.serviceWorker?.removeEventListener("message", aoPush);
+      largura.removeEventListener("change", aoMudarLargura);
     };
   }, [atualizarContagem, router]);
 
@@ -101,8 +109,12 @@ export function Sininho({ naoLidasInicial }: { naoLidasInicial: number }) {
                 className="inline-flex items-center gap-1 text-xs font-medium text-marca-700 hover:underline"
                 onClick={() =>
                   startTransition(async () => {
-                    await marcarTodasLidas();
-                    carregar();
+                    try {
+                      await marcarTodasLidas();
+                      carregar();
+                    } catch (e) {
+                      window.alert(mensagemFalha(e));
+                    }
                   })
                 }
               >

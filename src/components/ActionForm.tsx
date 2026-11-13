@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, startTransition } from "react";
 import type { EstadoForm } from "@/app/actions/auth";
+import { mensagemFalha } from "@/lib/falha-acao";
 
 type Props = {
   action: (estado: EstadoForm, form: FormData) => Promise<EstadoForm>;
@@ -18,7 +19,14 @@ type Props = {
  * campos quando há erro de validação, e mostra a mensagem de erro/sucesso.
  */
 export function ActionForm({ action, children, className, limparAoSalvar, aoSalvar }: Props) {
-  const [estado, executar, pendente] = useActionState(action, undefined);
+  // Falha de rede/servidor vira mensagem no formulário (os campos continuam preenchidos)
+  const [estado, executar, pendente] = useActionState(async (anterior: EstadoForm, form: FormData): Promise<EstadoForm> => {
+    try {
+      return await action(anterior, form);
+    } catch (e) {
+      return { erro: mensagemFalha(e) };
+    }
+  }, undefined);
   const ref = useRef<HTMLFormElement>(null);
 
   useEffect(() => {

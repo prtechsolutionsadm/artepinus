@@ -76,7 +76,7 @@ function CamposUsuario({ u }: { u?: Usr }) {
         </div>
         <div>
           <label>{u ? "Nova senha (deixe em branco para manter)" : "Senha inicial *"}</label>
-          <input name="senha" type="text" autoComplete="off" minLength={6} required={!u} className="campo" />
+          <input name="senha" type="text" autoComplete="off" minLength={8} required={!u} className="campo" />
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">

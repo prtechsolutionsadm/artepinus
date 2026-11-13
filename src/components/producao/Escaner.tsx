@@ -34,9 +34,14 @@ export function Escaner() {
     (async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        if (!video.current) return;
+        // Fechou (ou saiu da tela) enquanto a câmera abria: a limpeza já rodou sem o stream
+        if (parar || !video.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         video.current.srcObject = stream;
         await video.current.play();
+        if (parar) return;
         const Ctor = (window as unknown as { BarcodeDetector: DetectorCtor }).BarcodeDetector;
         const detector = new Ctor({ formats: ["qr_code", "code_128"] });
         while (!parar) {
@@ -51,6 +56,7 @@ export function Escaner() {
           await new Promise((r) => setTimeout(r, 250));
         }
       } catch {
+        if (parar) return; // o próprio usuário fechou (ex.: play() interrompido)
         setErro("Não foi possível abrir a câmera. Permita o acesso à câmera ou digite o código.");
         setLigada(false);
       }

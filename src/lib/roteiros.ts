@@ -29,14 +29,14 @@ export const ROTEIROS: Roteiro[] = [
       },
     ],
     atencao: [
-      "Motorista novo? Peça ao supervisor para cadastrar em Pedidos e cadastros → Motoristas, com as placas.",
+      "Motorista novo? Peça ao supervisor para cadastrar em Cadastros → Motoristas, com as placas.",
       "Sem internet: registre normalmente. A carga fica guardada no celular e é enviada sozinha quando a conexão voltar.",
     ],
   },
   {
     id: "serraria",
     funcao: "Encarregado da serraria",
-    quem: "Apontamento da produção serrada",
+    quem: "Apontamento da madeira serrada",
     quando: "A cada lote serrado (por pedido) e no fim do turno.",
     passos: [
       {
@@ -158,7 +158,7 @@ export const ROTEIROS: Roteiro[] = [
         titulo: "Todo dia",
         itens: [
           "Abra o Início: resolva o que aparece em O que precisa de atenção (dia sem apontamento, estufa atrasada, pacotes por formar).",
-          "Cadastre os pedidos novos em Pedidos e cadastros → Pedidos (nº, cliente e destino) antes de a serraria apontar.",
+          "Cadastre os pedidos novos em Cadastros → Pedidos (nº, cliente e destino) antes de a serraria apontar.",
           "Ative os avisos no celular em Meu perfil (estufa atrasada, dia sem apontamento, pedido pronto).",
         ],
       },
@@ -171,6 +171,6 @@ export const ROTEIROS: Roteiro[] = [
         ],
       },
     ],
-    atencao: ["Meta e horas por dia: Pedidos e cadastros → Configuração.", "Conclua o pedido (Pedidos) quando for todo expedido, para ele sair da lista da serraria."],
+    atencao: ["Meta e horas por dia: Cadastros → Configuração.", "Conclua o pedido (Pedidos) quando for todo expedido, para ele sair da lista da serraria."],
   },
 ];

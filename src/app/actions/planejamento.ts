@@ -6,7 +6,7 @@ import { auditar, diferencas } from "@/lib/auditoria";
 import { dataLocalParaDate, numeroRequisicao } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { PERFIS_RESPONSAVEIS } from "@/lib/permissoes";
-import { gerarPreventivas } from "@/lib/preventivas";
+import { diaDoMesBrasilia, gerarPreventivas } from "@/lib/preventivas";
 import { exigirPermissao } from "@/lib/session";
 import type { EstadoForm } from "./auth";
 
@@ -85,15 +85,22 @@ export async function salvarPlano(_: EstadoForm, form: FormData): Promise<Estado
     if (!r?.ativo || !PERFIS_RESPONSAVEIS.includes(r.perfil)) return { erro: "Responsável inválido" };
   }
 
+  // Dia de referência dos planos mensais (Brasília): 31/01 → 28/02 → 31/03
+  const mensal = resto.unidade === "MESES";
+  const dia = diaDoMesBrasilia(proximaData);
+
   if (id) {
     const antes = await db.planoPreventivo.findUniqueOrThrow({ where: { id } });
-    const plano = await db.planoPreventivo.update({ where: { id }, data: { ...resto, proximaData } });
-    const mudou = diferencas(antes, plano, ["titulo", "descricao", "intervalo", "unidade", "proximaData", "antecedenciaDias", "prioridade", "responsavelId", "checklistId", "ativo"]);
+    // Salvar sem mexer na data (que pode estar limitada ao fim do mês, ex.: dia 28) mantém o dia original
+    const manterDia = antes.unidade === "MESES" && antes.diaDoMes != null && antes.proximaData.getTime() === proximaData.getTime();
+    const diaDoMes = !mensal ? null : manterDia ? antes.diaDoMes : dia;
+    const plano = await db.planoPreventivo.update({ where: { id }, data: { ...resto, proximaData, diaDoMes } });
+    const mudou = diferencas(antes, plano, ["titulo", "descricao", "intervalo", "unidade", "proximaData", "diaDoMes", "antecedenciaDias", "prioridade", "responsavelId", "checklistId", "ativo"]);
     if (Object.keys(mudou).length) {
       await auditar({ usuarioId: eu.id, acao: "plano.editar", entidade: "PlanoPreventivo", entidadeId: id, resumo: `Editou o plano de preventiva "${plano.titulo}"`, detalhes: mudou });
     }
   } else {
-    const plano = await db.planoPreventivo.create({ data: { ...resto, proximaData, criadoPorId: eu.id } });
+    const plano = await db.planoPreventivo.create({ data: { ...resto, proximaData, diaDoMes: mensal ? dia : null, criadoPorId: eu.id } });
     await auditar({ usuarioId: eu.id, acao: "plano.criar", entidade: "PlanoPreventivo", entidadeId: plano.id, resumo: `Criou o plano de preventiva "${plano.titulo}"` });
   }
   revalidatePath("/preventivas");

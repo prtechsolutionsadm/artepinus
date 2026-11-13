@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { salvarCiclo } from "@/app/actions/producao";
+import { mensagemFalha } from "@/lib/falha-acao";
 import { SeletorMultiplo } from "@/components/producao/SeletorMultiplo";
 import { FichaMadeira, linhaVazia, linhasPreenchidas, validarFicha } from "@/components/producao/FichaMadeira";
 import type { LinhaFicha } from "@/lib/producao";
@@ -63,12 +64,17 @@ export function FormCiclo({
     const invalida = validarFicha(linhas);
     if (invalida) return setErro(invalida);
     iniciar(async () => {
-      const r = await salvarCiclo({
-        id: inicial.id ?? null,
-        ...f,
-        boletimIds,
-        linhas: linhasPreenchidas(linhas),
-      });
+      let r: Awaited<ReturnType<typeof salvarCiclo>>;
+      try {
+        r = await salvarCiclo({
+          id: inicial.id ?? null,
+          ...f,
+          boletimIds,
+          linhas: linhasPreenchidas(linhas),
+        });
+      } catch (e) {
+        return setErro(mensagemFalha(e));
+      }
       if (r.erro) return setErro(r.erro);
       router.push(`/producao/estufas/ciclos/${r.id}`);
       router.refresh();

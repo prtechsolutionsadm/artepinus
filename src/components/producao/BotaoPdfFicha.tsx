@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FileDown } from "lucide-react";
+import { avisarFalhaPdf } from "@/lib/pdf-cliente";
 import { COMPRIMENTOS, CLASSE_MADEIRA } from "@/lib/producao";
 
 export type DadosPdfFicha = {
@@ -95,6 +96,8 @@ export function BotaoPdfFicha({ dados, className = "btn-secundario px-3 py-2" }:
         },
       });
       doc.save(`${dados.arquivo}.pdf`);
+    } catch (e) {
+      avisarFalhaPdf(e);
     } finally {
       setGerando(false);
     }

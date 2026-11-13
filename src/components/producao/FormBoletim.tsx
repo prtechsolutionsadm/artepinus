@@ -4,8 +4,9 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { salvarBoletim, type DadosBoletim } from "@/app/actions/producao";
+import { mensagemFalha } from "@/lib/falha-acao";
 import { SeletorMultiplo } from "@/components/producao/SeletorMultiplo";
-import { CENTRO, fmtM3, fmtNum, fmtPct, hojeSP } from "@/lib/producao";
+import { CENTRO, calcularKpis, fmtM3, fmtNum, fmtPct, hojeSP } from "@/lib/producao";
 import { formatarDuracao } from "@/lib/constantes";
 import type { CentroParada } from "@/generated/prisma/enums";
 
@@ -100,10 +101,14 @@ export function FormBoletim({
     return g;
   }, [motivos]);
 
-  const minutosParados = paradas.reduce((t, p) => t + (num(p.minutos) || 0), 0) + automaticas.reduce((t, p) => t + p.minutos, 0);
-  const disponibilidade = horas > 0 ? Math.max(0, (horas * 60 - minutosParados) / (horas * 60)) : null;
-  const produtividade = metaM3 > 0 ? producaoM3 / metaM3 : null;
-  const kpis = { minutosParados };
+  const kpis = calcularKpis([
+    {
+      metaM3,
+      horasProgramadas: horas,
+      itens: [{ m3: producaoM3 }],
+      paradas: [...paradas.map((p) => ({ centro: p.centro, minutos: num(p.minutos) || 0 })), ...automaticas.map((a) => ({ centro: a.centro, minutos: a.minutos }))],
+    },
+  ]);
   const mudarParada = (k: number, mud: Partial<Parada>) => setParadas((l) => l.map((p) => (p.k === k ? { ...p, ...mud } : p)));
 
   function enviar(e: React.FormEvent) {
@@ -129,7 +134,13 @@ export function FormBoletim({
         })),
     };
     iniciar(async () => {
-      const r = await salvarBoletim(payload);
+      let r: Awaited<ReturnType<typeof salvarBoletim>>;
+      try {
+        r = await salvarBoletim(payload);
+      } catch (e) {
+        setErro(mensagemFalha(e));
+        return;
+      }
       if (r.erro) {
         setErro(r.erro);
         return;
@@ -306,9 +317,9 @@ export function FormBoletim({
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             {[
               ["Serrado", fmtM3(producaoM3)],
-              ["Parado", formatarDuracao(minutosParados)],
-              ["Disponibilidade", fmtPct(disponibilidade)],
-              ["OEE", fmtPct(disponibilidade != null && produtividade != null ? disponibilidade * produtividade : null)],
+              ["Parado", formatarDuracao(kpis.minutosParados)],
+              ["Disponibilidade", fmtPct(kpis.disponibilidade)],
+              ["OEE", fmtPct(kpis.oee)],
             ].map(([r, v]) => (
               <div key={r} className="rounded-md bg-stone-50 px-3 py-2">
                 <dt className="text-xs text-stone-500">{r}</dt>

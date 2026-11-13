@@ -57,7 +57,12 @@ export function FichaMadeira({
     const nova = tem ? atual.filter((x) => x !== o) : o === MISTA ? [MISTA] : [...atual.filter((x) => x !== MISTA), o];
     mudar(i, { larguras: nova });
   };
-  const remover = (i: number) => onChange(linhas.length > 1 ? linhas.filter((_, j) => j !== i) : [linhaVazia()]);
+  const remover = (i: number) => {
+    // Linha com peças contadas pede confirmação (não há desfazer)
+    const n = Object.values(linhas[i].pecas).reduce((t, x) => t + x, 0);
+    if (n > 0 && !window.confirm(`Remover a linha ${i + 1} (${n} peça(s))?`)) return;
+    onChange(linhas.length > 1 ? linhas.filter((_, j) => j !== i) : [linhaVazia()]);
+  };
   const repetir = (i: number) => onChange([...linhas.slice(0, i + 1), linhaVazia(linhas[i]), ...linhas.slice(i + 1)]);
   const adicionar = () => onChange([...linhas, linhaVazia({ espessura: linhas[linhas.length - 1]?.espessura ?? null, local: linhas[linhas.length - 1]?.local ?? null })]);
 
@@ -244,12 +249,12 @@ export function FichaMadeira({
           <li key={i} className="rounded-lg border border-stone-200 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">Linha {i + 1}</span>
-              <span className="flex gap-1">
-                <button type="button" onClick={() => repetir(i)} aria-label={`Repetir linha ${i + 1}`} className="grid h-8 w-8 place-items-center rounded text-stone-500 hover:bg-stone-100">
-                  <Copy className="h-4 w-4" />
+              <span className="flex gap-3">
+                <button type="button" onClick={() => repetir(i)} aria-label={`Repetir linha ${i + 1}`} className="grid h-11 w-11 place-items-center rounded text-stone-500 hover:bg-stone-100">
+                  <Copy className="h-5 w-5" />
                 </button>
-                <button type="button" onClick={() => remover(i)} aria-label={`Remover linha ${i + 1}`} className="grid h-8 w-8 place-items-center rounded text-stone-500 hover:bg-rose-50 hover:text-rose-700">
-                  <Trash2 className="h-4 w-4" />
+                <button type="button" onClick={() => remover(i)} aria-label={`Remover linha ${i + 1}`} className="grid h-11 w-11 place-items-center rounded text-stone-500 hover:bg-rose-50 hover:text-rose-700">
+                  <Trash2 className="h-5 w-5" />
                 </button>
               </span>
             </div>

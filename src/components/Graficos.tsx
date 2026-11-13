@@ -8,6 +8,8 @@ import { formatarDuracao } from "@/lib/constantes";
 const SERIES = ["#2a78d6", "#eb6834", "#1baf7a"] as const;
 /** Linhas de grade: segue o tema (cinza claro no claro, cinza escuro no escuro). */
 const GRADE = "var(--color-stone-200)";
+/** Número em pt-BR (vírgula decimal), até 2 casas sem zeros à direita. */
+const num = (v: number | string) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
 function ticks(maximo: number) {
   if (maximo <= 0) return [0, 1];
@@ -52,7 +54,7 @@ export function ColunasEmpilhadas({
   const escala = ticks(Math.max(...totais, ...metas, 1));
   const topo = escala[escala.length - 1];
   // Margem esquerda conforme o tamanho do maior número do eixo
-  const H = W < 480 ? 200 : 240, ESQ = Math.max(28, 12 + String(topo).length * 7), BASE = H - 24, ALTURA = BASE - 8;
+  const H = W < 480 ? 200 : 240, ESQ = Math.max(28, 12 + num(topo).length * 7), BASE = H - 24, ALTURA = BASE - 8;
   const banda = (W - ESQ) / Math.max(dados.length, 1);
   const pularRotulo = banda < 34 ? Math.ceil(34 / banda) : 1;
   const largura = Math.min(24, banda * 0.6);
@@ -82,7 +84,7 @@ export function ColunasEmpilhadas({
       {tabela ? (
         <Tabela
           cabecalho={["", ...series.map((s) => s.rotulo), "Total", ...(meta ? [meta.rotulo] : [])]}
-          linhas={dados.map((d, i) => [d.rotulo, ...series.map((s) => String(d[s.chave] ?? 0)), String(totais[i]), ...(meta ? [String(metas[i])] : [])])}
+          linhas={dados.map((d, i) => [d.rotulo, ...series.map((s) => num(d[s.chave] ?? 0)), num(totais[i]), ...(meta ? [num(metas[i])] : [])])}
         />
       ) : (
         <div className="relative w-full min-w-0 overflow-hidden" ref={caixa}>
@@ -91,7 +93,7 @@ export function ColunasEmpilhadas({
               <g key={t}>
                 <line x1={ESQ} x2={W} y1={y(t)} y2={y(t)} stroke={GRADE} strokeWidth={1} />
                 <text x={ESQ - 6} y={y(t) + 4} textAnchor="end" fontSize={11} className="fill-stone-400">
-                  {t}
+                  {num(t)}
                 </text>
               </g>
             ))}
@@ -106,7 +108,7 @@ export function ColunasEmpilhadas({
               }).filter((s) => s.v > 0);
               return (
                 <g key={d.rotulo} onMouseEnter={() => setAtivo(i)} onFocus={() => setAtivo(i)} tabIndex={0} className="outline-none">
-                  <rect x={cx - banda / 2} y={0} width={banda} height={BASE} fill={ativo === i ? "#f5f5f4" : "transparent"} />
+                  <rect x={cx - banda / 2} y={0} width={banda} height={BASE} fill="transparent" className={ativo === i ? "fill-stone-100" : undefined} />
                   {segs.map((s, n) => {
                     const ultimo = n === segs.length - 1;
                     const h = Math.max(0, s.y1 - s.y0 - (ultimo ? 0 : 2)); // 2px de respiro entre segmentos
@@ -117,7 +119,7 @@ export function ColunasEmpilhadas({
                     return <path key={s.si} d={path} fill={series[s.si].cor ?? SERIES[s.si]} />;
                   })}
                   {meta && metas[i] > 0 && (
-                    <line x1={cx - Math.min(banda * 0.45, largura * 0.9)} x2={cx + Math.min(banda * 0.45, largura * 0.9)} y1={y(metas[i])} y2={y(metas[i])} stroke="#292524" strokeWidth={2} strokeLinecap="round" />
+                    <line x1={cx - Math.min(banda * 0.45, largura * 0.9)} x2={cx + Math.min(banda * 0.45, largura * 0.9)} y1={y(metas[i])} y2={y(metas[i])} className="stroke-stone-800" strokeWidth={2} strokeLinecap="round" />
                   )}
                   {i % pularRotulo === 0 && (
                     <text x={cx} y={H - 7} textAnchor="middle" fontSize={11} className="fill-stone-500">
@@ -127,7 +129,7 @@ export function ColunasEmpilhadas({
                 </g>
               );
             })}
-            <line x1={ESQ} x2={W} y1={BASE} y2={BASE} stroke="#d6d3d1" strokeWidth={1} />
+            <line x1={ESQ} x2={W} y1={BASE} y2={BASE} className="stroke-stone-300" strokeWidth={1} />
           </svg>
           {ativo !== null && (
             <div
@@ -141,15 +143,15 @@ export function ColunasEmpilhadas({
                     <span className="h-2 w-2 rounded-sm" style={{ background: series[i].cor ?? SERIES[i] }} />
                     {s.rotulo}
                   </span>
-                  <span className="font-medium tabular-nums text-stone-900">{dados[ativo][s.chave]}</span>
+                  <span className="font-medium tabular-nums text-stone-900">{num(dados[ativo][s.chave] ?? 0)}</span>
                 </div>
               ))}
               <div className="mt-1 flex justify-between border-t border-stone-100 pt-1 text-stone-600">
-                Total <span className="font-semibold tabular-nums text-stone-900">{totais[ativo]}</span>
+                Total <span className="font-semibold tabular-nums text-stone-900">{num(totais[ativo])}</span>
               </div>
               {meta && (
                 <div className="flex justify-between text-stone-600">
-                  {meta.rotulo} <span className="font-medium tabular-nums text-stone-900">{metas[ativo]}</span>
+                  {meta.rotulo} <span className="font-medium tabular-nums text-stone-900">{num(metas[ativo])}</span>
                 </div>
               )}
             </div>
@@ -167,7 +169,7 @@ export function BarrasHorizontais({ itens, formato = "numero", vazio = "Sem dado
   const [ativo, setAtivo] = useState<number | null>(null);
   if (itens.length === 0) return <p className="py-6 text-center text-sm text-stone-400">{vazio}</p>;
   const maximo = Math.max(...itens.map((i) => i.valor), 1);
-  const fmt = (v: number) => (formato === "duracao" ? formatarDuracao(v) : String(v));
+  const fmt = (v: number) => (formato === "duracao" ? formatarDuracao(v) : num(v));
   return (
     <ul className="space-y-2.5" onMouseLeave={() => setAtivo(null)}>
       {itens.map((item, i) => {

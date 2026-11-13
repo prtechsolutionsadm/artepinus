@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Trash2, X } from "lucide-react";
 import { removerFoto } from "@/app/actions/requisicoes";
+import { mensagemFalha } from "@/lib/falha-acao";
 
 export type FotoGaleria = { id: string; autor: string; quando: string; podeRemover: boolean };
 
@@ -48,8 +49,12 @@ export function Galeria({ fotos }: { fotos: FotoGaleria[] }) {
                   onClick={() => {
                     if (!confirm("Remover esta foto?")) return;
                     startTransition(async () => {
-                      await removerFoto(atual.id);
-                      setAberta(null);
+                      try {
+                        await removerFoto(atual.id);
+                        setAberta(null);
+                      } catch (e) {
+                        window.alert(mensagemFalha(e));
+                      }
                     });
                   }}
                   className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/10"

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PainelParadas } from "@/components/producao/PainelParadas";
 import { Titulo } from "@/components/ui";
-import { STATUS, formatarData, formatarDuracao, minutosEntre, numeroRequisicao } from "@/lib/constantes";
+import { STATUS, formatarData, formatarDuracao, minutosEntre, numeroRequisicao, diaValido } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { podeProducao, temModulo } from "@/lib/permissoes";
 import { CENTRO, hojeSP } from "@/lib/producao";
@@ -10,13 +10,11 @@ import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Paradas de máquina" };
 
-const DIA = /^\d{4}-\d{2}-\d{2}$/;
-
 /** Paradas marcadas na hora: as abertas (cronômetro) e as do dia escolhido. */
 export default async function ParadasPage({ searchParams }: { searchParams: Promise<{ dia?: string }> }) {
   const eu = await exigirProducao();
   const { dia: q } = await searchParams;
-  const dia = q && DIA.test(q) && q <= hojeSP() ? q : hojeSP();
+  const dia = diaValido(q) && q <= hojeSP() ? q : hojeSP();
   const comeco = new Date(`${dia}T00:00:00-03:00`);
   const fimDia = new Date(comeco.getTime() + 864e5);
 
@@ -34,7 +32,12 @@ export default async function ParadasPage({ searchParams }: { searchParams: Prom
     db.motivoParada.findMany({ where: { ativo: true }, orderBy: { codigo: "asc" }, select: { id: true, codigo: true, descricao: true, centro: true, equipamentoId: true } }),
   ]);
   const verManutencao = temModulo(eu, "manutencao");
-  const totalDia = doDia.reduce((t, p) => t + (minutosEntre(p.inicio, p.fim) ?? 0), 0);
+  // Só a parte de cada parada que cai neste dia (a de vários dias aparece em cada um)
+  const totalDia = doDia.reduce(
+    (t, p) =>
+      t + (minutosEntre(new Date(Math.max(p.inicio.getTime(), comeco.getTime())), new Date(Math.min((p.fim ?? fimDia).getTime(), fimDia.getTime()))) ?? 0),
+    0,
+  );
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -66,7 +69,7 @@ export default async function ParadasPage({ searchParams }: { searchParams: Prom
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 px-4 py-3">
           <h2 className="font-semibold">
             Liberadas em {dia === hojeSP() ? "hoje" : formatarData(comeco)}
-            {doDia.length > 0 && <span className="ml-2 text-sm font-normal text-stone-500">{doDia.length} · {formatarDuracao(totalDia)} parado</span>}
+            {doDia.length > 0 && <span className="ml-2 text-sm font-normal text-stone-500">{doDia.length} · {formatarDuracao(totalDia)} parado no dia</span>}
           </h2>
           <form className="flex items-center gap-2">
             <label htmlFor="dia" className="sr-only">

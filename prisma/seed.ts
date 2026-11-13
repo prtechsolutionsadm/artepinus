@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
-// Dados iniciais. Seguro para rodar várias vezes (roda a cada deploy na Vercel):
-// só cria o que ainda não existe e nunca altera usuários ou senhas existentes.
-// Uso: npm run db:seed   (SEED_DEMO=1 também cria usuários/requisições de exemplo)
+// Dados iniciais. Seguro para rodar várias vezes (roda a cada deploy de produção na Vercel; no Preview
+// é ignorado): só cria o que ainda não existe e nunca altera usuários ou senhas existentes.
+// Uso: npm run db:seed   (SEED_DEMO=1 também cria usuários/requisições de exemplo — só em banco local)
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
@@ -13,8 +13,9 @@ const db = new PrismaClient({ adapter: criarAdaptador() });
 
 const SETORES = ["Administrativo", "Produção", "Serraria", "Acabamento", "Expedição", "Manutenção"];
 
-// Administrador inicial (só em banco novo). A senha provisória vem de ADMIN_SENHA_INICIAL ou é
-// sorteada e mostrada no log — nunca uma senha fixa conhecida — e precisa ser trocada no primeiro acesso.
+// Administrador inicial (só quando não existe nenhum administrador). A senha provisória vem de
+// ADMIN_SENHA_INICIAL ou é sorteada e mostrada no log — nunca uma senha fixa conhecida — e precisa ser
+// trocada no primeiro acesso.
 const ADMIN = {
   login: "pablo.ribas",
   nome: "Pablo Ribas",
@@ -22,13 +23,25 @@ const ADMIN = {
 };
 
 async function main() {
-  console.log(`Banco: conectado via ${new URL(process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://x").hostname.endsWith("prisma.io") ? "Prisma Postgres (serverless)" : "TCP"}, ${await db.usuario.count()} usuário(s)`);
+  // O Preview da Vercel usa o mesmo banco da produção: nada é gravado antes da revisão
+  if (process.env.VERCEL_ENV === "preview") {
+    console.log("Preview: seed ignorado.");
+    return;
+  }
+  const prismaPostgres = new URL(process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://x").hostname.endsWith("prisma.io");
+  // Recusa antes de qualquer escrita (mesmo critério de banco remoto de src/lib/adaptador.ts)
+  if (process.env.SEED_DEMO === "1" && (process.env.VERCEL || prismaPostgres)) {
+    throw new Error("SEED_DEMO só em banco local: cria usuários de exemplo com senha conhecida (teste123)");
+  }
+  console.log(`Banco: conectado via ${prismaPostgres ? "Prisma Postgres (serverless)" : "TCP"}, ${await db.usuario.count()} usuário(s)`);
   if ((await db.setor.count()) === 0) {
     await db.setor.createMany({ data: SETORES.map((nome) => ({ nome })) });
     console.log("Setores iniciais criados");
   }
 
-  if (!(await db.usuario.findUnique({ where: { login: ADMIN.login } }))) {
+  // Só sem nenhum ADMIN: um admin que trocou o login não faz o deploy recriar "pablo.ribas"
+  const temAdmin = (await db.usuario.count({ where: { perfil: "ADMIN" } })) > 0;
+  if (!temAdmin && !(await db.usuario.findUnique({ where: { login: ADMIN.login } }))) {
     await db.usuario.create({
       data: {
         login: ADMIN.login,
@@ -54,13 +67,18 @@ async function main() {
 
 /** Equipamentos da linha da serraria, motivos de parada e as 6 estufas (só cria o que falta). */
 async function catalogoProducao() {
-  const setor = await db.setor.upsert({ where: { nome: "Serraria" }, update: {}, create: { nome: "Serraria" } });
+  // O setor só é buscado/criado quando um equipamento novo precisa dele: renomeado em /setores, não volta
+  const setores = new Map<string, string>();
+  const setorId = async (nome: string) => {
+    if (!setores.has(nome)) setores.set(nome, ((await db.setor.findUnique({ where: { nome } })) ?? (await db.setor.create({ data: { nome } }))).id);
+    return setores.get(nome)!;
+  };
   const porNome = new Map<string, string>();
   let criados = 0;
   for (const [i, nome] of serraria.equipamentosLinha.entries()) {
     const codigo = `SER-L${String(i + 1).padStart(2, "0")}`;
     const existente = await db.equipamento.findFirst({ where: { OR: [{ codigo }, { nome: { equals: nome, mode: "insensitive" } }] } });
-    const eq = existente ?? (await db.equipamento.create({ data: { codigo, nome, setorId: setor.id, descricao: "Linha de produção da serraria" } }));
+    const eq = existente ?? (await db.equipamento.create({ data: { codigo, nome, setorId: await setorId("Serraria"), descricao: "Linha de produção da serraria" } }));
     if (!existente) criados++;
     porNome.set(nome, eq.id);
   }
@@ -78,13 +96,12 @@ async function catalogoProducao() {
     });
   }
 
-  const setorEstufas = await db.setor.upsert({ where: { nome: "Estufas" }, update: {}, create: { nome: "Estufas" } });
   let estufas = 0;
   for (let n = 1; n <= 6; n++) {
     if (await db.estufa.findUnique({ where: { numero: n } })) continue;
     const nome = `Estufa ${String(n).padStart(2, "0")}`;
     const codigo = `EST-${String(n).padStart(2, "0")}`;
-    const eq = (await db.equipamento.findUnique({ where: { codigo } })) ?? (await db.equipamento.create({ data: { codigo, nome, setorId: setorEstufas.id } }));
+    const eq = (await db.equipamento.findUnique({ where: { codigo } })) ?? (await db.equipamento.create({ data: { codigo, nome, setorId: await setorId("Estufas") } }));
     const vinculado = await db.estufa.findUnique({ where: { equipamentoId: eq.id } });
     await db.estufa.create({ data: { numero: n, nome, equipamentoId: vinculado ? null : eq.id } });
     estufas++;
@@ -95,9 +112,10 @@ async function catalogoProducao() {
 }
 
 async function demo() {
-  const admin = await db.usuario.findUniqueOrThrow({ where: { login: ADMIN.login } });
+  const admin = await db.usuario.findFirstOrThrow({ where: { perfil: "ADMIN" }, orderBy: { criadoEm: "asc" } });
   const producao = await db.setor.findUniqueOrThrow({ where: { nome: "Produção" } });
-  const serraria = await db.setor.findUniqueOrThrow({ where: { nome: "Serraria" } });
+  // O catálogo já não garante este setor (só o cria quando precisa)
+  const serraria = await db.setor.upsert({ where: { nome: "Serraria" }, update: {}, create: { nome: "Serraria" } });
   const senhaHash = await bcrypt.hash("teste123", 10);
 
   const tecnico = await db.usuario.upsert({

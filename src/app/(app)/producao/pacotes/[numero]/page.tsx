@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Factory, Flame, Globe, Package, Printer, TreePine, Truck, Warehouse, type LucideIcon } from "lucide-react";
 import { AcoesPacote } from "@/components/producao/AcoesPacote";
 import { Badge } from "@/components/ui";
-import { formatarData, formatarDuracao, minutosEntre } from "@/lib/constantes";
+import { formatarData, formatarDuracao, minutosEntre, inteiroPositivo } from "@/lib/constantes";
 import { podeProducao } from "@/lib/permissoes";
 import { CLASSE_DIAMETRO, MERCADO, calcularKpis, fmtM3, fmtNum, formatarDia } from "@/lib/producao";
 import { STATUS_PACOTE, TIPO_EVENTO, bitola, codigoCarga, codigoPacote, codigoRomaneio } from "@/lib/rastreio";
@@ -13,8 +13,8 @@ import { ciclosAtivos, rastrearPacote } from "@/lib/rastreio-dados";
 import { exigirProducao } from "@/lib/session";
 
 export async function generateMetadata({ params }: { params: Promise<{ numero: string }> }): Promise<Metadata> {
-  const n = Number((await params).numero);
-  return { title: Number.isInteger(n) && n > 0 ? codigoPacote(n) : "Pacote" };
+  const n = inteiroPositivo((await params).numero);
+  return { title: n ? codigoPacote(n) : "Pacote" };
 }
 
 function Etapa({
@@ -64,18 +64,19 @@ function Dados({ itens }: { itens: [string, React.ReactNode][] }) {
 /** A história completa do pacote: destino do QR Code da etiqueta. */
 export default async function PacotePage({ params }: { params: Promise<{ numero: string }> }) {
   const eu = await exigirProducao();
-  const numero = Number((await params).numero);
-  if (!Number.isInteger(numero) || numero <= 0) notFound();
+  const numero = inteiroPositivo((await params).numero);
+  if (!numero) notFound();
   const r = await rastrearPacote(numero);
   if (!r) notFound();
   const { pacote: p, dias, cargas, florestas } = r;
   const lancar = podeProducao(eu, "lancar");
-  const ciclos = lancar && p.status === "VERDE" ? await ciclosAtivos() : [];
-  const motoristas =
+  const [ciclos, motoristas, romaneio] = await Promise.all([
+    lancar && p.status === "VERDE" ? ciclosAtivos() : [],
     lancar && (p.status === "VERDE" || p.status === "SECO")
-      ? await db.motorista.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true, placaCaminhao: true, placaJulieta: true } })
-      : [];
-  const romaneio = p.romaneioId ? await db.romaneio.findUnique({ where: { id: p.romaneioId }, select: { numero: true, motorista: true, placa: true, placaJulieta: true } }) : null;
+      ? db.motorista.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true, placaCaminhao: true, placaJulieta: true } })
+      : [],
+    p.romaneioId ? db.romaneio.findUnique({ where: { id: p.romaneioId }, select: { numero: true, motorista: true, placa: true, placaJulieta: true } }) : null,
+  ]);
   const st = STATUS_PACOTE[p.status];
   const conformes = p.ciclo?.checklist.filter((i) => i.conforme === true).length ?? 0;
   const naoConformes = p.ciclo?.checklist.filter((i) => i.conforme === false).length ?? 0;

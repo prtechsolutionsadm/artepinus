@@ -23,6 +23,11 @@ function erroUnico(e: unknown) {
   return typeof e === "object" && e !== null && "code" in e && e.code === "P2002";
 }
 
+/** P2025: o registro não existe (outros erros não podem virar "não encontrado"). */
+function registroNaoEncontrado(e: unknown) {
+  return typeof e === "object" && e !== null && "code" in e && e.code === "P2025";
+}
+
 async function exigirGestao() {
   const eu = await exigirUsuario();
   return { eu, ok: podeProducao(eu, "gerir") };
@@ -77,7 +82,7 @@ const pedidoSchema = z.object({
   /** Volume combinado em m³ (aceita vírgula). */
   volumeM3: opcional(z.preprocess((v) => (typeof v === "string" ? v.replace(",", ".") : v), z.coerce.number().positive("Volume inválido").max(100000))),
   /** Prazo de entrega "AAAA-MM-DD". */
-  prazo: opcional(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Prazo inválido").transform((v) => diaParaDate(v))),
+  prazo: opcional(z.iso.date({ message: "Prazo inválido" }).transform((v) => diaParaDate(v))),
   observacoes: opcional(z.string().trim().max(500)),
   status: z.enum(["ABERTO", "CONCLUIDO"]).default("ABERTO"),
 });
@@ -206,8 +211,14 @@ export async function marcarMaquinaLinha(_: EstadoForm, form: FormData): Promise
   if (!ok) return { erro: "Sem permissão" };
   const id = String(form.get("id") ?? "");
   const linhaSerraria = form.get("linhaSerraria") === "on";
-  const e = await db.equipamento.update({ where: { id }, data: { linhaSerraria } }).catch(() => null);
-  if (!e) return { erro: "Equipamento não encontrado" };
+  let e;
+  try {
+    e = await db.equipamento.update({ where: { id }, data: { linhaSerraria } });
+  } catch (erro) {
+    if (registroNaoEncontrado(erro)) return { erro: "Equipamento não encontrado" };
+    console.error("Falha ao marcar máquina da linha", erro);
+    return { erro: "Não foi possível salvar. Tente novamente." };
+  }
   await auditar({
     usuarioId: eu.id,
     acao: "cadastro.maquina",

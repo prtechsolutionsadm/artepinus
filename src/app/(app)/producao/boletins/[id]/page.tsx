@@ -58,7 +58,7 @@ export default async function BoletimPage({ params }: { params: Promise<{ id: st
               </Link>
             )}
             {podeProducao(eu, "gerir") && (
-              <BotaoAcao acao={excluirBoletim} arg={b.id} confirmar="Excluir este boletim? Esta ação não pode ser desfeita." depois="/producao/boletins" className="btn-perigo">
+              <BotaoAcao acao={excluirBoletim} arg={b.id} confirmar="Excluir este boletim? Os lotes do dia (e as etiquetas) também serão excluídos. Esta ação não pode ser desfeita." depois="/producao/boletins" className="btn-perigo">
                 <Trash2 className="h-4 w-4" /> Excluir
               </BotaoAcao>
             )}

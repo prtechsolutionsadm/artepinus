@@ -30,6 +30,12 @@ function carregarLogo() {
   return logo;
 }
 
+/** Falha ao gerar o PDF (ex.: sem internet para baixar o jsPDF): avisa em vez de falhar calado. */
+export function avisarFalhaPdf(e: unknown) {
+  console.error(e);
+  window.alert("Não foi possível gerar o PDF. Verifique a conexão e tente de novo.");
+}
+
 /** Abre um documento A4 já com jsPDF e o autoTable carregados sob demanda. */
 export async function novoPdf(orientacao: "portrait" | "landscape" = "portrait") {
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);

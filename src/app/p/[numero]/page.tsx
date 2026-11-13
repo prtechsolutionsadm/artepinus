@@ -40,6 +40,7 @@ const T = {
     cancelado: "Este pacote foi cancelado.",
     rodape: "Cada pacote da Artepinus tem uma etiqueta com QR Code que liga a madeira à floresta de origem e a cada etapa da produção.",
     site: "Conheça a Artepinus",
+    privacidade: "Política de Privacidade",
     horas: "h",
   },
   en: {
@@ -68,6 +69,7 @@ const T = {
     cancelado: "This package was cancelled.",
     rodape: "Every Artepinus package carries a QR Code label linking the timber to its forest of origin and to each production step.",
     site: "About Artepinus",
+    privacidade: "Privacy Policy (in Portuguese)",
     horas: "h",
   },
 } as const;
@@ -231,6 +233,10 @@ export default async function PacotePublico({ params, searchParams }: { params: 
             {EMPRESA.razaoSocial} · Caçador – SC, Brasil ·{" "}
             <Link href="/" className="font-medium text-[#177009] hover:underline">
               {t.site}
+            </Link>
+            {" · "}
+            <Link href="/privacidade" className="font-medium text-[#177009] hover:underline">
+              {t.privacidade}
             </Link>
           </p>
         </footer>

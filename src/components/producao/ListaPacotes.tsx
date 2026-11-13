@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Printer, Truck } from "lucide-react";
 import { expedirPacotes } from "@/app/actions/rastreio";
+import { mensagemFalha } from "@/lib/falha-acao";
 import { SeletorMotorista, type MotoristaOpcao } from "@/components/producao/SeletorMotorista";
 import { fmtM3 } from "@/lib/producao";
 import { STATUS_PACOTE, codigoPacote } from "@/lib/rastreio";
@@ -49,7 +50,12 @@ export function ListaPacotes({
   function expedir() {
     setErro(null);
     iniciar(async () => {
-      const r = await expedirPacotes({ numeros: expediveis.map((l) => l.numero), motoristaId: motoristaId || null, observacoes: obs || null, notaFiscal: nf || null, chaveNfe: chave || null });
+      let r: Awaited<ReturnType<typeof expedirPacotes>>;
+      try {
+        r = await expedirPacotes({ numeros: expediveis.map((l) => l.numero), motoristaId: motoristaId || null, observacoes: obs || null, notaFiscal: nf || null, chaveNfe: chave || null });
+      } catch (e) {
+        return setErro(mensagemFalha(e));
+      }
       if (r.erro) return setErro(r.erro);
       setSel([]);
       setSaida(false);
@@ -61,14 +67,14 @@ export function ListaPacotes({
 
   return (
     <div>
-      {sel.length > 0 && (
+      {selecionados.length > 0 && (
         <div className="sticky top-16 z-10 lg:top-[4.5rem] mb-3 rounded-2xl border border-marca-200 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium">
-              {sel.length} selecionado(s) · {fmtM3(selecionados.reduce((s, l) => s + l.m3, 0), 2)}
+              {selecionados.length} selecionado(s) · {fmtM3(selecionados.reduce((s, l) => s + l.m3, 0), 2)}
             </span>
             <span className="ml-auto flex flex-wrap gap-2">
-              <Link href={`/producao/pacotes/etiquetas?n=${sel.join(",")}`} className="btn-secundario px-3 py-1.5 text-sm">
+              <Link href={`/producao/pacotes/etiquetas?n=${selecionados.map((l) => l.numero).join(",")}`} className="btn-secundario px-3 py-1.5 text-sm">
                 <Printer className="h-4 w-4" /> Etiquetas
               </Link>
               {podeExpedir && expediveis.length > 0 && (

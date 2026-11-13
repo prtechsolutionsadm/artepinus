@@ -18,15 +18,18 @@ export default async function BoletinsPage({ searchParams }: { searchParams: Pro
   const { mes: q } = await searchParams;
   const mes = q && /^\d{4}-\d{2}$/.test(q) ? q : atual;
 
-  const boletins = await db.boletimProducao.findMany({
-    where: { data: intervaloMes(mes) },
-    orderBy: { data: "desc" },
-    include: {
-      responsavel: { select: { nome: true } },
-      itens: { select: { tipo: true, m3: true } },
-      paradas: { select: { centro: true, minutos: true } },
-    },
-  });
+  const [boletins, comDados] = await Promise.all([
+    db.boletimProducao.findMany({
+      where: { data: intervaloMes(mes) },
+      orderBy: { data: "desc" },
+      include: {
+        responsavel: { select: { nome: true } },
+        itens: { select: { tipo: true, m3: true } },
+        paradas: { select: { centro: true, minutos: true } },
+      },
+    }),
+    mesesComBoletim(),
+  ]);
   const total = calcularKpis(boletins);
 
   return (
@@ -45,7 +48,7 @@ export default async function BoletinsPage({ searchParams }: { searchParams: Pro
       </Titulo>
 
       <div className="mb-5">
-        <SeletorMes mes={mes} atual={atual} base="/producao/boletins" comDados={await mesesComBoletim()} />
+        <SeletorMes mes={mes} atual={atual} base="/producao/boletins" comDados={comDados} />
       </div>
 
       {boletins.length > 0 && (

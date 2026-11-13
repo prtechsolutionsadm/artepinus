@@ -2,6 +2,13 @@
 // conexão por limite momentâneo (ex.: instâncias antigas ainda conectadas).
 import { spawnSync } from "node:child_process";
 
+// Deploy de Preview na Vercel: neste projeto o Preview usa o mesmo DATABASE_URL da produção, e a
+// migration de uma branch ainda não revisada mudaria o banco de produção. Fora da Vercel nada muda.
+if (process.env.VERCEL_ENV === "preview") {
+  console.log("Preview: migrations não são aplicadas (o banco é o de produção).");
+  process.exit(0);
+}
+
 const TENTATIVAS = 8;
 const TRANSITORIO = /too many connections|P1001|P2037|Can't reach database|ECONNRESET|timeout/i;
 

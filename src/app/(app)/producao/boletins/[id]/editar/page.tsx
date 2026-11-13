@@ -17,7 +17,7 @@ export default async function EditarBoletimPage({ params }: { params: Promise<{ 
   const b = await db.boletimProducao.findUnique({ where: { id }, include: { itens: { select: { m3: true } }, paradas: { include: { equipamento: { select: { nome: true } }, motivo: { select: { descricao: true } } } }, cargas: { select: { id: true } } } });
   if (!b) notFound();
   if (b.responsavelId !== eu.id && !podeProducao(eu, "gerir")) redirect(`/producao/boletins/${id}`);
-  const opcoes = await opcoesBoletim();
+  const [opcoes, cargas] = await Promise.all([opcoesBoletim(), cargasParaForm(b.cargas.map((c) => c.id))]);
   return (
     <div className="mx-auto max-w-4xl">
       <Titulo subtitulo="Paradas da linha, toras serradas e observações do dia">Boletim de {formatarDia(b.data)}</Titulo>
@@ -31,7 +31,7 @@ export default async function EditarBoletimPage({ params }: { params: Promise<{ 
         meta={b.metaM3}
         horasPadrao={b.horasProgramadas}
         producaoM3={b.itens.reduce((t, i) => t + i.m3, 0)}
-        cargas={await cargasParaForm(b.cargas.map((c) => c.id))}
+        cargas={cargas}
       />
     </div>
   );

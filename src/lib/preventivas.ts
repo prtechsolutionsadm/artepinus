@@ -16,19 +16,29 @@ export function descreverFrequencia(intervalo: number, unidade: UnidadeFrequenci
   return `A cada ${intervalo} ${UNIDADES[unidade].plural}`;
 }
 
-/** Soma o intervalo do plano a uma data (meses respeitam o calendário, horário de Brasília fixo). */
-function somarIntervalo(data: Date, intervalo: number, unidade: UnidadeFrequencia) {
-  const d = new Date(data);
+const FUSO = 3 * 60 * 60 * 1000; // Brasília: UTC-3 fixo
+
+/** Dia do mês de uma data no horário de Brasília (referência dos planos mensais). */
+export function diaDoMesBrasilia(data: Date) {
+  return new Date(data.getTime() - FUSO).getUTCDate();
+}
+
+/**
+ * Soma o intervalo do plano a uma data (meses respeitam o calendário, horário de Brasília fixo).
+ * `diaRef` (dia de referência do plano mensal) evita que 31/01 → 28/02 → 28/03 fique preso no dia 28.
+ */
+function somarIntervalo(data: Date, intervalo: number, unidade: UnidadeFrequencia, diaRef?: number | null) {
+  const d = new Date(data.getTime() - FUSO); // campos UTC = horário de Brasília
   if (unidade === "DIAS") d.setUTCDate(d.getUTCDate() + intervalo);
   else if (unidade === "SEMANAS") d.setUTCDate(d.getUTCDate() + intervalo * 7);
   else {
-    const dia = d.getUTCDate();
+    const dia = diaRef ?? d.getUTCDate();
     d.setUTCDate(1);
     d.setUTCMonth(d.getUTCMonth() + intervalo);
     const ultimo = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
-    d.setUTCDate(Math.min(dia, ultimo)); // 31/01 + 1 mês = 28/02
+    d.setUTCDate(Math.min(dia, ultimo)); // 31/01 + 1 mês = 28/02 (e 31/03 no mês seguinte)
   }
-  return d;
+  return new Date(d.getTime() + FUSO);
 }
 
 /**
@@ -52,8 +62,9 @@ export async function gerarPreventivas({ planoId, usuarioId }: { planoId?: strin
 
     // Se ficou muito tempo sem gerar, não cria várias atrasadas: agenda a ocorrência atual e segue
     let data = plano.proximaData;
-    while (somarIntervalo(data, plano.intervalo, plano.unidade) <= agora) data = somarIntervalo(data, plano.intervalo, plano.unidade);
-    const proxima = somarIntervalo(data, plano.intervalo, plano.unidade);
+    const somar = (d: Date) => somarIntervalo(d, plano.intervalo, plano.unidade, plano.diaDoMes);
+    while (somar(data) <= agora) data = somar(data);
+    const proxima = somar(data);
 
     const req = await db.$transaction(async (tx) => {
       // Trava otimista: só gera se a próxima data ainda é a que lemos (evita duplicar em execuções simultâneas)

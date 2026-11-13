@@ -51,22 +51,24 @@ export function rotuloLarguras(larguras: string[]) {
   return partes.join("/") || "—";
 }
 
-/** Largura usada no volume: média das larguras marcadas; Mista (ou nada) = média de todas. */
-function larguraEfetiva(larguras: string[]) {
+/** Largura usada no volume: média (sem arredondar) das larguras marcadas; Mista (ou nada) = média de todas. */
+function larguraMedia(larguras: string[]) {
   const nums = LARGURAS.filter((l) => larguras.includes(String(l)));
   const base: number[] = nums.length && !larguras.includes(MISTA) ? nums : [...LARGURAS];
-  return Math.round(base.reduce((t, l) => t + l, 0) / base.length);
+  return base.reduce((t, l) => t + l, 0) / base.length;
 }
 
 /** Itens (um por comprimento preenchido) de uma linha da ficha, com classe e m³. */
 export function itensDaLinha(l: LinhaFicha) {
-  const largura = larguraEfetiva(l.larguras);
+  const media = larguraMedia(l.larguras);
+  // O campo gravado é inteiro (exibição); o m³ usa a média exata (100/85 = 92,5 mm)
+  const largura = Math.round(media);
   return COMPRIMENTOS.filter((c) => (l.pecas[c.mm] ?? 0) > 0).map((c) => ({
     comprimento: c.mm,
     pecas: l.pecas[c.mm],
     classe: c.classe,
     largura,
-    m3: l.espessura ? m3Pecas(l.espessura, largura, c.mm, l.pecas[c.mm]) : 0,
+    m3: l.espessura ? m3Pecas(l.espessura, media, c.mm, l.pecas[c.mm]) : 0,
   }));
 }
 
@@ -192,9 +194,12 @@ export type Kpis = {
   qualidade: number | null;
   /** disponibilidade × produtividade */
   oee: number | null;
-  /** produção ÷ m³ de toras consumidas */
+  /** produção dos dias com toras ÷ m³ de toras */
   rendimento: number | null;
   torasM3: number;
+  /** serrado só nos boletins com toras informadas (numerador do rendimento) */
+  producaoComTorasM3: number;
+  diasComToras: number;
 };
 
 /**
@@ -218,17 +223,26 @@ export function calcularKpis(boletins: BoletimBase[]): Kpis {
     oee: null,
     rendimento: null,
     torasM3: 0,
+    producaoComTorasM3: 0,
+    diasComToras: 0,
   };
   for (const b of boletins) {
     k.metaM3 += b.metaM3;
     k.minutosProgramados += b.horasProgramadas * 60;
-    k.torasM3 += b.torasM3 ?? 0;
+    let prodBoletim = 0;
     for (const i of b.itens) {
       k.producaoM3 += i.m3;
+      prodBoletim += i.m3;
       if (i.comprimento) k.porClasse[classeDoComprimento(i.comprimento)] += i.m3;
       if (!i.tipo || i.tipo === "BOM") k.bomM3 += i.m3;
       else if (i.tipo === "APROVEITAMENTO") k.aproveitamentoM3 += i.m3;
       else k.refugoM3 += i.m3;
+    }
+    // Rendimento só sobre os dias com toras informadas (numerador e denominador dos mesmos dias)
+    if ((b.torasM3 ?? 0) > 0) {
+      k.torasM3 += b.torasM3!;
+      k.producaoComTorasM3 += prodBoletim;
+      k.diasComToras++;
     }
     for (const p of b.paradas) {
       k.minutosParados += p.minutos;
@@ -240,7 +254,7 @@ export function calcularKpis(boletins: BoletimBase[]): Kpis {
   if (k.producaoM3 > 0) k.qualidade = 1 - k.refugoM3 / k.producaoM3;
   // OEE da serraria: Disponibilidade × Produtividade (a Qualidade saiu do cálculo)
   if (k.disponibilidade != null && k.produtividade != null) k.oee = k.disponibilidade * k.produtividade;
-  if (k.torasM3 > 0) k.rendimento = k.producaoM3 / k.torasM3;
+  if (k.torasM3 > 0) k.rendimento = k.producaoComTorasM3 / k.torasM3;
   return k;
 }
 
@@ -284,6 +298,12 @@ export function nomeMesLongo(mes: string) {
 export function intervaloMes(mes: string) {
   const [a, m] = mes.split("-").map(Number);
   return { gte: new Date(Date.UTC(a, m - 1, 1)), lt: new Date(Date.UTC(a, m, 1)) };
+}
+
+/** Mês no horário de Brasília para colunas DateTime (criação/expedição de pacotes, entrada/saída de ciclos). */
+export function intervaloMesSP(mes: string) {
+  const { gte, lt } = intervaloMes(mes);
+  return { gte: new Date(gte.getTime() + 3 * 3600e3), lt: new Date(lt.getTime() + 3 * 3600e3) };
 }
 
 export function mesesAntes(mes: string, n: number) {

@@ -26,12 +26,16 @@ function pushDisponivel() {
 export async function notificar(usuarioIds: (string | null | undefined)[], aviso: Aviso) {
   let ids = [...new Set(usuarioIds.filter((id): id is string => Boolean(id)))];
   if (ids.length === 0) return;
-  // Aviso da manutenção só vai para quem enxerga o módulo (em teste: só o administrador)
-  if (aviso.link && !aviso.link.startsWith("/producao") && !aviso.link.startsWith("/p/") && aviso.link !== "/notificacoes") {
-    const usuarios = await db.usuario.findMany({ where: { id: { in: ids } }, select: { id: true, perfil: true, perfilProducao: true } });
-    ids = usuarios.filter((u) => temModulo(u, "manutencao")).map((u) => u.id);
-    if (ids.length === 0) return;
+  // Só usuários ativos recebem; aviso da manutenção só vai para quem enxerga o módulo (em teste: só o administrador)
+  const soManutencao = aviso.link && !aviso.link.startsWith("/producao") && !aviso.link.startsWith("/p/") && aviso.link !== "/notificacoes";
+  try {
+    const usuarios = await db.usuario.findMany({ where: { id: { in: ids }, ativo: true }, select: { id: true, perfil: true, perfilProducao: true } });
+    ids = (soManutencao ? usuarios.filter((u) => temModulo(u, "manutencao")) : usuarios).map((u) => u.id);
+  } catch (e) {
+    console.error("Falha ao conferir destinatários", e);
+    return;
   }
+  if (ids.length === 0) return;
 
   try {
     await db.notificacao.createMany({

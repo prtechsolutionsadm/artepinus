@@ -1,7 +1,7 @@
 // Conteúdo do manual do usuário (página /ajuda). Texto simples, organizado por tema.
-// `modulo` mostra a seção só para quem usa o módulo; `para` / `paraProducao` limitam
-// a quem tem a permissão. Sem esses campos, a seção vale para todos.
-import type { Acao, AcaoProducao, Modulo } from "@/lib/permissoes";
+// `modulo` mostra a seção (ou o tópico) só para quem usa o módulo; `para` / `paraProducao`
+// limitam a quem tem a permissão. Sem esses campos, a seção vale para todos.
+import { MODULOS_ATIVOS, type Acao, type AcaoProducao, type Modulo } from "@/lib/permissoes";
 
 export type Bloco =
   | { tipo: "texto"; texto: string }
@@ -11,7 +11,7 @@ export type Bloco =
   | { tipo: "atencao"; texto: string }
   | { tipo: "termos"; itens: [string, string][] };
 
-export type Topico = { titulo: string; blocos: Bloco[] };
+export type Topico = { titulo: string; modulo?: Modulo; blocos: Bloco[] };
 export type Secao = {
   id: string;
   titulo: string;
@@ -21,6 +21,9 @@ export type Secao = {
   paraProducao?: AcaoProducao;
   topicos: Topico[];
 };
+
+/** Igual à tela de usuários: com a manutenção desligada, o cadastro mostra "Acesso geral". */
+const MANUTENCAO_ATIVA = MODULOS_ATIVOS.includes("manutencao");
 
 export const MANUAL: Secao[] = [
   {
@@ -33,7 +36,7 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "passos", itens: ["Abra o endereço do sistema no navegador do celular ou do computador.", "Digite seu login no formato nome.sobrenome (ex.: joao.silva).", "Digite a senha e toque em Entrar."] },
           { tipo: "texto", texto: "No primeiro acesso, ou quando o administrador redefinir sua senha, o sistema pede para você criar uma senha nova antes de continuar." },
-          { tipo: "dica", texto: "Esqueceu a senha? Fale com o gerente ou o administrador: ele define uma senha provisória e você troca ao entrar." },
+          { tipo: "dica", texto: "Esqueceu a senha? No login, toque em Esqueci a minha senha e responda a sua pergunta de segurança (cadastre antes em Meu perfil). Se ainda não cadastrou a pergunta, fale com o gerente ou o administrador: ele define uma senha provisória e você troca ao entrar." },
         ],
       },
       {
@@ -58,11 +61,11 @@ export const MANUAL: Secao[] = [
             "O sistema fica atrás do site da empresa: no site, toque em Acessar sistema (ou abra o app instalado).",
             "Esqueceu a senha? No login, toque em Esqueci a minha senha, informe o login, responda a sua pergunta de segurança e crie uma nova senha. Para isso, cadastre antes a pergunta em Meu perfil.",
             "Depois de entrar, a tela de início mostra os módulos: toque em Serraria para trabalhar. A Manutenção aparece como Em breve. Para voltar a essa tela, use Escolher módulo no menu do seu nome (no celular, em Mais).",
-            "No computador: o menu fica na barra do topo — Início, Operação, Gestão e Cadastros (passe o mouse para ver a lista). Logo abaixo aparecem as abas do grupo em que você está. A busca, o manual, o sininho e o seu nome ficam à direita.",
+            "No computador: o menu fica à esquerda — Início e os grupos Operação, Gestão e Cadastros, com a busca no alto (atalho: tecla /) e, no fim, o módulo em uso (toque para ver ou trocar de módulo). No topo ficam voltar/avançar, o caminho da tela e, à direita, o tema, o manual, o sininho e o seu nome.",
             "A tela Início mostra o que precisa de atenção (dia sem apontamento, estufa passando da previsão, pacotes por formar) e os botões para lançar cada etapa.",
             "O menu segue a ordem do processo: 1 Recebimento de toras → 2 Serraria → 3 Estufas → 4 Pacotes e expedição. Indicadores e inventário ficam em Gestão; pedidos e demais cadastros, em Cadastros.",
             "No celular: use a barra de baixo — Início, Pacotes, o botão do meio para ler a etiqueta de um pacote ou lote, Estufas e Mais. Em Mais estão as demais telas e o botão Sair.",
-            "A busca do topo encontra pacote (PCT-), lote (LOT-) e carga (CT-) pelo código — abre direto — e também pedido, cliente, motorista, placa ou floresta.",
+            "A busca (no computador, no alto do menu à esquerda; no celular, a lupa do topo) encontra pacote (PCT-), lote (LOT-) e carga (CT-) pelo código — abre direto — e também pedido, cliente, motorista, placa ou floresta.",
             "Painel para TV (Gestão → Painel para TV): abra numa TV ou monitor do barracão com um usuário do sistema, toque em Tela cheia e deixe aberto. Mostra o serrado do dia contra a meta, os últimos lotes, as paradas, as estufas e o mês; atualiza sozinho a cada minuto e mantém a tela ligada.",
             "Roteiros para imprimir: no Manual do usuário, toque em Roteiros para imprimir — uma folha por função (toras, serraria, estufas, expedição, inventário, supervisão) para deixar no posto de trabalho.",
             "O QR da etiqueta do pacote, lido por alguém de fora (o cliente), abre uma página pública em português ou inglês com a floresta de origem, as datas de recebimento das toras, serragem, secagem em estufa e expedição — sem cliente, pedido, pessoas ou placas. O QR das etiquetas leva um código aleatório, para ninguém percorrer os pacotes trocando o número; etiquetas antigas, com o número, continuam valendo. Quem está logado no sistema vê a tela completa; para ver a versão do cliente, use Como o cliente vê no pacote.",
@@ -189,10 +192,23 @@ export const MANUAL: Secao[] = [
           { tipo: "passos", itens: ["Vá em Meu perfil.", "Em Notificações neste aparelho, toque em Ativar notificações e permita quando o navegador perguntar.", "Toque em Enviar notificação de teste para conferir."] },
           { tipo: "texto", texto: "A ativação é por aparelho: faça em cada celular ou computador que você usa." },
           { tipo: "dica", texto: "Bloqueou sem querer? Libere nas configurações do site (ícone de cadeado ao lado do endereço) e recarregue a página." },
+          { tipo: "texto", texto: "Tudo também aparece no sininho do topo, com o número de avisos não lidos. Toque em um aviso para abrir a tela relacionada." },
         ],
       },
       {
-        titulo: "Quem recebe o quê",
+        titulo: "Avisos da serraria",
+        modulo: "producao",
+        blocos: [
+          { tipo: "lista", itens: [
+            "Estufa que passou da previsão de saída: supervisores, apontadores, gerente e administrador, além do plantão e do responsável pelo ciclo.",
+            "Dia útil (segunda a sexta) que termina sem nenhum lote apontado, às 18h: supervisores, apontadores, gerente e administrador.",
+            "Pedido pronto para expedir: supervisores, gerente e administrador.",
+          ] },
+        ],
+      },
+      {
+        titulo: "Avisos da manutenção",
+        modulo: "manutencao",
         blocos: [
           { tipo: "lista", itens: [
             "Quem abriu: cada mudança de status e os comentários na sua requisição.",
@@ -201,7 +217,6 @@ export const MANUAL: Secao[] = [
             "Gerente: requisições novas de prioridade alta, urgentes ou com máquina parada.",
             "Todos os dias às 7h: lembrete das manutenções agendadas para o dia.",
           ] },
-          { tipo: "texto", texto: "Tudo também aparece no sininho do topo, com o número de avisos não lidos. Toque em um aviso para abrir a requisição." },
         ],
       },
     ],
@@ -353,7 +368,7 @@ export const MANUAL: Secao[] = [
   },
   {
     id: "administracao",
-    titulo: "Usuários, setores e auditoria",
+    titulo: MANUTENCAO_ATIVA ? "Usuários, setores e auditoria" : "Usuários e auditoria",
     resumo: "Cadastros de acesso e histórico de alterações",
     para: "usuarios",
     topicos: [
@@ -362,8 +377,10 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "passos", itens: [
             "Vá em Usuários e abra Novo usuário.",
-            "Informe nome, login (nome.sobrenome, sem acentos), o perfil na Manutenção e o perfil no sistema.",
-            "Defina uma senha inicial (mín. 6 caracteres) e deixe marcado Exigir troca da senha no primeiro acesso.",
+            MANUTENCAO_ATIVA
+              ? "Informe nome, login (nome.sobrenome, sem acentos), o perfil na Manutenção e o perfil no sistema."
+              : "Informe nome, login (nome.sobrenome, sem acentos), o Acesso geral (Usuário ou Gerente) e, para Usuário, o Perfil no sistema (Supervisor, Apontador ou Consulta).",
+            "Defina uma senha inicial (mín. 8 caracteres) e deixe marcado Exigir troca da senha no primeiro acesso.",
             "Toque em Criar usuário e passe o login e a senha para a pessoa.",
           ] },
           { tipo: "texto", texto: "Para redefinir a senha de alguém, abra o usuário, digite uma nova senha e salve. Para bloquear o acesso de quem saiu da empresa, desmarque Ativo (o histórico é mantido)." },
@@ -372,14 +389,21 @@ export const MANUAL: Secao[] = [
       {
         titulo: "Perfis de acesso",
         blocos: [
-          { tipo: "texto", texto: "Cada usuário tem um perfil por módulo. Quem só trabalha na serraria fica com Sem acesso na Manutenção; quem não usa a serraria fica com Sem acesso nela. Todo usuário precisa de pelo menos um módulo. O Gerente tem acesso total aos dois." },
-          { tipo: "termos", itens: [
-            ["Gerente", "Acesso a tudo: requisições, cadastros, preventivas, indicadores, relatórios, usuários, setores e auditoria."],
-            ["Supervisor", "Coordena a manutenção: atribui, agenda, cancela, cadastra equipamentos, preventivas e checklists, vê indicadores e relatórios."],
-            ["Manutentor", "Executa: atualiza status, assume requisições, lança horas, marca checklist, anexa fotos do serviço e cadastra equipamentos."],
-            ["Operador", "Abre requisições, comenta, envia fotos e acompanha."],
-          ] },
-          { tipo: "texto", texto: "Na serraria (perfil no sistema):" },
+          ...(MANUTENCAO_ATIVA
+            ? ([
+                { tipo: "texto", texto: "Cada usuário tem um perfil por módulo. Quem só trabalha na serraria fica com Sem acesso na Manutenção; quem não usa a serraria fica com Sem acesso nela. Todo usuário precisa de pelo menos um módulo. O Gerente tem acesso total aos dois." },
+                { tipo: "termos", itens: [
+                  ["Gerente", "Acesso a tudo: requisições, cadastros, preventivas, indicadores, relatórios, usuários, setores e auditoria."],
+                  ["Supervisor", "Coordena a manutenção: atribui, agenda, cancela, cadastra equipamentos, preventivas e checklists, vê indicadores e relatórios."],
+                  ["Manutentor", "Executa: atualiza status, assume requisições, lança horas, marca checklist, anexa fotos do serviço e cadastra equipamentos."],
+                  ["Operador", "Abre requisições, comenta, envia fotos e acompanha."],
+                ] },
+                { tipo: "texto", texto: "Na serraria (perfil no sistema):" },
+              ] satisfies Bloco[])
+            : ([
+                { tipo: "texto", texto: "No Acesso geral, o Usuário trabalha conforme o Perfil no sistema (todo usuário precisa de um); o Gerente tem acesso total à Serraria, a Usuários e à Auditoria." },
+                { tipo: "texto", texto: "Perfil no sistema:" },
+              ] satisfies Bloco[])),
           { tipo: "termos", itens: [
             ["Supervisor", "Lança e corrige qualquer boletim, ciclo, carga ou levantamento, exclui lançamentos e cuida dos cadastros (pedidos, florestas, fornecedores, motoristas, estufas, motivos e configuração)."],
             ["Apontador", "O encarregado: aponta os lotes da serraria, ciclos de estufa, cargas de toras e o inventário, e corrige o que ele mesmo lançou."],
@@ -387,10 +411,13 @@ export const MANUAL: Secao[] = [
           ] },
         ],
       },
-      {
-        titulo: "Setores",
-        blocos: [{ tipo: "texto", texto: "Em Setores você cria e renomeia os setores da empresa. Os equipamentos pertencem a um setor, e as requisições herdam o setor do equipamento." }],
-      },
+      // A tela Setores só está no menu da manutenção
+      ...(MANUTENCAO_ATIVA
+        ? [{
+            titulo: "Setores",
+            blocos: [{ tipo: "texto", texto: "Em Setores você cria e renomeia os setores da empresa. Os equipamentos pertencem a um setor, e as requisições herdam o setor do equipamento." }],
+          } satisfies Topico]
+        : []),
       {
         titulo: "Auditoria",
         blocos: [{ tipo: "texto", texto: "Em Auditoria fica registrado quem fez o quê e quando: entradas no sistema (inclusive tentativas com senha errada), cadastros, mudanças de status, fotos, horas, checklists e planos. Nas alterações aparece o valor anterior e o novo. Filtre por usuário, área, período ou texto." }],
@@ -487,7 +514,7 @@ export const MANUAL: Secao[] = [
             "No romaneio, os botões Declaração de origem (PT) e Origin statement (EN) geram a declaração de origem da carga para o cliente: origem florestal, recebimento das toras, serragem, secagem em estufa e a lista de pacotes com o QR de cada um.",
             "É uma declaração da própria empresa, feita com os registros do sistema. Ela não substitui a nota fiscal nem os documentos oficiais ambientais ou fitossanitários de exportação.",
             "Para carregar um caminhão: em Pacotes, marque os pacotes, toque em Registrar saída, escolha o motorista (as placas vêm do cadastro) e confirme. O sistema gera o romaneio da carga (ROM-000001).",
-            "Na saída, informe também a nota fiscal (nº e, se quiser, a chave de acesso de 44 dígitos): ela sai no romaneio e a busca do topo encontra o romaneio pelo nº da nota.",
+            "Na saída, informe também a nota fiscal (nº e, se quiser, a chave de acesso de 44 dígitos): ela sai no romaneio e a busca encontra o romaneio pelo nº da nota.",
             "No romaneio, toque em Baixar PDF do romaneio e entregue ao motorista: tem pedidos, cliente, destino, placas, a lista de pacotes com bitola, peças e m³ e os campos de assinatura. Os romaneios ficam em Operação → Romaneios.",
           ] },
         ],
@@ -591,7 +618,7 @@ export const MANUAL: Secao[] = [
   {
     id: "producao-cadastros",
     titulo: "Cadastros",
-    resumo: "Pedidos, florestas, fornecedores, motoristas, paradas, estufas e configuração",
+    resumo: "Pedidos, florestas, fornecedores, motoristas, paradas, máquinas da linha, estufas e configuração",
     modulo: "producao",
     paraProducao: "gerir",
     topicos: [
@@ -602,7 +629,8 @@ export const MANUAL: Secao[] = [
             "Pedidos: nº, cliente, destino, volume combinado (m³) e prazo. A serraria aponta cada lote em um pedido aberto; conclua o pedido para tirá-lo da lista.",
             "Florestas, fornecedores e motoristas (com placa do caminhão e da julieta) usados no recebimento de toras.",
             "Motivos de parada e estufas. Desative em vez de excluir, para manter o histórico.",
-            "Configuração: meta diária (m³), horas por dia e rendimento esperado — viram a meta e as horas (somente leitura) de cada boletim novo.",
+            "Máquinas da linha: toque no botão de cada máquina para colocá-la na linha (Na linha ✓) ou tirá-la (Fora da linha); só as da linha aparecem no botão Máquina parou.",
+            "Configuração: meta diária (m³), horas por dia, rendimento esperado e início/fim do turno. Meta e horas viram os valores (somente leitura) de cada boletim novo; das paradas marcadas na hora, só o tempo dentro do turno entra no boletim.",
           ] },
         ],
       },
@@ -618,13 +646,21 @@ export const MANUAL: Secao[] = [
         blocos: [
           { tipo: "termos", itens: [
             ["Não recebo notificações no celular", "Ative em Meu perfil neste aparelho e permita no navegador. No iPhone, instale o app na tela de início e abra por ele. Confira também se o modo Não perturbe está desligado."],
-            ["Abri a requisição errada", "Comente explicando. Se ainda estiver Aberta, cancele com o motivo; senão, peça ao supervisor."],
-            ["A foto não foi enviada", "Fotos muito grandes ou em formatos incomuns podem falhar. Tente tirar a foto pelo botão Tirar foto do próprio sistema."],
             ["A tela mostra 'Sem conexão'", "Você está sem internet. As telas de apontamento (serraria, toras e inventário) abrem mesmo assim, se já foram usadas neste aparelho; os lançamentos são enviados quando a conexão voltar."],
-            ["Não consigo concluir a requisição", "Verifique se o Serviço realizado está preenchido e se todos os itens do checklist estão marcados."],
             ["O app está com aparência antiga", "Feche e abra o app de novo (ou atualize a página) para carregar a versão mais recente."],
           ] },
           { tipo: "texto", texto: "Não encontrou a resposta? Fale com o gerente ou o administrador do sistema." },
+        ],
+      },
+      {
+        titulo: "Requisições",
+        modulo: "manutencao",
+        blocos: [
+          { tipo: "termos", itens: [
+            ["Abri a requisição errada", "Comente explicando. Se ainda estiver Aberta, cancele com o motivo; senão, peça ao supervisor."],
+            ["A foto não foi enviada", "Fotos muito grandes ou em formatos incomuns podem falhar. Tente tirar a foto pelo botão Tirar foto do próprio sistema."],
+            ["Não consigo concluir a requisição", "Verifique se o Serviço realizado está preenchido e se todos os itens do checklist estão marcados."],
+          ] },
         ],
       },
     ],

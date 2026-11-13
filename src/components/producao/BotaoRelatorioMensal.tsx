@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FileDown } from "lucide-react";
-import { CINZA, TEXTO, VERDE, cabecalho, novoPdf, num, rodape } from "@/lib/pdf-cliente";
+import { CINZA, TEXTO, VERDE, avisarFalhaPdf, cabecalho, novoPdf, num, rodape } from "@/lib/pdf-cliente";
 
 type K = {
   oee: number | null;
@@ -227,6 +227,8 @@ export function BotaoRelatorioMensal({ dados }: { dados: DadosRelatorio }) {
 
       rodape(doc);
       doc.save(`relatorio-serraria-${dados.mes.toLowerCase().replace(/\s+/g, "-")}.pdf`);
+    } catch (e) {
+      avisarFalhaPdf(e);
     } finally {
       setGerando(false);
     }

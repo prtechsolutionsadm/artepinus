@@ -63,6 +63,18 @@ export function numeroRequisicao(id: number) {
   return `#${String(id).padStart(5, "0")}`;
 }
 
+/** Inteiro positivo de URL/formulário que cabe no INT4 do Postgres (até 9 dígitos); senão null. */
+export function inteiroPositivo(s: string | null | undefined) {
+  return s && /^[1-9]\d{0,8}$/.test(s) ? Number(s) : null;
+}
+
+/** "AAAA-MM-DD" que existe no calendário (recusa 2026-13-01 e 2026-02-31). */
+export function diaValido(s: string | null | undefined): s is string {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
 // Brasil (São Paulo) não tem horário de verão desde 2019: UTC-3 fixo.
 const OFFSET_SP = "-03:00";
 

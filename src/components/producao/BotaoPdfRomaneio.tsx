@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FileDown } from "lucide-react";
-import { CINZA, TEXTO, VERDE, cabecalho, novoPdf, num, rodape } from "@/lib/pdf-cliente";
+import { CINZA, TEXTO, VERDE, avisarFalhaPdf, cabecalho, novoPdf, num, rodape } from "@/lib/pdf-cliente";
 
 export type DadosRomaneio = {
   codigo: string;
@@ -107,6 +107,8 @@ export function BotaoPdfRomaneio({ dados, className = "btn-primario" }: { dados:
 
       rodape(doc);
       doc.save(`${dados.codigo}.pdf`);
+    } catch (e) {
+      avisarFalhaPdf(e);
     } finally {
       setGerando(false);
     }

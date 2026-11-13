@@ -8,6 +8,7 @@ import { situacaoPedidos } from "@/lib/pedidos";
 import { diaParaDate, hojeSP } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 import { exigirProducao } from "@/lib/session";
+import { diaValido } from "@/lib/constantes";
 
 export const metadata: Metadata = { title: "Apontar serraria" };
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Apontar serraria" };
 export default async function ApontarSerrariaPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   await exigirProducao("lancar");
   const { data: q } = await searchParams;
-  const data = q && /^\d{4}-\d{2}-\d{2}$/.test(q) && q <= hojeSP() ? q : hojeSP();
+  const data = diaValido(q) && q <= hojeSP() ? q : hojeSP();
   const [pedidos, cfg, boletim] = await Promise.all([
     situacaoPedidos({ status: "ABERTO" }),
     configSerraria(),

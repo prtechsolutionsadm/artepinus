@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { PRIORIDADE, STATUS, STATUS_FINAIS, STATUS_PENDENTES, TIPO } from "@/lib/constantes";
+import { PRIORIDADE, STATUS, STATUS_FINAIS, STATUS_PENDENTES, TIPO, diaValido } from "@/lib/constantes";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Prioridade, StatusRequisicao, TipoManutencao } from "@/generated/prisma/enums";
 
@@ -13,8 +13,6 @@ export type FiltrosRelatorio = {
   setor?: string;
 };
 
-const DATA = /^\d{4}-\d{2}-\d{2}$/;
-
 /** Primeiro dia do mês corrente (horário de Brasília), no formato YYYY-MM-DD. */
 function inicioDoMes() {
   const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -24,8 +22,8 @@ function inicioDoMes() {
 function normalizarFiltros(f: FiltrosRelatorio): Required<FiltrosRelatorio> {
   const hoje = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
   return {
-    de: f.de && DATA.test(f.de) ? f.de : inicioDoMes(),
-    ate: f.ate && DATA.test(f.ate) ? f.ate : hoje,
+    de: diaValido(f.de) ? f.de : inicioDoMes(),
+    ate: diaValido(f.ate) ? f.ate : hoje,
     status: f.status ?? "",
     prioridade: f.prioridade ?? "",
     tipo: f.tipo ?? "",

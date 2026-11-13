@@ -1,10 +1,9 @@
 import "server-only";
 import { db } from "@/lib/db";
-import type { LocalEstoque } from "@/generated/prisma/enums";
-import { arred, calcularKpis, dateParaDia, intervaloMes, m3Toras, mesesAntes, type Kpis } from "@/lib/producao";
+import type { LocalEstoque, TipoProduto } from "@/generated/prisma/enums";
+import { arred, calcularKpis, dateParaDia, intervaloMes, intervaloMesSP, m3Toras, mesesAntes, type Kpis } from "@/lib/producao";
 
 const incluirBoletim = {
-  itens: { select: { tipo: true, m3: true, comprimento: true } },
   paradas: { select: { centro: true, minutos: true, ocorrencias: true, motivoId: true, descricao: true, equipamentoId: true } },
 } as const;
 
@@ -13,22 +12,29 @@ export type MesComparativo = { mes: string; dias: number; kpis: Kpis };
 /** Dados do painel de indicadores: o mês escolhido e a comparação com os meses anteriores. */
 export async function painelProducao(mes: string, mesesComparar = 6) {
   const inicioComparacao = mesesAntes(mes, mesesComparar - 1);
-  const [boletins, motivos, equipamentos, ciclosAtivos, ciclosMes, cargasToras, ultimos] = await Promise.all([
-    db.boletimProducao.findMany({
-      where: { data: { gte: intervaloMes(inicioComparacao).gte, lt: intervaloMes(mes).lt } },
-      orderBy: { data: "asc" },
-      include: incluirBoletim,
-    }),
+  const periodo = { gte: intervaloMes(inicioComparacao).gte, lt: intervaloMes(mes).lt };
+  const [boletinsDb, somasItens, motivos, equipamentos, ciclosAtivos, ciclosMes, cargasToras, ultimos] = await Promise.all([
+    db.boletimProducao.findMany({ where: { data: periodo }, orderBy: { data: "asc" }, include: incluirBoletim }),
+    // Os KPIs só precisam do m³ por tipo e comprimento de cada boletim: soma no banco em vez de trazer todas as peças
+    db.itemProducao.groupBy({ by: ["boletimId", "tipo", "comprimento"], where: { boletim: { data: periodo } }, _sum: { m3: true } }),
     db.motivoParada.findMany({ select: { id: true, codigo: true, descricao: true } }),
     db.equipamento.findMany({ select: { id: true, nome: true } }),
     db.cicloSecagem.findMany({ where: { status: "EM_SECAGEM" }, include: { cargas: { select: { m3: true } } } }),
     db.cicloSecagem.findMany({
-      where: { status: "CONCLUIDO", saida: intervaloMes(mes) },
+      where: { status: "CONCLUIDO", saida: intervaloMesSP(mes) },
       select: { entrada: true, saida: true, cargas: { select: { m3: true } } },
     }),
     db.cargaToras.findMany({ where: { data: intervaloMes(mes) }, include: { itens: true } }),
     db.levantamentoEstoque.findFirst({ where: { OR: [{ local: { not: null } }, { itens: { some: { local: { not: null } } } }] }, orderBy: { data: "desc" }, select: { data: true } }),
   ]);
+
+  const itensPorBoletim = new Map<string, { tipo: TipoProduto; comprimento: number; m3: number }[]>();
+  for (const g of somasItens) {
+    const lista = itensPorBoletim.get(g.boletimId) ?? [];
+    lista.push({ tipo: g.tipo, comprimento: g.comprimento, m3: g._sum.m3 ?? 0 });
+    itensPorBoletim.set(g.boletimId, lista);
+  }
+  const boletins = boletinsDb.map((b) => ({ ...b, itens: itensPorBoletim.get(b.id) ?? [] }));
 
   const doMes = boletins.filter((b) => dateParaDia(b.data).startsWith(mes));
   const kpis = calcularKpis(doMes);
@@ -163,10 +169,4 @@ export async function painelProducao(mes: string, mesesComparar = 6) {
     estoque,
     pacotes,
   };
-}
-
-/** Mês no horário de Brasília para colunas DateTime (criação/expedição de pacotes). */
-function intervaloMesSP(mes: string) {
-  const { gte, lt } = intervaloMes(mes);
-  return { gte: new Date(gte.getTime() + 3 * 3600e3), lt: new Date(lt.getTime() + 3 * 3600e3) };
 }

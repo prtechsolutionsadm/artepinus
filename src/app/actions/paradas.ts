@@ -30,6 +30,10 @@ const pararSchema = z.object({
 
 export type DadosParada = z.input<typeof pararSchema>;
 
+function erroUnico(e: unknown) {
+  return typeof e === "object" && e !== null && "code" in e && e.code === "P2002";
+}
+
 function atualizarTelas(requisicaoId?: number | null) {
   revalidatePath("/producao", "layout");
   revalidatePath("/manutencao");
@@ -90,7 +94,8 @@ export async function pararMaquina(entrada: DadosParada): Promise<Resultado> {
         maquinaParada: true,
         centroParada: centro,
         registradaEm: null,
-        chaveOffline: null,
+        // Mesma chave do aparelho: reenvio simultâneo reaproveita a requisição em vez de duplicar
+        chaveOffline: d.chaveOffline,
       },
       [],
       "online",
@@ -99,19 +104,28 @@ export async function pararMaquina(entrada: DadosParada): Promise<Resultado> {
     requisicaoId = req.id;
   }
 
-  const parada = await db.paradaMaquina.create({
-    data: {
-      equipamentoId: equip.id,
-      motivoId: motivo?.id ?? null,
-      centro,
-      descricao: d.descricao,
-      inicio,
-      origem: "SERRARIA",
-      abertaPorId: eu.id,
-      requisicaoId,
-      chaveOffline: d.chaveOffline,
-    },
-  });
+  let parada;
+  try {
+    parada = await db.paradaMaquina.create({
+      data: {
+        equipamentoId: equip.id,
+        motivoId: motivo?.id ?? null,
+        centro,
+        descricao: d.descricao,
+        inicio,
+        origem: "SERRARIA",
+        abertaPorId: eu.id,
+        requisicaoId,
+        chaveOffline: d.chaveOffline,
+      },
+    });
+  } catch (e) {
+    // Reenvio da fila em outra aba chegou primeiro: devolve a parada que ele gravou
+    if (!erroUnico(e) || !d.chaveOffline) throw e;
+    const ja = await db.paradaMaquina.findUnique({ where: { chaveOffline: d.chaveOffline } });
+    if (!ja) throw e;
+    return { id: ja.id, requisicaoId: ja.requisicaoId };
+  }
 
   await auditar({
     usuarioId: eu.id,
@@ -189,19 +203,48 @@ export async function liberarMaquina(paradaId: string, observacao?: string): Pro
   return { id: p.id, requisicaoId: p.requisicaoId };
 }
 
-/** Desfaz uma parada marcada por engano (só o supervisor; a requisição continua, se houver). */
+/**
+ * Desfaz uma parada marcada por engano (só o supervisor). A requisição, se houver, continua aberta,
+ * mas sem a marcação de máquina parada — senão a próxima atualização dela recriaria a parada.
+ */
 export async function excluirParadaMaquina(paradaId: string): Promise<Resultado> {
   const eu = await exigirUsuario();
   if (!podeProducao(eu, "gerir")) return { erro: "Sem permissão" };
   const p = await db.paradaMaquina.findUnique({ where: { id: paradaId }, include: { equipamento: { select: { nome: true } } } });
   if (!p) return { erro: "Parada não encontrada" };
-  await db.paradaMaquina.delete({ where: { id: p.id } });
+  const r = p.requisicaoId
+    ? await db.requisicao.findUnique({ where: { id: p.requisicaoId }, select: { id: true, status: true, maquinaParada: true, paradaInicio: true, paradaFim: true } })
+    : null;
+  if (r?.maquinaParada) {
+    await db.$transaction([
+      db.paradaMaquina.delete({ where: { id: p.id } }),
+      db.requisicao.update({
+        where: { id: r.id },
+        data: {
+          maquinaParada: false,
+          paradaInicio: null,
+          paradaFim: null,
+          historico: { create: { statusAnterior: r.status, statusNovo: r.status, usuarioId: eu.id, observacao: `Parada excluída na serraria por ${eu.nome} (marcada por engano)` } },
+        },
+      }),
+    ]);
+  } else {
+    await db.paradaMaquina.delete({ where: { id: p.id } });
+  }
   await auditar({
     usuarioId: eu.id,
     acao: "parada.excluir",
     entidade: "ParadaMaquina",
     entidadeId: p.id,
-    resumo: `Excluiu a parada de ${p.equipamento.nome} iniciada em ${p.inicio.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
+    resumo: `Excluiu a parada de ${p.equipamento.nome} iniciada em ${p.inicio.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}${r?.maquinaParada ? ` · requisição ${numeroRequisicao(r.id)} sem máquina parada` : ""}`,
+    detalhes: r?.maquinaParada
+      ? {
+          requisicao: numeroRequisicao(r.id),
+          maquinaParada: { de: true, para: false },
+          paradaInicio: { de: r.paradaInicio?.toISOString() ?? null, para: null },
+          paradaFim: { de: r.paradaFim?.toISOString() ?? null, para: null },
+        }
+      : undefined,
   });
   atualizarTelas(p.requisicaoId);
   return {};

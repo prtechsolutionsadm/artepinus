@@ -335,7 +335,8 @@ export function BarraInferior({ menus, salvo }: { menus: Menus; salvo: Modulo | 
   );
 }
 
-/** Busca do topo: só faz sentido no módulo de manutenção. */
+/** Busca do menu lateral (computador, atalho "/") e lupa do topo (celular e tablet): na Serraria vai para
+ * /producao/buscar (pacote, lote, carga…); na Manutenção, para /requisicoes. */
 export function BuscaTopo({ menus, salvo, celular = false }: { menus: Menus; salvo: Modulo | null; celular?: boolean }) {
   const modulo = useModulo(menus, salvo);
   const serraria = modulo === "producao";
@@ -347,15 +348,18 @@ export function BuscaTopo({ menus, salvo, celular = false }: { menus: Menus; sal
     const tecla = (e: KeyboardEvent) => {
       const alvo = e.target as HTMLElement;
       if (e.key !== "/" || e.ctrlKey || e.metaKey || alvo.closest("input, textarea, select, [contenteditable=true]")) return;
+      // Campo oculto (menu lateral escondido abaixo de lg): não engole a tecla
+      const el = campo.current;
+      if (!el || el.getClientRects().length === 0) return;
       e.preventDefault();
-      campo.current?.focus();
+      el.focus();
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
   }, [celular]);
   if (celular) {
     return (
-      <Link href={destino} aria-label="Buscar" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100 sm:hidden">
+      <Link href={destino} aria-label="Buscar" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100 lg:hidden">
         <Search className="h-5 w-5" />
       </Link>
     );

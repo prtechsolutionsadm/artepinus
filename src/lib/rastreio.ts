@@ -21,8 +21,9 @@ export type CodigoLido = { tipo: "pacote" | "lote"; numero: number } | { tipo: "
 export function lerCodigo(texto: string): CodigoLido | null {
   const t = texto.trim();
   const qr = t.match(/\/p\/([a-z0-9]{6,20})(?:[?#/]|$)/i);
-  if (qr && !/^\d+$/.test(qr[1])) return { tipo: "codigo", codigo: qr[1].toLowerCase() };
-  const lote = t.match(/\/l\/(\d+)/i) ?? t.match(/^LOT[-\s]?0*(\d{1,9})$/i);
+  // Até 9 dígitos é o número das etiquetas antigas; o código aleatório (10 caracteres) pode sair todo numérico
+  if (qr && !/^\d{1,9}$/.test(qr[1])) return { tipo: "codigo", codigo: qr[1].toLowerCase() };
+  const lote = t.match(/\/l\/(\d{1,9})(?!\d)/i) ?? t.match(/^LOT[-\s]?0*(\d{1,9})$/i);
   if (lote) return { tipo: "lote", numero: Number(lote[1]) };
   const n = numeroDoCodigo(t);
   return n ? { tipo: "pacote", numero: n } : null;
@@ -31,7 +32,7 @@ export function lerCodigo(texto: string): CodigoLido | null {
 /** "PCT-000123", "pct123", "123" ou o link do QR → 123. */
 export function numeroDoCodigo(texto: string): number | null {
   const t = texto.trim();
-  const doLink = t.match(/\/p\/(\d+)/);
+  const doLink = t.match(/\/p\/(\d{1,9})(?!\d)/);
   const m = doLink ?? t.match(/^(?:PCT[-\s]?)?0*(\d{1,9})$/i);
   const n = m ? Number(m[1]) : NaN;
   return Number.isInteger(n) && n > 0 ? n : null;

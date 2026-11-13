@@ -26,8 +26,11 @@ export async function dadosInicio() {
   const uteis = diasUteisAte(hoje, 5);
   const desde30 = new Date(agora.getTime() - 30 * DIA);
 
-  const [boletinsRecentes, emSecagem, ciclosSemPacote, cargasSemFloresta, boletinsSemCarga, estoque, boletinsMes, metaMes, recentes] = await Promise.all([
-    db.boletimProducao.findMany({ where: { data: { gte: diaParaDate(uteis[uteis.length - 1] ?? hoje) } }, select: { id: true, data: true } }),
+  const [boletinsRecentes, emSecagem, ciclosSemPacote, cargasSemFloresta, boletinsSemCarga, estoque, boletinsMes, recentes, estufasDb, paradas] = await Promise.all([
+    db.boletimProducao.findMany({
+      where: { data: { gte: diaParaDate(uteis[uteis.length - 1] ?? hoje) } },
+      select: { id: true, data: true, _count: { select: { lotes: true, itens: true } } },
+    }),
     db.cicloSecagem.findMany({ where: { status: "EM_SECAGEM" }, include: { estufa: { select: { nome: true } } }, orderBy: { entrada: "asc" } }),
     db.cicloSecagem.findMany({
       where: { status: "CONCLUIDO", saida: { gte: desde30 }, pacotes: { none: {} } },
@@ -42,18 +45,13 @@ export async function dadosInicio() {
       where: { data: intervaloMes(mesDe(hoje)) },
       select: { metaM3: true, horasProgramadas: true, itens: { select: { tipo: true, m3: true, comprimento: true } }, paradas: { select: { centro: true, minutos: true } } },
     }),
-    db.metaProducao.findUnique({ where: { mes: mesDe(hoje) } }),
     db.auditoria.findMany({
       where: { OR: ["boletim.", "parada.", "ciclo.", "toras.", "pacote.", "estoque.", "cadastro."].map((p) => ({ acao: { startsWith: p } })) },
       orderBy: { criadoEm: "desc" },
       take: 15,
       include: { usuario: { select: { nome: true } } },
     }),
-  ]);
-
-  // Estufas agora: livre ou secando (há quanto tempo, previsão e volume)
-  const estufas = (
-    await db.estufa.findMany({
+    db.estufa.findMany({
       where: { ativo: true },
       orderBy: { numero: "asc" },
       select: {
@@ -61,8 +59,16 @@ export async function dadosInicio() {
         nome: true,
         ciclos: { where: { status: "EM_SECAGEM" }, take: 1, select: { id: true, numero: true, entrada: true, previsaoSaida: true, cargas: { select: { m3: true } } } },
       },
-    })
-  ).map((e) => {
+    }),
+    db.paradaMaquina.findMany({
+      where: { fim: null },
+      orderBy: { inicio: "asc" },
+      select: { inicio: true, centro: true, requisicaoId: true, equipamento: { select: { nome: true } }, motivo: { select: { descricao: true } } },
+    }),
+  ]);
+
+  // Estufas agora: livre ou secando (há quanto tempo, previsão e volume)
+  const estufas = estufasDb.map((e) => {
     const c = e.ciclos[0];
     return {
       id: e.id,
@@ -80,16 +86,12 @@ export async function dadosInicio() {
     };
   });
 
-  const lancados = new Set(boletinsRecentes.map((b) => dateParaDia(b.data)));
+  // Mesma regra do alerta das 18h: só conta o dia com lote ou item (boletim aberto só por parada não vale)
+  const lancados = new Set(boletinsRecentes.filter((b) => b._count.lotes + b._count.itens > 0).map((b) => dateParaDia(b.data)));
   const boletimHoje = boletinsRecentes.find((b) => dateParaDia(b.data) === hoje) ?? null;
 
   const pendencias: Pendencia[] = [];
   // Máquinas paradas agora vêm primeiro: a linha está perdendo tempo
-  const paradas = await db.paradaMaquina.findMany({
-    where: { fim: null },
-    orderBy: { inicio: "asc" },
-    select: { inicio: true, centro: true, requisicaoId: true, equipamento: { select: { nome: true } }, motivo: { select: { descricao: true } } },
-  });
   for (const p of paradas) {
     const min = Math.round((agora.getTime() - p.inicio.getTime()) / 6e4);
     pendencias.push({
@@ -153,7 +155,7 @@ export async function dadosInicio() {
     emSecagem: emSecagem.length,
     estufas,
     estoque: porStatus as Partial<Record<"VERDE" | "EM_ESTUFA" | "SECO", { qtd: number; m3: number }>>,
-    mes: { producaoM3: k.producaoM3, metaM3: k.metaM3, dias: boletinsMes.length, oee: k.oee, metaDiaria: metaMes?.metaDiariaM3 ?? null },
+    mes: { producaoM3: k.producaoM3, metaM3: k.metaM3, dias: boletinsMes.length, oee: k.oee },
     recentes,
   };
 }

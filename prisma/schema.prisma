@@ -432,7 +432,7 @@ model ItemProducao {
   tipo        TipoProduto     @default(BOM)
   mercado     Mercado         @default(EXTERNO)
   espessura   Int
-  /// largura usada no m³ (média das marcadas; "Mista" = média de todas)
+  /// média das larguras marcadas ("Mista" = média de todas), arredondada para exibição; o m³ usa a média exata
   largura     Int
   /// larguras marcadas na ficha: "100/85", "Mista"…
   larguras    String?

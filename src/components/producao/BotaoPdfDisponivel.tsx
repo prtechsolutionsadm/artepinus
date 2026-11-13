@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FileDown } from "lucide-react";
-import { cabecalho, novoPdf, num, rodape, TEXTO } from "@/lib/pdf-cliente";
+import { avisarFalhaPdf, cabecalho, novoPdf, num, rodape, TEXTO } from "@/lib/pdf-cliente";
 
 export type LinhaDisponivel = { bitola: string; classe: string; secoQtd: number; secoM3: number; verdeQtd: number; verdeM3: number; estufaQtd: number; estufaM3: number };
 
@@ -34,6 +34,8 @@ export function BotaoPdfDisponivel({ linhas, subtitulo }: { linhas: LinhaDisponi
       });
       rodape(doc);
       doc.save(`disponivel-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e) {
+      avisarFalhaPdf(e);
     } finally {
       setGerando(false);
     }

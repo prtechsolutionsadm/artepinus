@@ -6,9 +6,12 @@ import { db } from "@/lib/db";
  * Mostrados na Política de Privacidade (/privacidade) — mude os dois juntos.
  */
 export const RETENCAO = {
-  /** Tentativas de login sem sucesso (login e IP) — só servem ao limite de tentativas. */
+  /**
+   * Contador do limite de tentativas (TentativaLogin: login/IP) — só serve ao bloqueio;
+   * as falhas também ficam na auditoria pelo prazo de acessosDias.
+   */
   tentativasDias: 1,
-  /** Registros de acesso na auditoria (entradas, saídas, tentativas, com IP). */
+  /** Registros de acesso na auditoria (entradas, saídas, tentativas sem sucesso e recuperação de senha, com IP). */
   acessosDias: 180,
   /** Notificações já lidas. */
   notificacoesLidasDias: 90,

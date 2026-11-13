@@ -6,16 +6,10 @@ import { SeletorMes } from "@/components/SeletorMes";
 import { TabelaFicha, type LinhaTabelaFicha } from "@/components/producao/TabelaFicha";
 import { db } from "@/lib/db";
 import { podeProducao } from "@/lib/permissoes";
-import { fmtM3, formatarDia, hojeSP, intervaloMes, linhasParaTabela, mesDe, nomeMesLongo } from "@/lib/producao";
+import { fmtM3, formatarDia, hojeSP, intervaloMesSP, linhasParaTabela, mesDe, nomeMesLongo } from "@/lib/producao";
 import { exigirProducao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Madeira carregada no mês" };
-
-/** Mês no horário de Brasília para a entrada do ciclo (DateTime). */
-function intervaloSP(mes: string) {
-  const { gte, lt } = intervaloMes(mes);
-  return { gte: new Date(gte.getTime() + 3 * 3600e3), lt: new Date(lt.getTime() + 3 * 3600e3) };
-}
 
 /** A ficha "Madeira carregada no mês" de uma estufa: uma linha por carga, como no papel. */
 export default async function FichaEstufaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ mes?: string }> }) {
@@ -28,7 +22,7 @@ export default async function FichaEstufaPage({ params, searchParams }: { params
   if (!estufa) notFound();
   const [ciclos, todas] = await Promise.all([
     db.cicloSecagem.findMany({
-      where: { estufaId: id, status: { not: "CANCELADO" }, entrada: intervaloSP(mes) },
+      where: { estufaId: id, status: { not: "CANCELADO" }, entrada: intervaloMesSP(mes) },
       orderBy: { entrada: "asc" },
       include: { cargas: { orderBy: [{ linha: "asc" }, { espessura: "asc" }, { comprimento: "desc" }] } },
     }),

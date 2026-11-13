@@ -16,7 +16,9 @@ export default async function AjudaPage() {
   const eu = await exigirUsuario();
   const secoes = MANUAL.filter(
     (s) => (!s.modulo || temModulo(eu, s.modulo)) && (!s.para || pode(eu.perfil, s.para)) && (!s.paraProducao || podeProducao(eu, s.paraProducao)),
-  );
+  )
+    .map((s) => ({ ...s, topicos: s.topicos.filter((t) => !t.modulo || temModulo(eu, t.modulo)) }))
+    .filter((s) => s.topicos.length > 0);
   const perfis = [
     temModulo(eu, "manutencao") ? `Manutenção: ${PERFIL[eu.perfil]}` : null,
     temModulo(eu, "producao") ? `Acesso: ${eu.perfil === "ADMIN" || eu.perfil === "GERENTE" ? "acesso total" : PERFIL_PRODUCAO[eu.perfilProducao!]}` : null,

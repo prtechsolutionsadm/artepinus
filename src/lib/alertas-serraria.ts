@@ -19,7 +19,10 @@ export async function idsSerraria(perfis: PerfilProducao[] = ["SUPERVISOR", "APO
   return u.map((x) => x.id);
 }
 
-/** Estufas que passaram da previsão de saída (avisa uma vez por ciclo; o plantão também recebe). */
+/**
+ * Estufas que passaram da previsão de saída (avisa uma vez por previsão; editar a previsão limpa
+ * a marcação; o plantão também recebe).
+ */
 export async function alertarEstufasAtrasadas() {
   const ciclos = await db.cicloSecagem.findMany({
     where: { status: "EM_SECAGEM", alertaAtrasoEm: null, previsaoSaida: { lt: new Date() } },
@@ -27,16 +30,23 @@ export async function alertarEstufasAtrasadas() {
   });
   if (!ciclos.length) return 0;
   const equipe = await idsSerraria();
+  let avisados = 0;
   for (const c of ciclos) {
+    // Marca antes de avisar, numa operação só: duas verificações ao mesmo tempo não repetem o aviso
+    const { count } = await db.cicloSecagem.updateMany({
+      where: { id: c.id, status: "EM_SECAGEM", alertaAtrasoEm: null, previsaoSaida: c.previsaoSaida },
+      data: { alertaAtrasoEm: new Date() },
+    });
+    if (count !== 1) continue;
     const quando = c.previsaoSaida!.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
     await notificar([...equipe, c.plantaoId, c.responsavelId], {
       titulo: `🔥 ${c.estufa.nome} passou da previsão de saída`,
       mensagem: `${c.numero ? `Ciclo nº ${c.numero} · ` : ""}previsto para ${quando}. Confira a madeira e conclua o ciclo.`,
       link: `/producao/estufas/ciclos/${c.id}`,
     });
-    await db.cicloSecagem.update({ where: { id: c.id }, data: { alertaAtrasoEm: new Date() } });
+    avisados++;
   }
-  return ciclos.length;
+  return avisados;
 }
 
 /** No fim do dia útil: avisa se a serraria não teve nenhum lote apontado hoje. */
@@ -49,14 +59,14 @@ async function alertarDiaSemApontamento() {
   if (boletim && (boletim._count.lotes > 0 || boletim._count.itens > 0)) return false;
   await notificar(await idsSerraria(), {
     titulo: "📋 Serraria sem apontamento hoje",
-    mensagem: `Nenhum lote foi apontado em ${formatarDia(dia, { weekday: "long", day: "2-digit", month: "2-digit" })}. Se a serraria trabalhou, aponte a produção do dia.`,
+    mensagem: `Nenhum lote foi apontado em ${formatarDia(dia, { weekday: "long", day: "2-digit", month: "2-digit" })}. Se a serraria trabalhou, aponte os lotes do dia.`,
     link: `/producao/boletins/novo?data=${hoje}`,
   });
   return true;
 }
 
 /**
- * Pedido pronto para expedir: com volume combinado, quando os pacotes secos cobrem o saldo;
+ * Pedido pronto para expedir: com volume combinado, quando há saldo e os pacotes secos o cobrem;
  * sem volume, quando tudo o que não saiu está seco. Se deixar de estar pronto, a marcação é
  * limpa para avisar de novo.
  */
@@ -68,12 +78,15 @@ export async function verificarPedidosProntos(pedidoIds?: (string | null | undef
   let avisados = 0;
   for (const p of lista) {
     if (p.pronto && !avisado.get(p.id)) {
-      await notificar(await idsSerraria(["SUPERVISOR"]), {
+      const supervisores = await idsSerraria(["SUPERVISOR"]);
+      // Marca antes de avisar, numa operação só: duas verificações ao mesmo tempo não repetem o aviso
+      const { count } = await db.pedido.updateMany({ where: { id: p.id, prontoAvisadoEm: null }, data: { prontoAvisadoEm: new Date() } });
+      if (count !== 1) continue;
+      await notificar(supervisores, {
         titulo: `✅ Pedido ${p.numero} pronto para expedir`,
         mensagem: `${p.cliente}${p.destino ? ` · ${p.destino}` : ""}: ${fmtM3(p.seco, 2)} secos${p.saldo != null ? ` para um saldo de ${fmtM3(p.saldo, 2)}` : ""}.`,
         link: `/producao/pedidos/${p.id}`,
       });
-      await db.pedido.update({ where: { id: p.id }, data: { prontoAvisadoEm: new Date() } });
       avisados++;
     } else if (!p.pronto && avisado.get(p.id)) {
       await db.pedido.update({ where: { id: p.id }, data: { prontoAvisadoEm: null } });

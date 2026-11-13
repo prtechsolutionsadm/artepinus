@@ -76,9 +76,9 @@ export function SeletorFotos({ maximo = 6, nome = "fotos", rotulo = "Adicionar f
               type="button"
               onClick={() => remover(i)}
               aria-label={`Remover foto ${i + 1}`}
-              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white"
+              className="absolute right-0.5 top-0.5 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         ))}

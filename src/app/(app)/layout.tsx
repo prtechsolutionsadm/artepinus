@@ -104,7 +104,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }
         />
         <main className="mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-8 lg:pt-7 2xl:max-w-[1500px]">
-          <SincronizadorOffline />
+          <SincronizadorOffline usuarioId={eu.id} nome={eu.nome} />
           {children}
           {/* No computador os créditos ficam no menu lateral */}
           <Rodape className="nao-imprimir mt-12 border-t border-stone-200/70 pt-6 lg:hidden" />

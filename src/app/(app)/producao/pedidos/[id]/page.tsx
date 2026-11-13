@@ -18,12 +18,12 @@ export const metadata: Metadata = { title: "Pedido" };
 export default async function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const eu = await exigirProducao();
   const { id } = await params;
-  const [p] = await situacaoPedidos({ id });
-  if (!p) notFound();
-  const [lotes, pacotes] = await Promise.all([
+  const [[p], lotes, pacotes] = await Promise.all([
+    situacaoPedidos({ id }),
     db.lote.findMany({ where: { pedidoId: id }, orderBy: { numero: "desc" }, include: { boletim: { select: { data: true } }, itens: { select: { m3: true, pecas: true } } } }),
     db.pacote.findMany({ where: { pedidoId: id, status: { not: "CANCELADO" } }, orderBy: { numero: "desc" }, include: { romaneio: { select: { numero: true, notaFiscal: true } } } }),
   ]);
+  if (!p) notFound();
   const romaneios = [...new Map(pacotes.filter((x) => x.romaneio).map((x) => [x.romaneio!.numero, x.romaneio!])).values()];
 
   return (

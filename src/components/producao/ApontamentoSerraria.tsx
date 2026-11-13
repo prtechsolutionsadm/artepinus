@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CloudOff, Printer, Tag } from "lucide-react";
@@ -26,6 +26,14 @@ export function ApontamentoSerraria({
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [data, setData] = useState(dataInicial);
+  // "Hoje" só no aparelho: a tela pode ter sido guardada offline num dia anterior.
+  // Um ?data= escolhido de propósito (ex.: boletim de um dia sem apontamento) continua valendo.
+  const [hoje, setHoje] = useState<string>();
+  useEffect(() => {
+    const h = hojeSP();
+    setHoje(h);
+    if (!new URLSearchParams(window.location.search).has("data") && dataInicial < h) setData(h);
+  }, [dataInicial]);
   const [pedidoId, setPedidoId] = useState(pedidos.length === 1 ? pedidos[0].id : "");
   const [linhas, setLinhas] = useState<LinhaFicha[]>([linhaVazia()]);
   const [erro, setErro] = useState<string | null>(null);
@@ -90,7 +98,7 @@ export function ApontamentoSerraria({
       <section className="cartao grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label htmlFor="a-data">Data</label>
-          <input id="a-data" type="date" max={hojeSP()} value={data} onChange={(e) => setData(e.target.value)} className="campo" />
+          <input id="a-data" type="date" max={hoje} value={data} onChange={(e) => setData(e.target.value)} className="campo" />
         </div>
         <div className="sm:col-span-1 lg:col-span-2">
           <label htmlFor="a-pedido">Pedido *</label>

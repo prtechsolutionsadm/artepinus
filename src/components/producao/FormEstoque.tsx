@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CloudOff } from "lucide-react";
 import { salvarLevantamento, type Resultado } from "@/app/actions/producao";
@@ -26,6 +26,13 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
   const [aviso, setAviso] = useState<{ guardado: boolean; texto: string } | null>(null);
   const [data, setData] = useState(inicial.data);
   const [obs, setObs] = useState(inicial.observacoes ?? "");
+  // "Hoje" só no aparelho: a tela pode ter sido guardada offline num dia anterior
+  const [hoje, setHoje] = useState<string>();
+  useEffect(() => {
+    const h = hojeSP();
+    setHoje(h);
+    if (!inicial.id && inicial.data < h) setData(h);
+  }, [inicial.id, inicial.data]);
   // Lançamentos antigos tinham um local só: ele vira o "Madeira em" de cada linha
   const localAntigo = inicial.local ? (inicial.local === "ESTUFA" ? `ESTUFA:${inicial.estufaId}` : inicial.local) : null;
   const [linhas, setLinhas] = useState<LinhaFicha[]>(inicial.linhas.length ? inicial.linhas.map((l) => ({ ...l, local: l.local ?? localAntigo })) : [linhaVazia()]);
@@ -87,7 +94,7 @@ export function FormEstoque({ inicial, estufas }: { inicial: LevantamentoInicial
             </div>
             <div className="w-full sm:w-48">
               <label htmlFor="e-data">Data *</label>
-              <input id="e-data" type="date" required max={hojeSP()} value={data} onChange={(e) => setData(e.target.value)} className="campo" />
+              <input id="e-data" type="date" required max={hoje} value={data} onChange={(e) => setData(e.target.value)} className="campo" />
             </div>
           </div>
           <FichaMadeira linhas={linhas} onChange={setLinhas} locais={locais} />

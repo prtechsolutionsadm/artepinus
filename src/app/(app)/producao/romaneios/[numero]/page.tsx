@@ -9,7 +9,7 @@ import {
 } from "@/components/producao/BotaoDeclaracaoOrigem";
 import { urlBase } from "@/lib/qr";
 import { origemDosPacotes } from "@/lib/rastreio-dados";
-import { formatarData } from "@/lib/constantes";
+import { formatarData, inteiroPositivo } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { fmtM3, fmtNum } from "@/lib/producao";
 import { codigoPacote, codigoRomaneio } from "@/lib/rastreio";
@@ -20,9 +20,9 @@ export async function generateMetadata({
 }: {
   params: Promise<{ numero: string }>;
 }): Promise<Metadata> {
-  const n = Number((await params).numero);
+  const n = inteiroPositivo((await params).numero);
   return {
-    title: Number.isInteger(n) && n > 0 ? codigoRomaneio(n) : "Romaneio",
+    title: n ? codigoRomaneio(n) : "Romaneio",
   };
 }
 
@@ -33,8 +33,8 @@ export default async function RomaneioPage({
   params: Promise<{ numero: string }>;
 }) {
   await exigirProducao();
-  const numero = Number((await params).numero);
-  if (!Number.isInteger(numero) || numero <= 0) notFound();
+  const numero = inteiroPositivo((await params).numero);
+  if (!numero) notFound();
   const r = await db.romaneio.findUnique({
     where: { numero },
     include: {
@@ -152,6 +152,25 @@ export default async function RomaneioPage({
           />
         </div>
       </div>
+
+      {origem.semOrigem.length > 0 && (
+        // Aviso só para a equipe: a declaração cita apenas as florestas encontradas
+        <p
+          role="status"
+          className="mb-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200"
+        >
+          <b>
+            Origem florestal não vinculada em {fmtNum(origem.semOrigem.length)}{" "}
+            de {fmtNum(r.pacotes.length)} pacote(s):
+          </b>{" "}
+          <span className="font-mono">
+            {origem.semOrigem.map((n) => codigoPacote(n)).join(", ")}
+          </span>
+          . A declaração de origem cita só as florestas encontradas. Ligue os
+          boletins ao ciclo de estufa e as cargas de toras ao boletim antes de
+          emitir.
+        </p>
+      )}
 
       <dl className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-stone-200 bg-stone-200 sm:grid-cols-4">
         {[

@@ -1,12 +1,13 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { arred, dateParaDia, diaParaDate } from "@/lib/producao";
+import { arred, dateParaDia, diaParaDate, hojeSP } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 
 /**
  * Paradas de máquina marcadas na hora (botão "Máquina parou" ou requisição com máquina parada).
  * Enquanto a máquina está parada o cronômetro corre; ao liberar, o tempo parado dentro do
- * turno de cada dia entra no boletim daquele dia como uma ParadaProducao automática.
+ * turno de cada dia entra no boletim daquele dia como uma ParadaProducao automática
+ * (dia útil sem boletim ganha um; sábado e domingo só se o boletim for aberto).
  */
 
 const MIN = 60_000;
@@ -23,6 +24,12 @@ export function diaSP(d: Date) {
 
 function proximoDia(dia: string) {
   return dateParaDia(new Date(diaParaDate(dia).getTime() + 24 * 60 * MIN));
+}
+
+/** Segunda a sexta (o mesmo critério do alerta de dia sem apontamento; feriados não entram). */
+function diaUtil(dia: string) {
+  const semana = diaParaDate(dia).getUTCDay();
+  return semana !== 0 && semana !== 6;
 }
 
 /** Minutos parados dentro do turno, por dia (só os dias com algum minuto). */
@@ -55,9 +62,10 @@ export async function boletimDoDia(dia: string, responsavelId: string) {
 }
 
 /**
- * Leva uma parada encerrada aos boletins: uma linha por dia com tempo no turno. O dia em que a
- * máquina parou ganha boletim se ainda não tiver; nos demais, entra quando o boletim for aberto.
- * Refaz as linhas a cada chamada (corrigir início/fim na requisição atualiza o boletim).
+ * Leva uma parada encerrada aos boletins: uma linha por dia com tempo no turno. Todo dia útil
+ * (seg–sex, até hoje) com tempo no turno ganha boletim se ainda não tiver; sábado e domingo só
+ * entram se o boletim já existir ou quando for aberto. Refaz as linhas a cada chamada (corrigir
+ * início/fim na requisição atualiza o boletim).
  */
 export async function lancarParadaNoBoletim(paradaId: string) {
   const p = await db.paradaMaquina.findUnique({ where: { id: paradaId } });
@@ -68,11 +76,17 @@ export async function lancarParadaNoBoletim(paradaId: string) {
   }
   const cfg = await configSerraria();
   const dias = minutosPorDia(p.inicio, p.fim, cfg);
-  const diaInicio = diaSP(p.inicio);
+  const hoje = hojeSP();
   const usados: string[] = [];
+  const abertos: string[] = [];
   for (const [dia, minutos] of dias) {
     let boletim = await db.boletimProducao.findUnique({ where: { data: diaParaDate(dia) } });
-    if (!boletim && dia === diaInicio) boletim = (await boletimDoDia(dia, p.encerradaPorId ?? p.abertaPorId)).boletim;
+    // O fim da requisição pode estar no futuro: não abre boletim de dia que ainda não chegou
+    if (!boletim && diaUtil(dia) && dia <= hoje) {
+      const r = await boletimDoDia(dia, p.encerradaPorId ?? p.abertaPorId);
+      boletim = r.boletim;
+      if (r.novo) abertos.push(dia);
+    }
     if (!boletim) continue;
     const dados = {
       motivoId: p.motivoId,
@@ -91,14 +105,16 @@ export async function lancarParadaNoBoletim(paradaId: string) {
     usados.push(boletim.id);
   }
   await db.paradaProducao.deleteMany({ where: { paradaMaquinaId: p.id, boletimId: { notIn: usados } } });
+  // Boletim aberto agora: traz as outras paradas daquele dia (cada boletim só abre uma vez, então a recursão termina)
+  for (const dia of abertos) await sincronizarParadasDoDia(dia, p.id);
 }
 
 /** Ao abrir um boletim: traz as paradas já encerradas que tiveram tempo no turno daquele dia. */
-export async function sincronizarParadasDoDia(dia: string) {
+export async function sincronizarParadasDoDia(dia: string, exceto?: string) {
   const comeco = instanteSP(dia, "00:00");
   const fimDoDia = new Date(comeco.getTime() + 24 * 60 * MIN);
   const paradas = await db.paradaMaquina.findMany({
-    where: { inicio: { lt: fimDoDia }, fim: { gt: comeco } },
+    where: { inicio: { lt: fimDoDia }, fim: { gt: comeco }, ...(exceto ? { id: { not: exceto } } : {}) },
     select: { id: true },
   });
   for (const p of paradas) await lancarParadaNoBoletim(p.id);
