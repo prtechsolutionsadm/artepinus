@@ -294,3 +294,15 @@ input[type="search"]::-webkit-search-decoration {
     color: #6f776b;
   }
 }
+
+/* Menu lateral do computador: aberto (15rem) ou recolhido só com os ícones (data-menu no <html>, SCRIPT_MENU) */
+:root {
+  --largura-menu: 15rem;
+}
+:root[data-menu="recolhido"] {
+  --largura-menu: 4.25rem;
+}
+:root[data-menu="recolhido"] .menu-texto,
+:root:not([data-menu="recolhido"]) .menu-so-icone {
+  display: none;
+}

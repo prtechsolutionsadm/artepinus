@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFecharAoClicarFora } from "@/components/useFecharAoClicarFora";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Flame, House, LayoutGrid, Package, Plus, QrCode, Search, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Flame, House, LayoutGrid, Package, PanelLeftClose, PanelLeftOpen, Plus, QrCode, Search, UserRound, type LucideIcon } from "lucide-react";
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
 import { ICONES } from "@/components/icones";
@@ -198,6 +198,40 @@ export function TopoApp({
 }
 
 
+const CHAVE_MENU = "artepinus:menu";
+
+/** Antes de pintar a tela: aplica o menu lateral recolhido, se a pessoa deixou assim (sem piscar). */
+export const SCRIPT_MENU = `try{if(localStorage.getItem("${CHAVE_MENU}")==="recolhido")document.documentElement.dataset.menu="recolhido"}catch(_){}`;
+
+/** Recolhe ou abre o menu lateral (só ícones) e lembra a escolha neste aparelho. */
+function BotaoRecolher() {
+  const [recolhido, setRecolhido] = useState(false);
+  useEffect(() => setRecolhido(document.documentElement.dataset.menu === "recolhido"), []);
+  const alternar = () => {
+    const novo = !recolhido;
+    setRecolhido(novo);
+    if (novo) document.documentElement.dataset.menu = "recolhido";
+    else delete document.documentElement.dataset.menu;
+    try {
+      if (novo) localStorage.setItem(CHAVE_MENU, "recolhido");
+      else localStorage.removeItem(CHAVE_MENU);
+    } catch {}
+  };
+  const Icone = recolhido ? PanelLeftOpen : PanelLeftClose;
+  return (
+    <button
+      type="button"
+      onClick={alternar}
+      aria-label={recolhido ? "Abrir o menu" : "Recolher o menu"}
+      title={recolhido ? "Abrir o menu" : "Recolher o menu"}
+      className="mx-3 mb-1 flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
+    >
+      <Icone className="h-[18px] w-[18px] shrink-0" />
+      <span className="menu-texto truncate">Recolher menu</span>
+    </button>
+  );
+}
+
 /**
  * Menu lateral do computador, enxuto: só as telas do módulo em uso (Início e os grupos do processo).
  * Perfil, avisos, ajuda, tema e Sair ficam no topo; a troca de módulo, no rodapé.
@@ -221,42 +255,53 @@ export function MenuLateral({ menus, salvo }: { menus: Menus; salvo: Modulo | nu
         key={i.href}
         href={i.href}
         aria-current={ligado ? "page" : undefined}
+        title={i.label}
         className={`group flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition ${
           ligado ? "bg-marca-50 text-marca-800" : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
         }`}
       >
         <Icone className={`h-[18px] w-[18px] shrink-0 ${ligado ? "text-marca-700" : "text-stone-400 group-hover:text-stone-600"}`} strokeWidth={2} />
-        <span className="min-w-0 flex-1 truncate">{i.label}</span>
+        <span className="menu-texto min-w-0 flex-1 truncate">{i.label}</span>
       </Link>
     );
   };
 
   return (
-    <aside className="nao-imprimir fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-stone-200 bg-white lg:flex">
+    <aside className="nao-imprimir fixed inset-y-0 left-0 z-30 hidden w-[var(--largura-menu)] flex-col border-r border-stone-200 bg-white transition-[width] duration-200 lg:flex">
       <Link href={inicio} className="flex h-16 shrink-0 items-center px-5" aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="" className="h-10 w-auto dark:hidden" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-branco.svg" alt="" className="hidden h-10 w-auto dark:block" />
+        <span className="menu-texto">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" className="h-10 w-auto dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-branco.svg" alt="" className="hidden h-10 w-auto dark:block" />
+        </span>
+        <span className="menu-so-icone">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/marca.svg" alt="" className="h-7 w-auto dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/marca-branca.svg" alt="" className="hidden h-7 w-auto dark:block" />
+        </span>
       </Link>
       <nav aria-label="Menu principal" className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         <div className="mt-2">{item({ href: inicio, label: "Início", icone: "inicio" }, path === inicio)}</div>
         {grupos.map((g) => (
           <div key={g.titulo}>
-            <p className="mb-1 mt-5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-stone-400">{g.titulo}</p>
+            <p className="menu-texto mb-1 mt-5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-stone-400">{g.titulo}</p>
+            <hr className="menu-so-icone mx-2 my-3 border-stone-200" />
             <div className="space-y-0.5">{g.itens.map((i) => item(i, i.href === ativo))}</div>
           </div>
         ))}
       </nav>
-      <Link href="/sistema" className="m-3 flex items-center gap-3 rounded-xl bg-stone-50 px-3 py-2.5 ring-1 ring-stone-200 transition hover:bg-stone-100">
+      <BotaoRecolher />
+      <Link href="/sistema" title={`${MODULOS[modulo].nome} · ${outros ? "trocar de módulo" : "tela de início"}`} className="m-3 mt-1 flex items-center gap-3 rounded-xl bg-stone-50 px-2 py-2 ring-1 ring-stone-200 transition hover:bg-stone-100">
         <span className="fundo-marca grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white">
           <LayoutGrid className="h-4 w-4" />
         </span>
-        <span className="min-w-0 flex-1 leading-tight">
+        <span className="menu-texto min-w-0 flex-1 leading-tight">
           <span className="block truncate text-sm font-semibold text-stone-900">{MODULOS[modulo].nome}</span>
           <span className="block truncate text-[11px] text-stone-500">{outros ? "Trocar de módulo" : "Tela de início"}</span>
         </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-stone-400" />
+        <ChevronRight className="menu-texto h-4 w-4 shrink-0 text-stone-400" />
       </Link>
     </aside>
   );

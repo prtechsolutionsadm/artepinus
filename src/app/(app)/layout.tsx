@@ -3,7 +3,7 @@ import Link from "next/link";
 import { sair } from "@/app/actions/auth";
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
-import { BarraInferior, MenuLateral, TopoApp } from "@/components/Navegacao";
+import { BarraInferior, MenuLateral, SCRIPT_MENU, TopoApp } from "@/components/Navegacao";
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
@@ -60,11 +60,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-dvh flex-col">
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      <script dangerouslySetInnerHTML={{ __html: SCRIPT_MENU }} />
       <TemaApp />
       <MedidaRolagem />
       {/* Computador: menu lateral enxuto (só as telas do módulo); o resto fica no topo */}
       <MenuLateral menus={menus} salvo={salvo} />
-      <div className="flex min-h-dvh flex-col lg:pl-60">
+      <div className="flex min-h-dvh flex-col transition-[padding] duration-200 lg:pl-[var(--largura-menu)]">
       <TopoApp
         menus={menus}
         salvo={salvo}

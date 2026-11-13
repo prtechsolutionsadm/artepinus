@@ -222,7 +222,7 @@ export const GERAL: Secao[] = [
           "onde está o menu",
         ],
         blocos: [
-          texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No rodapé dele, o cartão do módulo leva à tela de início, para trocar de módulo. O resto fica no topo, sempre igual em todas as telas:"),
+          texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No rodapé dele, o cartão do módulo leva à tela de início, para trocar de módulo. O botão Recolher menu, logo acima do cartão, deixa só os ícones (o nome aparece ao passar o mouse); toque de novo para abrir. O sistema lembra a escolha neste aparelho. O resto fica no topo, sempre igual em todas as telas:"),
           termos(
             ["Logo ARTEPINUS", "No alto do menu à esquerda. Volta ao Início do módulo em que você está."],
             [
