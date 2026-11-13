@@ -136,30 +136,21 @@ export const GERAL: Secao[] = [
         blocos: [
           texto("Depois de entrar, abre a tela de início do sistema. O app instalado também abre sempre por ela. De cima para baixo:"),
           termos(
-            ["Faixa verde", "Olá, com o seu nome, e o seu perfil em cada módulo (ex.: Artepinus · Serraria: Apontador)."],
-            ["Números do momento", "O cartão branco sobre a faixa: máquinas paradas, estufas secando e pacotes em estoque (para quem usa a Serraria) e requisições abertas (para quem usa a Manutenção). Máquina parada aparece em vermelho. Toque num número para abrir a lista."],
-            ["Cadastre a sua pergunta de segurança", "Faixa amarela embaixo dos números, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
+            ["Faixa verde", "Olá, com o seu nome."],
             [
-              "Acesso rápido: Módulo principal",
+              "Serraria e Manutenção",
               ATIVA
-                ? "O cartão grande, à esquerda: a Serraria, para quem usa a Serraria (quem usa só a Manutenção vê a Manutenção). Toque em Acessar. À direita do título, quantos módulos você tem."
-                : "O cartão grande, à esquerda: a Serraria, com o selo Ativo. Toque em Acessar. À direita do título, quantos módulos você tem.",
+                ? "Um cartão para cada módulo, com o resumo do momento: na Serraria, máquinas paradas, estufas secando e pacotes em estoque; na Manutenção, requisições abertas e as de prioridade alta ou urgente (vermelho pede atenção). Toque num número para abrir a lista ou em Abrir a Serraria / Abrir a Manutenção. Quem não usa um módulo vê o cartão dele tracejado, com Sem acesso: fale com o gerente."
+                : "Um cartão para cada módulo, com o resumo do momento: na Serraria, máquinas paradas, estufas secando e pacotes em estoque (vermelho pede atenção). Toque num número para abrir a lista ou em Abrir a Serraria. A Manutenção ainda está em teste: aparece tracejada, com Em breve (só o administrador abre, com o selo Em teste).",
             ],
-            [
-              "Manutenção",
-              ATIVA
-                ? "Cartão ao lado do principal: requisições, preventivas, checklists e equipamentos. Toque em Acessar. Quem não usa a Manutenção vê o cartão tracejado, com Sem acesso: fale com o gerente."
-                : "Cartão ao lado do principal, ainda em teste: aparece tracejado, com o selo Em breve e Disponível em breve. Só o administrador abre (selo Em teste).",
-            ],
-            ["Manual do usuário, Meu perfil e Notificações", "Os outros cartões do Acesso rápido. Notificações mostra quantos avisos novos você tem."],
-            ["Administração", "Cartão largo embaixo do Acesso rápido, só para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria: abre o Painel Administrativo. Veja “Painel Administrativo” (/ajuda/navegacao#painel-administrativo)."],
-            ["Atalhos da serraria", "Ler etiqueta e Paradas de máquina, para quem usa a Serraria: ler o QR de um pacote ou de um lote e marcar uma parada na hora."],
+            ["Administração", "Cartão largo embaixo dos módulos, só para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria: abre o Painel Administrativo. Veja “Painel Administrativo” (/ajuda/navegacao#painel-administrativo)."],
+            ["Cadastre a sua pergunta de segurança", "Faixa amarela no fim, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
           ),
           texto("Seu usuário ainda não tem acesso a nenhum módulo? A tela avisa: fale com o gerente para ele escolher o seu perfil."),
           texto(
-            "Esta tela não tem o ← Voltar: dela você vai para um módulo, para o Painel Administrativo ou para os outros cartões. Para voltar a ela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita), que aparece para quem usa mais de um módulo ou tem o Painel Administrativo; no celular, em Mais › Módulos (para quem usa os dois módulos). Os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
+            "Esta tela não tem o ← Voltar: dela você vai para um módulo ou para o Painel Administrativo. Manual, Meu perfil e avisos ficam nos botões do topo. Para voltar a ela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita), que aparece para quem usa mais de um módulo ou tem o Painel Administrativo; no celular, em Mais › Módulos (para quem usa os dois módulos). Os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
           ),
-          imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: os números do momento, o Acesso rápido com os módulos e o painel de Administração.", rota: "/sistema", perfil: "supervisor" }),
+          imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: os dois módulos com o resumo do momento e o painel de Administração.", rota: "/sistema", perfil: "supervisor" }),
         ],
       },
       {
@@ -415,7 +406,7 @@ export const GERAL: Secao[] = [
         blocos: [
           lista(
             "O botão ? (Ajuda desta tela), no topo, abre a parte do manual que explica a tela em que você está, do jeito do seu perfil. Por exemplo, na página de uma requisição da Manutenção, ele abre Atender requisições (/ajuda/manutencao-atender) para a equipe da manutenção e A página da requisição (/ajuda/manutencao-acompanhar#pagina) para os outros. Para voltar, toque em Voltar para…, no alto da página do manual.",
-            "O Manual do usuário inteiro abre pelo cartão Manual do usuário da tela de início (no celular, também em Mais) ou, numa página do manual, pelo link Manual · …, no alto. Na entrada dele há uma busca: escreva o que você quer fazer (ex.: etiqueta, sem internet, corrigir).",
+            "O Manual do usuário inteiro abre pelo botão ? do topo, em qualquer tela de ajuda pelo link Manual (no celular, também em Mais) ou, numa página do manual, pelo link Manual · …, no alto. Na entrada dele há uma busca: escreva o que você quer fazer (ex.: etiqueta, sem internet, corrigir).",
             "Cada seção do manual tem o botão Imprimir esta seção.",
             "As páginas do manual que você já abriu ficam guardadas no aparelho e abrem até sem internet. Sem internet, o ? abre a parte do manual que ele já abriu naquela tela, neste aparelho; se ainda não abriu, abre a entrada do manual.",
             "Na entrada do manual ficam também o Glossário (/ajuda/glossario), com o que quer dizer cada palavra do sistema e do pátio, e os Problemas comuns (/ajuda/problemas), com o que fazer quando algo não sai como esperado.",

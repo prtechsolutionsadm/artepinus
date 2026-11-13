@@ -8,7 +8,7 @@ import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
 import { ICONES } from "@/components/icones";
 import { TopoApp } from "@/components/Navegacao";
-import { CartaoAtalho, CartaoPrincipal, FaixaPainel, GrupoAtalhos, SobreFaixa } from "@/components/painel";
+import { FaixaPainel } from "@/components/painel";
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
@@ -46,74 +46,67 @@ function Selo({ modulo, liberado }: { modulo: Modulo; liberado: boolean }) {
   );
 }
 
+type Numero = { href: string; Icone: LucideIcon; n: number; rotulo: string; alerta?: boolean };
+
 /**
- * Cartão menor do Acesso rápido (outro módulo, manual, perfil, avisos): ícone, selo, título, uma linha
- * e o rodapé "Acessar →". Sem `href`, fica tracejado e mostra `bloqueado` no rodapé (ex.: Em breve).
- * `forte`: ícone verde cheio (outro módulo), como no cartão principal.
+ * Cartão de um módulo: ícone, nome, uma linha, o resumo do momento (chips que abrem a lista) e "Acessar".
+ * Sem acesso fica tracejado, com o motivo no rodapé (ex.: Em breve).
  */
-function CartaoRapido({
-  href,
-  icone,
-  titulo,
-  texto,
-  selo,
-  bloqueado,
-  forte = false,
-}: {
-  href?: string;
-  icone: IconeMenu;
-  titulo: string;
-  texto: string;
-  selo?: React.ReactNode;
-  bloqueado?: string;
-  forte?: boolean;
-}) {
-  const Icone = ICONES[icone];
-  const corpo = (
-    <>
-      <span className="flex items-start justify-between gap-2">
-        <span
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11 ${
-            !href ? "bg-stone-100 text-stone-400" : forte ? "fundo-marca text-white shadow-md shadow-marca-900/20" : "bg-marca-50 text-marca-700 ring-1 ring-marca-100"
-          }`}
-        >
-          <Icone className="h-5 w-5" aria-hidden />
-        </span>
-        {selo}
+function CartaoModulo({ modulo, liberado, numeros }: { modulo: Modulo; liberado: boolean; numeros: Numero[] }) {
+  const Icone = ICONES[MODULO[modulo].icone];
+  const cabeca = (
+    <div className="flex items-start gap-4">
+      <span
+        className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${liberado ? "fundo-marca text-white shadow-md shadow-marca-900/20" : "bg-stone-100 text-stone-400"}`}
+      >
+        <Icone className="h-6 w-6" aria-hidden />
       </span>
-      <span className="mt-4 block flex-1">
-        <span className={`block font-semibold leading-snug sm:text-lg ${href ? "text-stone-900" : "text-stone-500"}`}>{titulo}</span>
-        <span className="mt-0.5 block text-[13px] leading-snug text-stone-500 sm:text-sm">{texto}</span>
-      </span>
-      {/* Rodapé sempre embaixo, na mesma altura nos cartões lado a lado; no celular o cartão todo é o botão
-          (sem acesso, o selo "Em breve" já diz) */}
-      <span className="mt-4 hidden items-center justify-between gap-2 border-t border-stone-100 pt-4 text-sm sm:flex">
-        {href ? (
-          <>
-            <span className="text-stone-500">Abrir</span>
-            <span className="ml-auto inline-flex items-center gap-1 font-semibold text-marca-700">
-              Acessar <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
-            </span>
-          </>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-stone-500">
-            <Lock className="h-4 w-4 shrink-0" aria-hidden /> {bloqueado}
-          </span>
-        )}
-      </span>
-    </>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className={`text-lg font-semibold ${liberado ? "text-stone-900" : "text-stone-500"}`}>{MODULOS[modulo].nome}</h2>
+          <Selo modulo={modulo} liberado={liberado} />
+        </div>
+        <p className="mt-0.5 text-sm text-stone-500">{MODULO[modulo].descricao}</p>
+      </div>
+    </div>
   );
-  const base = "flex h-full flex-col rounded-2xl p-4 sm:p-5";
-  return href ? (
-    <Link
-      href={href}
-      className={`group ${base} border border-stone-200 bg-white shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500`}
-    >
-      {corpo}
-    </Link>
-  ) : (
-    <div aria-disabled className={`${base} border border-dashed border-stone-300 bg-stone-50/60`}>
-      {corpo}
+  if (!liberado)
+    return (
+      <div aria-disabled className="flex h-full flex-col rounded-2xl border border-dashed border-stone-300 bg-stone-50/60 p-5">
+        {cabeca}
+        <p className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm text-stone-500">
+          <Lock className="h-4 w-4 shrink-0" aria-hidden /> {emTeste(modulo) ? "Disponível em breve" : "Sem acesso: fale com o gerente"}
+        </p>
+      </div>
+    );
+  return (
+    <div className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md">
+      {cabeca}
+      {numeros.length > 0 && (
+        <ul className="mt-4 flex flex-wrap gap-2">
+          {numeros.map(({ href, Icone: I, n, rotulo, alerta }) => (
+            <li key={href + rotulo}>
+              <Link
+                href={href}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition ${
+                  alerta ? "bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100" : "bg-stone-50 text-stone-700 ring-stone-200 hover:bg-stone-100"
+                }`}
+              >
+                <I className="h-4 w-4 shrink-0" aria-hidden />
+                <b className="font-semibold tabular-nums">{n}</b> {rotulo}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex-1" />
+      <Link
+        href={MODULOS[modulo].inicio}
+        className="group mt-5 flex items-center justify-between gap-2 border-t border-stone-100 pt-4 text-sm font-semibold text-marca-700"
+      >
+        Abrir a {MODULOS[modulo].nome}
+        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
+      </Link>
     </div>
   );
 }
@@ -143,13 +136,14 @@ export default async function SistemaPage() {
   const eu = await exigirUsuario();
   const serraria = temModulo(eu, "producao");
   const manutencao = temModulo(eu, "manutencao");
-  const [seg, naoLidas, paradas, secando, pacotes, requisicoes] = await Promise.all([
+  const [seg, naoLidas, paradas, secando, pacotes, requisicoes, urgentes] = await Promise.all([
     db.usuario.findUniqueOrThrow({ where: { id: eu.id }, select: { perguntaSeguranca: true, respostaHash: true } }),
     db.notificacao.count({ where: { usuarioId: eu.id, lida: false } }),
     serraria ? db.paradaMaquina.count({ where: { fim: null } }) : null,
     serraria ? db.cicloSecagem.count({ where: { status: "EM_SECAGEM" } }) : null,
     serraria ? db.pacote.count({ where: { status: { in: ["VERDE", "EM_ESTUFA", "SECO"] } } }) : null,
     manutencao ? db.requisicao.count({ where: { status: { in: STATUS_PENDENTES } } }) : null,
+    manutencao ? db.requisicao.count({ where: { status: { in: STATUS_PENDENTES }, prioridade: { in: ["ALTA", "URGENTE"] } } }) : null,
   ]);
   const temPergunta = seg.perguntaSeguranca != null && !!seg.respostaHash;
   // "Serraria: Apontador · Manutenção: Operador" (só os módulos que a pessoa enxerga)
@@ -158,67 +152,31 @@ export default async function SistemaPage() {
   const menus = menusDoUsuario(eu);
   const salvo = moduloSalvo((await cookies()).get(COOKIE_MODULO)?.value);
 
-  const numeros = [
-    paradas != null && { href: "/producao/paradas", Icone: OctagonAlert, n: paradas, rotulo: paradas === 1 ? "máquina parada" : "máquinas paradas", alerta: paradas > 0 },
-    secando != null && { href: "/producao/estufas", Icone: Flame, n: secando, rotulo: secando === 1 ? "estufa secando" : "estufas secando", alerta: false },
-    pacotes != null && { href: "/producao/pacotes", Icone: Package, n: pacotes, rotulo: pacotes === 1 ? "pacote em estoque" : "pacotes em estoque", alerta: false },
-    requisicoes != null && {
-      href: "/requisicoes?status=pendentes",
-      Icone: Wrench,
-      n: requisicoes,
-      rotulo: requisicoes === 1 ? "requisição aberta" : "requisições abertas",
-      alerta: false,
+  const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios);
+  const numerosSerraria: Numero[] = [
+    paradas != null && { href: "/producao/paradas", Icone: OctagonAlert, n: paradas, rotulo: plural(paradas, "máquina parada", "máquinas paradas"), alerta: paradas > 0 },
+    secando != null && { href: "/producao/estufas", Icone: Flame, n: secando, rotulo: plural(secando, "estufa secando", "estufas secando") },
+    pacotes != null && { href: "/producao/pacotes", Icone: Package, n: pacotes, rotulo: plural(pacotes, "pacote em estoque", "pacotes em estoque") },
+  ].filter(Boolean) as Numero[];
+  const numerosManutencao: Numero[] = [
+    requisicoes != null && { href: "/requisicoes?status=pendentes", Icone: Wrench, n: requisicoes, rotulo: plural(requisicoes, "requisição aberta", "requisições abertas") },
+    urgentes != null && {
+      href: "/requisicoes?status=pendentes&prioridade=ALTA,URGENTE",
+      Icone: OctagonAlert,
+      n: urgentes,
+      rotulo: plural(urgentes, "alta ou urgente", "altas ou urgentes"),
+      alerta: urgentes > 0,
     },
-  ].filter(Boolean) as { href: string; Icone: LucideIcon; n: number; rotulo: string; alerta: boolean }[];
+  ].filter(Boolean) as Numero[];
+  const numerosDe: Record<Modulo, Numero[]> = { producao: numerosSerraria, manutencao: numerosManutencao };
 
-  // Módulo em destaque: a Serraria (o principal); sem ela, o primeiro liberado; sem nenhum, só os cartões menores
   const ordem = Object.keys(MODULOS) as Modulo[];
-  const liberados = ordem.filter((m) => temModulo(eu, m));
-  const principal: Modulo | undefined = liberados[0];
-  const outros = ordem.filter((m) => m !== principal);
+  const algum = ordem.some((m) => temModulo(eu, m));
   // Painel de administração: usuários, auditoria ou os cadastros da Serraria (mesma regra de /administracao)
   const adm = { usuarios: pode(eu.perfil, "usuarios"), cadastros: podeProducao(eu, "gerir"), historico: pode(eu.perfil, "auditoria") };
   const administra = adm.usuarios || adm.cadastros || adm.historico;
-  // "Usuários, cadastros, histórico e dados do sistema": só o que a pessoa vai encontrar lá
   const partes = [adm.usuarios && "usuários", adm.cadastros && "cadastros", adm.historico && "histórico", "dados do sistema"].filter(Boolean) as string[];
   const textoAdm = `${partes.slice(0, -1).join(", ")} e ${partes.at(-1)}`.replace(/^./, (c) => c.toUpperCase());
-
-  const rapidos = [
-    ...outros.map((m) => {
-      const liberado = temModulo(eu, m);
-      return (
-        <CartaoRapido
-          key={m}
-          href={liberado ? MODULOS[m].inicio : undefined}
-          icone={MODULO[m].icone}
-          titulo={MODULOS[m].nome}
-          texto={MODULO[m].descricao}
-          selo={<Selo modulo={m} liberado={liberado} />}
-          bloqueado={emTeste(m) ? "Disponível em breve" : "Sem acesso: fale com o gerente"}
-          forte
-        />
-      );
-    }),
-    <CartaoRapido key="ajuda" href="/ajuda" icone="ajuda" titulo="Manual do usuário" texto="Como usar cada tela e roteiros para imprimir" />,
-    <CartaoRapido key="perfil" href="/perfil" icone="perfil" titulo="Meu perfil" texto="Seus dados, senha, tema e avisos no celular" />,
-    // Com o módulo principal, completa a grade 2 × 2 ao lado dele
-    ...(principal
-      ? [
-          <CartaoRapido
-            key="avisos"
-            href="/notificacoes"
-            icone="notificacoes"
-            titulo="Notificações"
-            texto={naoLidas === 0 ? "Nenhum aviso novo" : naoLidas === 1 ? "1 aviso novo para você" : `${naoLidas} avisos novos para você`}
-            selo={
-              naoLidas > 0 ? (
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-amber-800 ring-1 ring-amber-200">{naoLidas > 99 ? "99+" : naoLidas}</span>
-              ) : undefined
-            }
-          />,
-        ]
-      : []),
-  ];
 
   // Mesma largura do topo e do conteúdo das telas do sistema (layout do app)
   const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
@@ -227,7 +185,7 @@ export default async function SistemaPage() {
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <TemaApp />
       <MedidaRolagem />
-      {principal ? (
+      {algum ? (
         <TopoApp
           menus={menus}
           salvo={salvo}
@@ -244,134 +202,53 @@ export default async function SistemaPage() {
 
       {/* overflow-x-clip: a FaixaPainel vai até as bordas sem rolagem lateral (como no layout do app) */}
       <div className="flex-1 overflow-x-clip">
-        <main className={`${largura} pb-12 pt-5 lg:pt-7`}>
+        <main className={`${largura} pb-8 pt-5 lg:pt-6`}>
           <FaixaPainel
-            rotulo={`Artepinus · ${perfil}`}
             titulo={
               <>
                 Olá, {primeiro}{" "}
                 <span aria-hidden>👋</span>
               </>
             }
-            subtitulo={principal ? "Selecione um módulo para começar" : "Assim que o gerente liberar o seu acesso, os módulos aparecem aqui"}
+            subtitulo={algum ? "Escolha um módulo para começar" : "Assim que o gerente liberar o seu acesso, os módulos aparecem aqui"}
           />
 
-          {/* Números do momento, por cima da faixa verde */}
-          <SobreFaixa>
-            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl shadow-marca-950/5">
-              <div className="px-4 py-4 sm:px-5">
-                {numeros.length > 0 ? (
-                  <>
-                    {/* Celular: 2 por linha, número em cima (o último sozinho ocupa a linha); tablet e computador: chips */}
-                    <ul className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center [&>li:last-child:nth-child(odd)]:col-span-2">
-                      {numeros.map(({ href, Icone, n, rotulo, alerta }) => (
-                        <li key={href}>
-                          <Link
-                            href={href}
-                            className={`flex h-full items-center gap-2.5 rounded-xl px-3 py-2 ring-1 transition sm:inline-flex sm:gap-2 sm:rounded-full sm:px-3.5 sm:py-1.5 ${
-                              alerta ? "bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100" : "bg-stone-50 text-stone-700 ring-stone-200 hover:bg-stone-100"
-                            }`}
-                          >
-                            <Icone className="h-4 w-4 shrink-0" aria-hidden />
-                            <span className="min-w-0 leading-tight sm:text-sm sm:font-medium">
-                              <b className="block text-base font-semibold tabular-nums sm:inline sm:text-sm sm:font-medium">{n}</b>{" "}
-                              <span className="block text-xs sm:inline sm:text-sm">{rotulo}</span>
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-2 text-center text-xs text-stone-400">Toque num número para abrir a lista</p>
-                  </>
-                ) : (
-                  <p className="text-center text-sm text-stone-500">Seu usuário ainda não tem acesso a nenhum módulo. Fale com o gerente.</p>
-                )}
-              </div>
-              {!temPergunta && (
-                <Link
-                  href="/perfil"
-                  className="group flex items-center gap-2.5 border-t border-amber-200/70 bg-amber-50/70 px-4 py-2.5 text-sm text-amber-900 transition hover:bg-amber-100 sm:justify-center sm:px-5"
-                >
-                  <KeyRound className="h-4 w-4 shrink-0" aria-hidden />
-                  <span className="min-w-0">
-                    <b className="font-semibold">Cadastre a sua pergunta de segurança</b>
-                    <span className="hidden sm:inline">: assim você recupera a senha sozinho, se esquecer</span>
-                  </span>
-                  <ArrowRight className="ml-auto h-4 w-4 shrink-0 transition group-hover:translate-x-0.5 sm:ml-0" aria-hidden />
-                </Link>
-              )}
-            </div>
-          </SobreFaixa>
-
-          {/* Acesso rápido: o módulo principal grande e os outros cartões ao lado */}
-          <section className="mt-8">
-            <div className="mb-2.5 flex items-baseline justify-between gap-3 px-0.5">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Acesso rápido</h2>
-              <span className="text-sm text-stone-500">
-                {liberados.length === 0 ? "Nenhum módulo liberado" : liberados.length === 1 ? "1 módulo disponível" : `${liberados.length} módulos disponíveis`}
-              </span>
-            </div>
-            {principal ? (
-              <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
-                <div className="relative">
-                  <CartaoPrincipal
-                    href={MODULOS[principal].inicio}
-                    rotulo="Módulo principal"
-                    titulo={MODULOS[principal].nome}
-                    descricao={MODULO[principal].descricao}
-                    icone={MODULO[principal].icone}
-                    acao="Acessar"
-                  />
-                  <span className="pointer-events-none absolute right-5 top-5 sm:right-6 sm:top-6">
-                    <Selo modulo={principal} liberado />
-                  </span>
-                </div>
-                <ul className="grid grid-cols-2 gap-3 sm:gap-4">
-                  {rapidos.map((c) => (
-                    <li key={c.key}>{c}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                {rapidos.map((c) => (
-                  <li key={c.key}>{c}</li>
-                ))}
-              </ul>
-            )}
+          {/* Os dois módulos, cada um com o resumo do momento */}
+          <section aria-label="Módulos" className="mt-4 grid gap-4 lg:grid-cols-2">
+            {ordem.map((m) => (
+              <CartaoModulo key={m} modulo={m} liberado={temModulo(eu, m)} numeros={numerosDe[m]} />
+            ))}
           </section>
 
           {/* Administração: usuários, cadastros, histórico e dados do sistema */}
           {administra && (
             <Link
               href="/administracao"
-              className="group mt-4 flex items-center gap-4 rounded-2xl border border-marca-200 bg-linear-to-r from-marca-50 via-white to-white p-4 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500 sm:p-5"
+              className="group mt-4 flex items-center gap-4 rounded-2xl border border-marca-200 bg-linear-to-r from-marca-50 via-white to-white p-4 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500"
             >
-              <span className="fundo-marca grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-md shadow-marca-900/20">
-                <IconeAdmin className="h-6 w-6" aria-hidden />
+              <span className="fundo-marca grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md shadow-marca-900/20">
+                <IconeAdmin className="h-5 w-5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-marca-700">Painel</span>
-                <span className="block font-semibold text-stone-900 sm:text-lg">Administração</span>
+                <span className="block font-semibold text-stone-900">Administração</span>
                 <span className="block text-sm text-stone-500">{textoAdm}</span>
               </span>
               <ChevronRight className="h-5 w-5 shrink-0 text-marca-700 transition group-hover:translate-x-0.5" aria-hidden />
             </Link>
           )}
 
-          {/* Atalhos do dia a dia da Serraria, mais discretos */}
-          {serraria && (
-            <GrupoAtalhos titulo="Atalhos da serraria" colunas={2}>
-              <CartaoAtalho href="/producao/escanear" icone="escanear" titulo="Ler etiqueta" descricao="Aponte a câmera para o QR de um pacote ou lote" />
-              <CartaoAtalho
-                href="/producao/paradas"
-                icone="paradas"
-                titulo="Paradas de máquina"
-                descricao="Máquina parou? Marque na hora e avise a manutenção"
-                selo={paradas ? paradas : undefined}
-                alerta={!!paradas}
-              />
-            </GrupoAtalhos>
+          {!temPergunta && (
+            <Link
+              href="/perfil"
+              className="group mt-4 flex items-center gap-2.5 rounded-xl bg-amber-50/70 px-4 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200/70 transition hover:bg-amber-100"
+            >
+              <KeyRound className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="min-w-0">
+                <b className="font-semibold">Cadastre a sua pergunta de segurança</b>
+                <span className="hidden sm:inline">: assim você recupera a senha sozinho, se esquecer</span>
+              </span>
+              <ArrowRight className="ml-auto h-4 w-4 shrink-0 transition group-hover:translate-x-0.5" aria-hidden />
+            </Link>
           )}
         </main>
       </div>
