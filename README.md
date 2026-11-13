@@ -39,8 +39,8 @@ Cada usuário tem um perfil por módulo (`perfil` na Manutenção, `perfilProduc
 regras em `src/lib/permissoes.ts`: `temModulo`, `pode`, `podeProducao`). Quem só usa a produção fica
 com *Sem acesso* na Manutenção. Admin e Gerente têm acesso total à Serraria; enquanto a Manutenção
 estiver em teste, só o Admin a abre (os perfis da Manutenção já escolhidos ficam guardados e passam a valer
-na liberação). Quem usa os dois entra primeiro na Serraria e troca de módulo no rodapé do menu lateral
-ou em *Escolher módulo* (no celular, em *Mais*).
+na liberação). Quem usa os dois entra primeiro na Serraria e troca de módulo pelo botão *Módulos* do topo
+(ícone de quadradinhos; no celular, em *Mais › Módulos*).
 
 | Serraria | Supervisor | Apontador | Consulta |
 |---|:-:|:-:|:-:|
@@ -121,8 +121,11 @@ ou em *Escolher módulo* (no celular, em *Mais*).
 - **Relatórios** por período, status, tipo, prioridade e setor, com resumo e gráficos;
   exportação em **PDF** (A4 com logo) e **Excel** (.xlsx formatado, com logo e aba de resumo).
 - Impressão da requisição com logo (para quem ainda precisa do papel).
-- **Responsivo**: menu lateral à esquerda no computador (com busca, atalho "/"), barra inferior + menu
-  "Mais" no celular/tablet.
+- **Visual em painéis** (mesmo padrão do sistema Engemase): no computador, sem menu lateral — topo com logo,
+  Voltar, busca (atalho "/"), Módulos, tema, ajuda, avisos e o usuário (Meu perfil e Sair); a tela inicial de
+  cada módulo é um painel (faixa verde, o que precisa de atenção, acesso rápido da função e todas as telas em
+  cartões); tela de início (`/sistema`) e Painel Administrativo (`/administracao`). No celular, topo simples
+  + barra inferior e o "Mais" com os mesmos cartões.
 - **Notificações** no sininho e por **push** no celular/computador (ativar em *Perfil*):
   - supervisores e manutentores: requisição nova (o gerente recebe só as de prioridade alta/urgente ou
     com máquina parada);

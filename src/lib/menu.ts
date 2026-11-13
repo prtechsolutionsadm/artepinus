@@ -147,7 +147,7 @@ export function moduloSalvo(valor: string | undefined): Modulo | null {
 /** Módulo da página atual; null nas páginas comuns (perfil, notificações, manual, usuários…). */
 export function moduloDaRota(path: string): Modulo | null {
   if (path === "/producao" || path.startsWith("/producao/")) return "producao";
-  const comuns = ["/notificacoes", "/perfil", "/ajuda", "/menu", "/usuarios", "/auditoria"];
+  const comuns = ["/notificacoes", "/perfil", "/ajuda", "/menu", "/usuarios", "/auditoria", "/sistema", "/administracao"];
   if (comuns.some((c) => path === c || path.startsWith(c + "/"))) return null;
   return "manutencao";
 }

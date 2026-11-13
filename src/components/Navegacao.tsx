@@ -37,27 +37,7 @@ function useModulo(menus: Menus, salvo: Modulo | null): Modulo {
 }
 
 
-function TrocaModulo({ menus, modulo }: { menus: Menus; modulo: Modulo }) {
-  const disponiveis = Object.keys(menus) as Modulo[];
-  if (disponiveis.length < 2) return null;
-  return (
-    <div className="grid grid-cols-2 gap-1 rounded-md bg-black/20 p-1" role="tablist" aria-label="Módulo">
-      {disponiveis.map((m) => (
-        <Link
-          key={m}
-          href={MODULOS[m].inicio}
-          role="tab"
-          aria-selected={m === modulo}
-          className={`rounded-lg px-2 py-1.5 text-center text-sm font-semibold transition ${
-            m === modulo ? "bg-white text-marca-800" : "text-white/70 hover:text-white"
-          }`}
-        >
-          {MODULOS[m].nome}
-        </Link>
-      ))}
-    </div>
-  );
-}
+
 
 /** Pais que não são telas: sobe mais um nível (ex.: /producao/estufas/ciclos/5 → Estufas). */
 const PAIS: Record<string, string> = {
@@ -67,8 +47,12 @@ const PAIS: Record<string, string> = {
   "/q": "",
 };
 
+/** Telas que voltam para a tela de início (/sistema), e não para o início do módulo. */
+const VOLTAM_AO_SISTEMA = ["/administracao", "/usuarios", "/auditoria"];
+
 /** Tela de cima da atual (detalhe → lista → início do módulo); as telas comuns voltam ao início do módulo. */
 function telaDeCima(path: string, inicio: string) {
+  if (VOLTAM_AO_SISTEMA.includes(path)) return path === "/administracao" ? "/sistema" : "/administracao";
   const acima = path.replace(/\/[^/]*$/, "");
   const pai = PAIS[acima] ?? acima;
   return pai && pai !== "/" ? pai : inicio;
@@ -142,7 +126,7 @@ export function TopoApp({
   const router = useRouter();
   const modulo = useModulo(menus, salvo);
   const inicio = MODULOS[modulo].inicio;
-  const naInicio = Object.values(MODULOS).some((m) => m.inicio === path);
+  const naInicio = path === "/sistema" || Object.values(MODULOS).some((m) => m.inicio === path);
   const destino = telaDeCima(path, inicio);
 
   // Tela anterior dentro do sistema: se for a de cima, o Voltar usa o histórico (mantém filtros e rolagem)
@@ -320,38 +304,3 @@ export function BuscaTopo({ menus, salvo, celular = false }: { menus: Menus; sal
   );
 }
 
-/** Menu completo no celular, do módulo em uso, com a troca de módulo no topo. */
-export function MenuCelular({ menus, salvo }: { menus: Menus; salvo: Modulo | null }) {
-  const modulo = useModulo(menus, salvo);
-  return (
-    <>
-      <TrocaModulo menus={menus} modulo={modulo} />
-      {(menus[modulo] ?? []).map((g, n) => (
-        <section key={g.titulo || n}>
-          {g.titulo && <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-stone-400">{g.titulo}</h2>}
-          <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200 bg-white">
-            {g.itens.map((i) => {
-              const Icone = ICONES[i.icone];
-              return (
-                <li key={i.href}>
-                  <Link href={i.href} className="flex items-center gap-3 px-4 py-3.5 active:bg-stone-50">
-                    <span className="relative grid h-9 w-9 place-items-center rounded-xl bg-stone-100 text-stone-600">
-                      <Icone className="h-[18px] w-[18px]" />
-                      {i.etapa && (
-                        <span className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-marca-700 text-[9px] font-bold text-white ring-2 ring-white">
-                          {i.etapa}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex-1 font-medium">{i.label}</span>
-                    <ChevronRight className="h-4 w-4 text-stone-300" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-    </>
-  );
-}

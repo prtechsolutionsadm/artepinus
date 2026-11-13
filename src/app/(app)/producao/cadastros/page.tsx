@@ -956,7 +956,7 @@ async function TriagemTeste({ ate }: { ate?: string }) {
   const dataAte = formatarData(new Date(`${previa.ate}T12:00:00Z`));
 
   return (
-    <section className="cartao mt-6 max-w-2xl border-amber-200">
+    <section id="triagem" className="cartao mt-6 max-w-2xl scroll-mt-20 border-amber-200">
       <h2 className="mb-1 font-semibold">Triagem do período de teste</h2>
       <p className="mb-3 text-sm text-stone-600">
         Enquanto a Manutenção esteve em teste, cada <b>Máquina parou</b> mecânica ou elétrica abriu uma requisição que ficou Aberta mesmo depois de a serraria liberar

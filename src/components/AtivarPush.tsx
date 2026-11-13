@@ -188,7 +188,7 @@ export function ConvitePush() {
         <div className="text-marca-700">
           {estado === "instalar-ios"
             ? "No iPhone: Compartilhar → “Adicionar à Tela de Início”, depois ative em Perfil."
-            : "Saiba na hora quando uma estufa passar da previsão, faltar apontamento ou um pedido ficar pronto."}
+            : "Saiba na hora o que precisa da sua atenção: máquina parada, requisição nova ou mudança de status, estufa atrasada e pedido pronto."}
         </div>
       </div>
       {estado === "desativado" && (

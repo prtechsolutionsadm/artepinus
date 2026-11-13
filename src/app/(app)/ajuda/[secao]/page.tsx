@@ -45,7 +45,7 @@ export default async function SecaoManualPage({ params, searchParams }: Props) {
   const de = caminhoInterno((await searchParams).de);
   const dePath = de?.split(/[?#]/)[0];
   const daTela = dePath ? itens.filter((i) => itemAtivo(dePath, i.href)).sort((a, b) => b.href.length - a.href.length)[0] : undefined;
-  const voltarPara = !de ? null : dePath === "/sistema" ? "a escolha do módulo" : daTela ? daTela.label : "a tela anterior";
+  const voltarPara = !de ? null : dePath === "/sistema" ? "a tela de início" : daTela ? daTela.label : "a tela anterior";
   const abrir = (s.rotas ?? []).map((r) => itens.find((i) => i.href === r)).find(Boolean);
 
   return (

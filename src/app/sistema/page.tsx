@@ -1,101 +1,144 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BookOpen,
-  ChevronRight,
-  Factory,
-  Flame,
-  FlaskConical,
-  KeyRound,
-  Lock,
-  OctagonAlert,
-  Package,
-  QrCode,
-  ShieldCheck,
-  Wrench,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, ChevronRight, Flame, FlaskConical, KeyRound, Lock, OctagonAlert, Package, Wrench, type LucideIcon } from "lucide-react";
 import { db } from "@/lib/db";
 import { sair } from "@/app/actions/auth";
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
+import { ICONES } from "@/components/icones";
+import { TopoApp } from "@/components/Navegacao";
+import { CartaoAtalho, CartaoPrincipal, FaixaPainel, GrupoAtalhos, SobreFaixa } from "@/components/painel";
+import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
 import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
 import { rotuloPerfis, STATUS_PENDENTES } from "@/lib/constantes";
-import { iniciais } from "@/lib/menu";
-import { MODULOS, MODULOS_ATIVOS, MODULOS_EM_TESTE, pode, temModulo, type Modulo } from "@/lib/permissoes";
+import { COOKIE_MODULO, menusDoUsuario, moduloSalvo, type IconeMenu } from "@/lib/menu";
+import { MODULOS, MODULOS_ATIVOS, MODULOS_EM_TESTE, pode, podeProducao, temModulo, type Modulo } from "@/lib/permissoes";
 import { exigirUsuario } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Início", robots: { index: false, follow: false } };
 
-const MODULO: Record<Modulo, { Icone: LucideIcon; descricao: string }> = {
-  producao: { Icone: Factory, descricao: "Toras, serraria, estufas, pacotes, romaneios e indicadores" },
-  manutencao: { Icone: Wrench, descricao: "Requisições, preventivas, checklists e equipamentos" },
+const MODULO: Record<Modulo, { icone: IconeMenu; descricao: string }> = {
+  producao: { icone: "serraria", descricao: "Toras, serraria, estufas, pacotes, romaneios e indicadores" },
+  manutencao: { icone: "manutencao", descricao: "Requisições, preventivas, checklists e equipamentos" },
 };
 
-function saudacao() {
-  const h = Number(new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }));
-  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
-}
+/** Escudo do painel de administração (o mesmo ícone de "seguranca" dos cartões). */
+const IconeAdmin = ICONES.seguranca;
 
-/** Selo do canto do cartão: Ativo, Em teste (só o administrador) ou Em breve. */
+/** Módulo em teste (aparece "Em breve" para todos e abre só para o administrador). */
+const emTeste = (m: Modulo) => !MODULOS_ATIVOS.includes(m) && MODULOS_EM_TESTE.includes(m);
+
+/** Selo do canto do cartão de módulo: Ativo, Em teste (só o administrador) ou Em breve. */
 function Selo({ modulo, liberado }: { modulo: Modulo; liberado: boolean }) {
-  const emTeste = !MODULOS_ATIVOS.includes(modulo) && MODULOS_EM_TESTE.includes(modulo);
-  if (!emTeste)
+  if (!emTeste(modulo))
     return liberado ? (
-      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200">Ativo</span>
+      <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200">Ativo</span>
     ) : null;
   return liberado ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200">
-      <FlaskConical className="h-3.5 w-3.5" /> Em teste
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 ring-1 ring-amber-200 sm:px-2.5">
+      <FlaskConical className="hidden h-3.5 w-3.5 sm:block" aria-hidden /> Em teste
     </span>
   ) : (
-    <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-500 ring-1 ring-stone-200">Em breve</span>
+    <span className="whitespace-nowrap rounded-full bg-stone-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-500 ring-1 ring-stone-200 sm:px-2.5">Em breve</span>
   );
 }
 
-/** Cartão menor de acesso rápido. */
-function Atalho({ href, Icone, titulo, texto, selo, bloqueado }: { href?: string; Icone: LucideIcon; titulo: string; texto: string; selo?: React.ReactNode; bloqueado?: string }) {
+/**
+ * Cartão menor do Acesso rápido (outro módulo, manual, perfil, avisos): ícone, selo, título, uma linha
+ * e o rodapé "Acessar →". Sem `href`, fica tracejado e mostra `bloqueado` no rodapé (ex.: Em breve).
+ * `forte`: ícone verde cheio (outro módulo), como no cartão principal.
+ */
+function CartaoRapido({
+  href,
+  icone,
+  titulo,
+  texto,
+  selo,
+  bloqueado,
+  forte = false,
+}: {
+  href?: string;
+  icone: IconeMenu;
+  titulo: string;
+  texto: string;
+  selo?: React.ReactNode;
+  bloqueado?: string;
+  forte?: boolean;
+}) {
+  const Icone = ICONES[icone];
   const corpo = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <span className={`grid h-12 w-12 place-items-center rounded-xl ${href ? "bg-marca-50 text-marca-700 ring-1 ring-marca-100" : "bg-stone-100 text-stone-400"}`}>
-          <Icone className="h-6 w-6" />
+      <span className="flex items-start justify-between gap-2">
+        <span
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11 ${
+            !href ? "bg-stone-100 text-stone-400" : forte ? "fundo-marca text-white shadow-md shadow-marca-900/20" : "bg-marca-50 text-marca-700 ring-1 ring-marca-100"
+          }`}
+        >
+          <Icone className="h-5 w-5" aria-hidden />
         </span>
         {selo}
-      </div>
-      <h3 className={`mt-5 text-lg font-semibold ${href ? "" : "text-stone-500"}`}>{titulo}</h3>
-      <p className="mt-0.5 text-sm text-stone-500">{texto}</p>
-      <div className="mt-5 flex items-center justify-between border-t border-stone-100 pt-4 text-sm">
+      </span>
+      <span className="mt-4 block flex-1">
+        <span className={`block font-semibold leading-snug sm:text-lg ${href ? "text-stone-900" : "text-stone-500"}`}>{titulo}</span>
+        <span className="mt-0.5 block text-[13px] leading-snug text-stone-500 sm:text-sm">{texto}</span>
+      </span>
+      {/* Rodapé sempre embaixo, na mesma altura nos cartões lado a lado; no celular o cartão todo é o botão
+          (sem acesso, o selo "Em breve" já diz) */}
+      <span className="mt-4 hidden items-center justify-between gap-2 border-t border-stone-100 pt-4 text-sm sm:flex">
         {href ? (
           <>
             <span className="text-stone-500">Abrir</span>
-            <span className="inline-flex items-center gap-1 font-semibold text-marca-700">
-              Acessar <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            <span className="ml-auto inline-flex items-center gap-1 font-semibold text-marca-700">
+              Acessar <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
             </span>
           </>
         ) : (
           <span className="inline-flex items-center gap-1.5 text-stone-500">
-            <Lock className="h-4 w-4" /> {bloqueado}
+            <Lock className="h-4 w-4 shrink-0" aria-hidden /> {bloqueado}
           </span>
         )}
-      </div>
+      </span>
     </>
   );
+  const base = "flex h-full flex-col rounded-2xl p-4 sm:p-5";
   return href ? (
-    <Link href={href} className="group flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-marca-300 hover:shadow-lg sm:p-6">
+    <Link
+      href={href}
+      className={`group ${base} border border-stone-200 bg-white shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500`}
+    >
       {corpo}
     </Link>
   ) : (
-    <div aria-disabled className="flex h-full flex-col rounded-2xl border border-dashed border-stone-300 bg-stone-50/60 p-5 sm:p-6">
+    <div aria-disabled className={`${base} border border-dashed border-stone-300 bg-stone-50/60`}>
       {corpo}
     </div>
   );
 }
 
-/** Tela de início do sistema: boas-vindas, números do momento e a escolha do módulo. */
+/** Topo de quem ainda não tem nenhum módulo (o TopoApp precisa de um módulo): logo, tema, ajuda, avisos e Sair. */
+function TopoSemModulo({ naoLidas, usuarioId }: { naoLidas: number; usuarioId: string }) {
+  return (
+    <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:px-6 lg:h-16 lg:px-8">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="Artepinus" className="h-9 w-auto dark:hidden lg:h-10" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-branco.svg" alt="Artepinus" className="hidden h-9 w-auto dark:block lg:h-10" />
+        <div className="ml-auto flex items-center lg:gap-1">
+          <BotaoTema />
+          <BotaoAjuda />
+          <Sininho naoLidasInicial={naoLidas} />
+          <BotaoSair sair={sair} usuarioId={usuarioId} variante="icone" />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/** Tela de início do sistema: boas-vindas, números do momento, a escolha do módulo e a administração. */
 export default async function SistemaPage() {
   const eu = await exigirUsuario();
   const serraria = temModulo(eu, "producao");
@@ -111,200 +154,230 @@ export default async function SistemaPage() {
   const temPergunta = seg.perguntaSeguranca != null && !!seg.respostaHash;
   // "Serraria: Apontador · Manutenção: Operador" (só os módulos que a pessoa enxerga)
   const perfil = rotuloPerfis(eu);
-  const primeiro = eu.nome.split(" ")[0];
+  const primeiro = eu.nome.trim().split(/\s+/)[0];
+  const menus = menusDoUsuario(eu);
+  const salvo = moduloSalvo((await cookies()).get(COOKIE_MODULO)?.value);
 
   const numeros = [
-    paradas != null && { href: "/producao/paradas", Icone: OctagonAlert, texto: paradas === 1 ? "1 máquina parada" : `${paradas} máquinas paradas`, alerta: paradas > 0 },
-    secando != null && { href: "/producao/estufas", Icone: Flame, texto: secando === 1 ? "1 estufa secando" : `${secando} estufas secando`, alerta: false },
-    pacotes != null && { href: "/producao/pacotes", Icone: Package, texto: pacotes === 1 ? "1 pacote em estoque" : `${pacotes} pacotes em estoque`, alerta: false },
-    requisicoes != null && { href: "/requisicoes?status=pendentes", Icone: Wrench, texto: requisicoes === 1 ? "1 requisição aberta" : `${requisicoes} requisições abertas`, alerta: false },
-  ].filter(Boolean) as { href: string; Icone: LucideIcon; texto: string; alerta: boolean }[];
+    paradas != null && { href: "/producao/paradas", Icone: OctagonAlert, n: paradas, rotulo: paradas === 1 ? "máquina parada" : "máquinas paradas", alerta: paradas > 0 },
+    secando != null && { href: "/producao/estufas", Icone: Flame, n: secando, rotulo: secando === 1 ? "estufa secando" : "estufas secando", alerta: false },
+    pacotes != null && { href: "/producao/pacotes", Icone: Package, n: pacotes, rotulo: pacotes === 1 ? "pacote em estoque" : "pacotes em estoque", alerta: false },
+    requisicoes != null && {
+      href: "/requisicoes?status=pendentes",
+      Icone: Wrench,
+      n: requisicoes,
+      rotulo: requisicoes === 1 ? "requisição aberta" : "requisições abertas",
+      alerta: false,
+    },
+  ].filter(Boolean) as { href: string; Icone: LucideIcon; n: number; rotulo: string; alerta: boolean }[];
 
-  // Módulo em destaque: a Serraria (o principal); sem ela, o primeiro liberado
-  const ordem: Modulo[] = ["producao", "manutencao"];
-  const principal = ordem.find((m) => temModulo(eu, m)) ?? "producao";
+  // Módulo em destaque: a Serraria (o principal); sem ela, o primeiro liberado; sem nenhum, só os cartões menores
+  const ordem = Object.keys(MODULOS) as Modulo[];
+  const liberados = ordem.filter((m) => temModulo(eu, m));
+  const principal: Modulo | undefined = liberados[0];
   const outros = ordem.filter((m) => m !== principal);
-  const totalModulos = ordem.filter((m) => temModulo(eu, m)).length;
-  const admin = pode(eu.perfil, "usuarios");
+  // Painel de administração: usuários, auditoria ou os cadastros da Serraria (mesma regra de /administracao)
+  const adm = { usuarios: pode(eu.perfil, "usuarios"), cadastros: podeProducao(eu, "gerir"), historico: pode(eu.perfil, "auditoria") };
+  const administra = adm.usuarios || adm.cadastros || adm.historico;
+  // "Usuários, cadastros, histórico e dados do sistema": só o que a pessoa vai encontrar lá
+  const partes = [adm.usuarios && "usuários", adm.cadastros && "cadastros", adm.historico && "histórico", "dados do sistema"].filter(Boolean) as string[];
+  const textoAdm = `${partes.slice(0, -1).join(", ")} e ${partes.at(-1)}`.replace(/^./, (c) => c.toUpperCase());
 
+  const rapidos = [
+    ...outros.map((m) => {
+      const liberado = temModulo(eu, m);
+      return (
+        <CartaoRapido
+          key={m}
+          href={liberado ? MODULOS[m].inicio : undefined}
+          icone={MODULO[m].icone}
+          titulo={MODULOS[m].nome}
+          texto={MODULO[m].descricao}
+          selo={<Selo modulo={m} liberado={liberado} />}
+          bloqueado={emTeste(m) ? "Disponível em breve" : "Sem acesso: fale com o gerente"}
+          forte
+        />
+      );
+    }),
+    <CartaoRapido key="ajuda" href="/ajuda" icone="ajuda" titulo="Manual do usuário" texto="Como usar cada tela e roteiros para imprimir" />,
+    <CartaoRapido key="perfil" href="/perfil" icone="perfil" titulo="Meu perfil" texto="Seus dados, senha, tema e avisos no celular" />,
+    // Com o módulo principal, completa a grade 2 × 2 ao lado dele
+    ...(principal
+      ? [
+          <CartaoRapido
+            key="avisos"
+            href="/notificacoes"
+            icone="notificacoes"
+            titulo="Notificações"
+            texto={naoLidas === 0 ? "Nenhum aviso novo" : naoLidas === 1 ? "1 aviso novo para você" : `${naoLidas} avisos novos para você`}
+            selo={
+              naoLidas > 0 ? (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-amber-800 ring-1 ring-amber-200">{naoLidas > 99 ? "99+" : naoLidas}</span>
+              ) : undefined
+            }
+          />,
+        ]
+      : []),
+  ];
+
+  // Mesma largura do topo e do conteúdo das telas do sistema (layout do app)
+  const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
   return (
     <div className="flex min-h-dvh flex-col">
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <TemaApp />
+      <MedidaRolagem />
+      {principal ? (
+        <TopoApp
+          menus={menus}
+          salvo={salvo}
+          usuario={{ nome: eu.nome, perfilLabel: perfil }}
+          sair={sair}
+          usuarioId={eu.id}
+          naoLidas={naoLidas}
+          mostrarModulos={false}
+        />
+      ) : (
+        <TopoSemModulo naoLidas={naoLidas} usuarioId={eu.id} />
+      )}
 
-      {/* Topo */}
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Artepinus" className="h-10 w-auto dark:hidden" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-branco.svg" alt="Artepinus" className="hidden h-10 w-auto dark:block" />
-          <div className="ml-auto flex items-center gap-1">
-            <BotaoTema />
-            <BotaoAjuda />
-            <Sininho naoLidasInicial={naoLidas} />
-            <Link href="/perfil" className="ml-1 hidden items-center gap-2.5 rounded-full py-1 pl-1 pr-3 hover:bg-stone-100 sm:flex" title="Meu perfil">
-              <span className="fundo-marca grid h-8 w-8 place-items-center rounded-full text-xs font-semibold text-white">{iniciais(eu.nome)}</span>
-              <span className="text-sm font-semibold text-stone-800">{primeiro}</span>
-            </Link>
-            <BotaoSair sair={sair} usuarioId={eu.id} variante="icone" />
-          </div>
-        </div>
-      </header>
+      {/* overflow-x-clip: a FaixaPainel vai até as bordas sem rolagem lateral (como no layout do app) */}
+      <div className="flex-1 overflow-x-clip">
+        <main className={`${largura} pb-12 pt-5 lg:pt-7`}>
+          <FaixaPainel
+            rotulo={`Artepinus · ${perfil}`}
+            titulo={
+              <>
+                Olá, {primeiro}{" "}
+                <span aria-hidden>👋</span>
+              </>
+            }
+            subtitulo={principal ? "Selecione um módulo para começar" : "Assim que o gerente liberar o seu acesso, os módulos aparecem aqui"}
+          />
 
-      {/* Boas-vindas */}
-      <section className="fundo-marca relative overflow-hidden text-white">
-        <div className="pointer-events-none absolute -right-16 -top-24 h-80 w-80 rounded-full bg-white/10" aria-hidden />
-        <div className="pointer-events-none absolute right-40 top-24 h-40 w-40 rounded-full bg-white/[0.07]" aria-hidden />
-        <div className="relative mx-auto flex max-w-6xl items-center gap-5 px-4 pb-24 pt-10 sm:px-6 sm:pt-12">
-          <span className="hidden h-20 w-20 shrink-0 place-items-center rounded-full bg-white/15 ring-4 ring-white/20 sm:grid">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/marca-branca.svg" alt="" className="h-10 w-auto" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">{perfil} · Artepinus</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              {saudacao()}, {primeiro}
-            </h1>
-            <p className="mt-1.5 text-white/85">Sistema Artepinus: escolha um módulo para começar.</p>
-          </div>
-        </div>
-      </section>
-
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-12 sm:px-6">
-        {/* Números do momento, por cima da faixa verde */}
-        <div className="relative -mt-14 rounded-2xl border border-stone-200 bg-white p-4 shadow-xl shadow-marca-950/5 sm:p-5">
-          {numeros.length > 0 ? (
-            <ul className="flex flex-wrap justify-center gap-2">
-              {numeros.map(({ href, Icone, texto, alerta }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition ${
-                      alerta ? "bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100" : "bg-stone-50 text-stone-700 ring-stone-200 hover:bg-stone-100"
-                    }`}
-                  >
-                    <Icone className="h-4 w-4" /> {texto}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-center text-sm text-stone-500">Seu usuário ainda não tem acesso a nenhum módulo. Fale com o gerente.</p>
-          )}
-          <p className="mt-2 text-center text-xs text-stone-400">Toque num número para abrir a lista</p>
-        </div>
-
-        {!temPergunta && (
-          <Link href="/perfil" className="mt-5 flex items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100">
-            <KeyRound className="h-5 w-5 shrink-0" />
-            <span className="flex-1">
-              <b>Cadastre a sua pergunta de segurança</b>: assim você recupera a senha sozinho, se esquecer.
-            </span>
-            <ArrowRight className="h-4 w-4 shrink-0" />
-          </Link>
-        )}
-
-        <div className="mb-3 mt-9 flex items-baseline justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">Acesso rápido</h2>
-          <span className="text-sm text-stone-500">{totalModulos === 1 ? "1 módulo disponível" : `${totalModulos} módulos disponíveis`}</span>
-        </div>
-
-        {/* Módulo principal em destaque */}
-        {(() => {
-          const liberado = temModulo(eu, principal);
-          const { Icone, descricao } = MODULO[principal];
-          const corpo = (
-            <>
-              <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-marca-100/60" aria-hidden />
-              <div className="pointer-events-none absolute bottom-6 right-24 h-24 w-24 rounded-full bg-marca-100/50" aria-hidden />
-              <div className="relative flex items-start justify-between gap-3">
-                <span className="fundo-marca grid h-16 w-16 place-items-center rounded-2xl text-white shadow-lg shadow-marca-900/20">
-                  <Icone className="h-8 w-8" />
-                </span>
-                <Selo modulo={principal} liberado={liberado} />
-              </div>
-              <p className="relative mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-marca-700">Módulo principal</p>
-              <h3 className="relative mt-1 text-2xl font-semibold sm:text-3xl">{MODULOS[principal].nome}</h3>
-              <p className="relative mt-1 text-stone-600">{descricao}</p>
-              <div className="relative mt-6 flex items-center justify-between border-t border-stone-200/80 pt-4 text-sm">
-                <span className="text-stone-500">Abrir módulo completo</span>
-                {liberado ? (
-                  <span className="inline-flex items-center gap-1 text-base font-semibold text-marca-700">
-                    Acessar <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                  </span>
+          {/* Números do momento, por cima da faixa verde */}
+          <SobreFaixa>
+            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl shadow-marca-950/5">
+              <div className="px-4 py-4 sm:px-5">
+                {numeros.length > 0 ? (
+                  <>
+                    {/* Celular: 2 por linha, número em cima (o último sozinho ocupa a linha); tablet e computador: chips */}
+                    <ul className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center [&>li:last-child:nth-child(odd)]:col-span-2">
+                      {numeros.map(({ href, Icone, n, rotulo, alerta }) => (
+                        <li key={href}>
+                          <Link
+                            href={href}
+                            className={`flex h-full items-center gap-2.5 rounded-xl px-3 py-2 ring-1 transition sm:inline-flex sm:gap-2 sm:rounded-full sm:px-3.5 sm:py-1.5 ${
+                              alerta ? "bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100" : "bg-stone-50 text-stone-700 ring-stone-200 hover:bg-stone-100"
+                            }`}
+                          >
+                            <Icone className="h-4 w-4 shrink-0" aria-hidden />
+                            <span className="min-w-0 leading-tight sm:text-sm sm:font-medium">
+                              <b className="block text-base font-semibold tabular-nums sm:inline sm:text-sm sm:font-medium">{n}</b>{" "}
+                              <span className="block text-xs sm:inline sm:text-sm">{rotulo}</span>
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-center text-xs text-stone-400">Toque num número para abrir a lista</p>
+                  </>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 text-stone-500">
-                    <Lock className="h-4 w-4" /> Sem acesso
-                  </span>
+                  <p className="text-center text-sm text-stone-500">Seu usuário ainda não tem acesso a nenhum módulo. Fale com o gerente.</p>
                 )}
               </div>
-            </>
-          );
-          return liberado ? (
+              {!temPergunta && (
+                <Link
+                  href="/perfil"
+                  className="group flex items-center gap-2.5 border-t border-amber-200/70 bg-amber-50/70 px-4 py-2.5 text-sm text-amber-900 transition hover:bg-amber-100 sm:justify-center sm:px-5"
+                >
+                  <KeyRound className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="min-w-0">
+                    <b className="font-semibold">Cadastre a sua pergunta de segurança</b>
+                    <span className="hidden sm:inline">: assim você recupera a senha sozinho, se esquecer</span>
+                  </span>
+                  <ArrowRight className="ml-auto h-4 w-4 shrink-0 transition group-hover:translate-x-0.5 sm:ml-0" aria-hidden />
+                </Link>
+              )}
+            </div>
+          </SobreFaixa>
+
+          {/* Acesso rápido: o módulo principal grande e os outros cartões ao lado */}
+          <section className="mt-8">
+            <div className="mb-2.5 flex items-baseline justify-between gap-3 px-0.5">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Acesso rápido</h2>
+              <span className="text-sm text-stone-500">
+                {liberados.length === 0 ? "Nenhum módulo liberado" : liberados.length === 1 ? "1 módulo disponível" : `${liberados.length} módulos disponíveis`}
+              </span>
+            </div>
+            {principal ? (
+              <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
+                <div className="relative">
+                  <CartaoPrincipal
+                    href={MODULOS[principal].inicio}
+                    rotulo="Módulo principal"
+                    titulo={MODULOS[principal].nome}
+                    descricao={MODULO[principal].descricao}
+                    icone={MODULO[principal].icone}
+                    acao="Acessar"
+                  />
+                  <span className="pointer-events-none absolute right-5 top-5 sm:right-6 sm:top-6">
+                    <Selo modulo={principal} liberado />
+                  </span>
+                </div>
+                <ul className="grid grid-cols-2 gap-3 sm:gap-4">
+                  {rapidos.map((c) => (
+                    <li key={c.key}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                {rapidos.map((c) => (
+                  <li key={c.key}>{c}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Administração: usuários, cadastros, histórico e dados do sistema */}
+          {administra && (
             <Link
-              href={MODULOS[principal].inicio}
-              className="group relative block overflow-hidden rounded-2xl border border-marca-100 bg-gradient-to-br from-white to-marca-50 p-6 transition hover:border-marca-300 hover:shadow-xl sm:p-7"
+              href="/administracao"
+              className="group mt-4 flex items-center gap-4 rounded-2xl border border-marca-200 bg-linear-to-r from-marca-50 via-white to-white p-4 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500 sm:p-5"
             >
-              {corpo}
+              <span className="fundo-marca grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-md shadow-marca-900/20">
+                <IconeAdmin className="h-6 w-6" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-marca-700">Painel</span>
+                <span className="block font-semibold text-stone-900 sm:text-lg">Administração</span>
+                <span className="block text-sm text-stone-500">{textoAdm}</span>
+              </span>
+              <ChevronRight className="h-5 w-5 shrink-0 text-marca-700 transition group-hover:translate-x-0.5" aria-hidden />
             </Link>
-          ) : (
-            <div className="relative overflow-hidden rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-6 sm:p-7">{corpo}</div>
-          );
-        })()}
-
-        {/* Outros módulos e atalhos */}
-        <ul className="mt-5 grid gap-5 sm:grid-cols-2">
-          {outros.map((m) => {
-            const liberado = temModulo(eu, m);
-            const emTeste = !MODULOS_ATIVOS.includes(m) && MODULOS_EM_TESTE.includes(m);
-            return (
-              <li key={m}>
-                <Atalho
-                  href={liberado ? MODULOS[m].inicio : undefined}
-                  Icone={MODULO[m].Icone}
-                  titulo={MODULOS[m].nome}
-                  texto={MODULO[m].descricao}
-                  selo={<Selo modulo={m} liberado={liberado} />}
-                  bloqueado={emTeste ? "Disponível em breve" : "Sem acesso: fale com o gerente"}
-                />
-              </li>
-            );
-          })}
-          {serraria && (
-            <>
-              <li>
-                <Atalho href="/producao/paradas" Icone={OctagonAlert} titulo="Paradas de máquina" texto="Máquina parou? Marque na hora e avise a manutenção" />
-              </li>
-              <li>
-                <Atalho href="/producao/escanear" Icone={QrCode} titulo="Ler etiqueta" texto="Aponte a câmera para o QR de um pacote ou lote" />
-              </li>
-            </>
           )}
-          <li>
-            <Atalho href="/ajuda" Icone={BookOpen} titulo="Ajuda" texto="Manual do usuário e roteiros por função para imprimir" />
-          </li>
-        </ul>
 
-        {/* Administração */}
-        {admin && (
-          <Link
-            href="/usuarios"
-            className="group mt-5 flex items-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-4 transition hover:border-amber-300 hover:shadow-md sm:p-5"
-          >
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-900/15">
-              <ShieldCheck className="h-6 w-6" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">Painel</span>
-              <span className="block font-semibold">Administração</span>
-              <span className="block text-sm text-stone-500">Usuários, acessos e histórico de alterações</span>
-            </span>
-            <ChevronRight className="h-5 w-5 shrink-0 text-amber-700 transition group-hover:translate-x-0.5" />
-          </Link>
-        )}
-      </main>
-      <Rodape className="mx-auto w-full max-w-6xl px-4 pb-8 sm:px-6" />
+          {/* Atalhos do dia a dia da Serraria, mais discretos */}
+          {serraria && (
+            <GrupoAtalhos titulo="Atalhos da serraria" colunas={2}>
+              <CartaoAtalho href="/producao/escanear" icone="escanear" titulo="Ler etiqueta" descricao="Aponte a câmera para o QR de um pacote ou lote" />
+              <CartaoAtalho
+                href="/producao/paradas"
+                icone="paradas"
+                titulo="Paradas de máquina"
+                descricao="Máquina parou? Marque na hora e avise a manutenção"
+                selo={paradas ? paradas : undefined}
+                alerta={!!paradas}
+              />
+            </GrupoAtalhos>
+          )}
+        </main>
+      </div>
+
+      <div className="nao-imprimir border-t border-stone-200/70">
+        <Rodape className={`${largura} py-5 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:text-left`} />
+      </div>
     </div>
   );
 }

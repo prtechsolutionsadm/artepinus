@@ -88,6 +88,11 @@ const REGRAS_PRODUCAO = {
 
 export type AcaoProducao = keyof typeof REGRAS_PRODUCAO;
 
+/** Vê o Painel Administrativo (/administracao): usuários, auditoria ou cadastros da Serraria. */
+export function podeAdministrar(u: UsuarioComPerfis) {
+  return pode(u.perfil, "usuarios") || pode(u.perfil, "auditoria") || podeProducao(u, "gerir");
+}
+
 export function podeProducao(u: UsuarioComPerfis, acao: AcaoProducao) {
   if (GLOBAL.includes(u.perfil)) return true;
   return u.perfilProducao !== null && (REGRAS_PRODUCAO[acao] as PerfilProducao[]).includes(u.perfilProducao);

@@ -11,7 +11,7 @@ import { SCRIPT_TEMA, TemaApp } from "@/components/Tema";
 import { rotuloPerfis } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { COOKIE_MODULO, menusDoUsuario, moduloSalvo } from "@/lib/menu";
-import { pode } from "@/lib/permissoes";
+import { podeAdministrar } from "@/lib/permissoes";
 import { exigirUsuario } from "@/lib/session";
 
 import type { Metadata } from "next";
@@ -53,7 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   const naoLidas = await db.notificacao.count({ where: { usuarioId: eu.id, lida: false } });
   // Botão "Módulos" do topo: só para quem tem o que escolher em /sistema (outro módulo ou a administração)
-  const mostrarModulos = Object.keys(menus).length > 1 || pode(eu.perfil, "usuarios") || pode(eu.perfil, "auditoria");
+  const mostrarModulos = Object.keys(menus).length > 1 || podeAdministrar(eu);
 
   // Largura do conteúdo: a mesma do topo (TopoApp), centralizada, sem menu lateral
   const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";

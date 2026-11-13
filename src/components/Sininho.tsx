@@ -40,8 +40,8 @@ export function Sininho({ naoLidasInicial }: { naoLidasInicial: number }) {
       .catch(() => {});
   }, []);
 
-  // Contagem: a cada minuto, ao voltar para a aba e quando chega um push. O layout monta
-  // um sino no celular e outro no computador (um fica oculto por CSS): só o visível consulta.
+  // Contagem: a cada minuto, ao voltar para a aba e quando chega um push. Só o sino visível
+  // consulta (se a tela mostrar mais de um, o oculto por CSS não repete a consulta).
   useEffect(() => {
     const visivel = () => (ref.current?.getClientRects().length ?? 0) > 0;
     const id = setInterval(() => visivel() && atualizarContagem(), 60_000);

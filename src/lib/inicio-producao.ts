@@ -23,8 +23,11 @@ function diasUteisAte(hoje: string, quantos: number) {
   return lista;
 }
 
-/** O que a tela Início mostra: pendências do dia a dia, situação de hoje e últimos lançamentos. */
-export async function dadosInicio() {
+/**
+ * O que a tela Início mostra: pendências do dia a dia, situação de hoje e últimos lançamentos.
+ * `comRecentes: false` pula a busca dos últimos lançamentos (só supervisor e gerente veem esse quadro).
+ */
+export async function dadosInicio({ comRecentes = true }: { comRecentes?: boolean } = {}) {
   const hoje = hojeSP();
   const agora = new Date();
   const uteis = diasUteisAte(hoje, 5);
@@ -47,14 +50,16 @@ export async function dadosInicio() {
     db.pacote.groupBy({ by: ["status"], where: { status: { in: ["VERDE", "EM_ESTUFA", "SECO"] } }, _count: true, _sum: { m3: true } }),
     db.boletimProducao.findMany({
       where: { data: intervaloMes(mesDe(hoje)) },
-      select: { metaM3: true, horasProgramadas: true, itens: { select: { tipo: true, m3: true, comprimento: true } }, paradas: { select: { centro: true, minutos: true } } },
+      select: { data: true, metaM3: true, horasProgramadas: true, itens: { select: { tipo: true, m3: true, comprimento: true } }, paradas: { select: { centro: true, minutos: true } } },
     }),
-    db.auditoria.findMany({
-      where: { OR: ["boletim.", "parada.", "ciclo.", "toras.", "pacote.", "estoque.", "cadastro."].map((p) => ({ acao: { startsWith: p } })) },
-      orderBy: { criadoEm: "desc" },
-      take: 15,
-      include: { usuario: { select: { nome: true } } },
-    }),
+    comRecentes
+      ? db.auditoria.findMany({
+          where: { OR: ["boletim.", "parada.", "ciclo.", "toras.", "pacote.", "estoque.", "cadastro."].map((p) => ({ acao: { startsWith: p } })) },
+          orderBy: { criadoEm: "desc" },
+          take: 15,
+          include: { usuario: { select: { nome: true } } },
+        })
+      : Promise.resolve([]),
     db.estufa.findMany({
       where: { ativo: true },
       orderBy: { numero: "asc" },
@@ -169,13 +174,23 @@ export async function dadosInicio() {
   }
 
   const k = calcularKpis(boletinsMes);
+  // Serrado hoje: o mesmo cálculo do mês, só com o boletim de hoje
+  const kHoje = calcularKpis(boletinsMes.filter((b) => dateParaDia(b.data) === hoje));
   const porStatus = Object.fromEntries(estoque.map((e) => [e.status, { qtd: e._count, m3: e._sum.m3 ?? 0 }]));
 
   return {
     hoje,
     boletimHoje,
+    /** Volume e lotes apontados hoje (0 sem apontamento). */
+    serradoHoje: { m3: kHoje.producaoM3, lotes: boletimHoje?._count.lotes ?? 0 },
     pendencias,
     emSecagem: emSecagem.length,
+    /** Ciclos em secagem que passaram da previsão de saída. */
+    estufasAtrasadas: emSecagem.filter((c) => c.previsaoSaida && c.previsaoSaida < agora).length,
+    /** Máquinas da linha paradas agora. */
+    maquinasParadas: paradas.length,
+    /** Ciclos concluídos nos últimos 30 dias ainda sem pacote (até 5). */
+    ciclosSemPacote: ciclosSemPacote.length,
     estufas,
     estoque: porStatus as Partial<Record<"VERDE" | "EM_ESTUFA" | "SECO", { qtd: number; m3: number }>>,
     mes: { producaoM3: k.producaoM3, metaM3: k.metaM3, dias: boletinsMes.length, oee: k.oee },
