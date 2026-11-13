@@ -87,17 +87,18 @@ function CartaoModulo({ modulo, liberado }: { modulo: Modulo; liberado: boolean 
       </div>
     );
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md">
+    // O cartão inteiro abre o módulo (o "Abrir a …" do rodapé é só a indicação)
+    <Link
+      href={MODULOS[modulo].inicio}
+      className="group flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500"
+    >
       {cabeca}
       <div className="flex-1" />
-      <Link
-        href={MODULOS[modulo].inicio}
-        className="group mt-5 flex items-center justify-between gap-2 border-t border-stone-100 pt-4 text-sm font-semibold text-marca-700"
-      >
+      <span className="mt-5 flex items-center justify-between gap-2 border-t border-stone-100 pt-4 text-sm font-semibold text-marca-700">
         Abrir a {MODULOS[modulo].nome}
         <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
-      </Link>
-    </div>
+      </span>
+    </Link>
   );
 }
 

@@ -141,8 +141,8 @@ export const GERAL: Secao[] = [
             [
               "Serraria e Manutenção",
               ATIVA
-                ? "Um cartão para cada módulo, dizendo o que ele faz. Toque em Abrir a Serraria ou Abrir a Manutenção. Quem não usa um módulo vê o cartão dele tracejado, com Sem acesso: fale com o gerente."
-                : "Um cartão para cada módulo, dizendo o que ele faz. Toque em Abrir a Serraria. A Manutenção ainda está em teste: aparece tracejada, com Em breve (só o administrador abre, com o selo Em teste).",
+                ? "Um cartão para cada módulo, dizendo o que ele faz. Toque no cartão para abrir o módulo. Quem não usa um módulo vê o cartão dele tracejado, com Sem acesso: fale com o gerente."
+                : "Um cartão para cada módulo, dizendo o que ele faz. Toque no cartão da Serraria para abri-la. A Manutenção ainda está em teste: aparece tracejada, com Em breve (só o administrador abre, com o selo Em teste).",
             ],
             ["Ajuda, Notificações, Novidades e Administração", "Os cartões gerais: o manual do sistema, os seus avisos (com o número dos novos), as notas de atualização (/ajuda/avisos#novidades) e, para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria, o Painel Administrativo (/ajuda/navegacao#painel-administrativo)."],
             ["Cadastre a sua pergunta de segurança", "Botão dentro da faixa verde, até você cadastrar a pergunta. Toque para abrir Meu perfil."],

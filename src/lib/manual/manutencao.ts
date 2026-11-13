@@ -37,7 +37,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "texto",
             texto:
-              "Depois de entrar, toque em Abrir a Manutenção, no cartão dela na tela de início. Quem usa a Serraria e a Manutenção troca de módulo quando precisar:",
+              "Depois de entrar, toque no cartão da Manutenção, na tela de início. Quem usa a Serraria e a Manutenção troca de módulo quando precisar:",
           },
           {
             tipo: "termos",
