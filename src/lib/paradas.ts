@@ -144,6 +144,8 @@ export async function sincronizarParadasDoDia(dia: string, exceto?: string) {
  * Só para máquinas da linha; MEC é o padrão quando a requisição não diz o centro.
  * O início/fim acompanham os da requisição; desmarcar "máquina parada" desfaz a parada
  * aberta pela manutenção (a marcada na serraria continua: quem parou foi a linha).
+ * Requisição cancelada não mexe mais na parada: a aberta pela manutenção que ainda corre é
+ * desfeita; a marcada na serraria (ou já encerrada) fica como está — a serraria libera.
  */
 export async function refletirRequisicaoNaParada(
   requisicaoId: number,
@@ -152,10 +154,26 @@ export async function refletirRequisicaoNaParada(
 ) {
   const r = await db.requisicao.findUnique({
     where: { id: requisicaoId },
-    select: { id: true, titulo: true, maquinaParada: true, paradaInicio: true, paradaFim: true, equipamento: { select: { id: true, linhaSerraria: true } }, paradaMaquina: true },
+    select: {
+      id: true,
+      titulo: true,
+      status: true,
+      maquinaParada: true,
+      paradaInicio: true,
+      paradaFim: true,
+      equipamento: { select: { id: true, linhaSerraria: true } },
+      paradaMaquina: true,
+    },
   });
   if (!r) return null;
   const p = r.paradaMaquina;
+  if (r.status === "CANCELADA") {
+    if (p && p.origem === "MANUTENCAO" && !p.fim) {
+      await db.paradaMaquina.delete({ where: { id: p.id } });
+      return null;
+    }
+    return p;
+  }
   if (!r.maquinaParada || !r.paradaInicio) {
     if (p && p.origem === "MANUTENCAO") {
       await db.paradaMaquina.delete({ where: { id: p.id } });

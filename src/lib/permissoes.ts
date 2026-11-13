@@ -43,9 +43,13 @@ export const AVISO_NOVA = { todas: ["SUPERVISOR", "MANUTENTOR"] as Perfil[], urg
 export type Modulo = "manutencao" | "producao";
 export type UsuarioComPerfis = { perfil: Perfil; perfilProducao: PerfilProducao | null };
 
+/**
+ * A ordem das chaves é a ordem dos módulos em todo o sistema: quem usa os dois entra primeiro na
+ * Serraria (página inicial, logo do topo, menu padrão e troca de módulo).
+ */
 export const MODULOS: Record<Modulo, { nome: string; inicio: string }> = {
-  manutencao: { nome: "Manutenção", inicio: "/manutencao" },
   producao: { nome: "Serraria", inicio: "/producao" },
+  manutencao: { nome: "Manutenção", inicio: "/manutencao" },
 };
 
 /**

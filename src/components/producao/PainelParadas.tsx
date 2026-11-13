@@ -7,6 +7,7 @@ import { Check, CloudOff, OctagonAlert, Trash2, Wrench, X } from "lucide-react";
 import { excluirParadaMaquina, liberarMaquina, pararMaquina, type Resultado } from "@/app/actions/paradas";
 import { mensagemFalha } from "@/lib/falha-acao";
 import { EVENTO_FILA, enviarOuGuardar, listarFila, type ItemFila } from "@/lib/fila-offline";
+import { MODULOS_ATIVOS } from "@/lib/permissoes";
 import { CENTRO } from "@/lib/producao";
 import type { CentroParada, OrigemParada } from "@/generated/prisma/enums";
 
@@ -22,8 +23,12 @@ type Aberta = {
   inicio: string;
   abertaPor: string;
   origem: OrigemParada;
-  requisicao: { id: number; numero: string; status: string } | null;
+  /** `encerrada`: concluída ou cancelada na manutenção. */
+  requisicao: { id: number; numero: string; status: string; encerrada: boolean } | null;
 };
+
+/** Com a manutenção em teste, os avisos dela não chegam a ninguém: a tela não promete que ela foi avisada. */
+const MANUTENCAO_ATIVA = MODULOS_ATIVOS.includes("manutencao");
 
 /** "1h05" / "12 min" a partir de milissegundos (cronômetro). */
 function cronometro(ms: number) {
@@ -124,7 +129,14 @@ export function PainelParadas({
         }
         const res = r as Resultado;
         if (res.erro) return setErro(res.erro);
-        setAviso({ guardado: false, texto: res.requisicaoId ? "Parada marcada. A manutenção foi avisada." : "Parada marcada. O cronômetro está correndo." });
+        setAviso({
+          guardado: false,
+          texto: !res.requisicaoId
+            ? "Parada marcada. O cronômetro está correndo."
+            : MANUTENCAO_ATIVA
+              ? "Parada marcada. A manutenção foi avisada."
+              : "Parada marcada. O cronômetro está correndo. Avise a manutenção.",
+        });
         fechar();
         router.refresh();
       } catch (e) {
@@ -140,7 +152,12 @@ export function PainelParadas({
       try {
         const r = await liberarMaquina(a.id, obs);
         if (r.erro) return window.alert(r.erro);
-        setAviso({ guardado: false, texto: `${a.maquina} liberada. O tempo parado foi para o boletim.` });
+        setAviso({
+          guardado: false,
+          texto: `${a.maquina} liberada. O tempo parado foi para o boletim.${
+            MANUTENCAO_ATIVA && a.requisicao && !a.requisicao.encerrada ? " A manutenção foi avisada para conferir e concluir a requisição." : ""
+          }`,
+        });
         router.refresh();
       } catch (e) {
         window.alert(mensagemFalha(e));
@@ -149,7 +166,13 @@ export function PainelParadas({
   }
 
   function excluir(a: Aberta) {
-    if (!window.confirm(`Excluir a parada de ${a.maquina}? Use só se foi marcada por engano.`)) return;
+    const daRequisicao =
+      a.requisicao && !a.requisicao.encerrada
+        ? a.origem === "SERRARIA"
+          ? `\nA requisição de manutenção ${a.requisicao.numero}, aberta junto, é cancelada se ninguém da manutenção a assumiu.`
+          : `\nA requisição de manutenção ${a.requisicao.numero} continua aberta, sem a marcação de máquina parada.`
+        : "";
+    if (!window.confirm(`Excluir a parada de ${a.maquina}? Use só se foi marcada por engano.${daRequisicao}`)) return;
     iniciar(async () => {
       try {
         const r = await excluirParadaMaquina(a.id);
@@ -255,7 +278,11 @@ export function PainelParadas({
                 })}
               </div>
               <p className="mt-1 text-xs text-stone-500">
-                {motivo ? "Definido pelo motivo escolhido." : "Mecânica e elétrica abrem uma requisição para a manutenção na hora."}
+                {motivo
+                  ? "Definido pelo motivo escolhido."
+                  : MANUTENCAO_ATIVA
+                    ? "Mecânica e elétrica abrem na hora uma requisição para a manutenção, que é avisada."
+                    : "Mecânica ou elétrica: avise a manutenção."}
               </p>
             </div>
             <div>
@@ -292,7 +319,13 @@ export function PainelParadas({
                 </div>
                 {a.descricao && <p className="text-sm text-stone-600">{a.descricao}</p>}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
-                  <span>{a.origem === "MANUTENCAO" ? "Aberta pela manutenção" : "Marcada"} por {a.abertaPor}</span>
+                  <span>
+                    {a.origem === "MANUTENCAO"
+                      ? a.requisicao
+                        ? `Marcada na requisição ${a.requisicao.numero} por ${a.abertaPor}`
+                        : `Aberta numa requisição de manutenção por ${a.abertaPor}`
+                      : `Marcada por ${a.abertaPor}`}
+                  </span>
                   {a.requisicao &&
                     (verManutencao ? (
                       <Link href={`/requisicoes/${a.requisicao.id}`} className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 font-medium text-sky-800 ring-1 ring-sky-200">
@@ -300,7 +333,12 @@ export function PainelParadas({
                       </Link>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 font-medium text-sky-800 ring-1 ring-sky-200">
-                        <Wrench className="h-3 w-3" /> Manutenção avisada · {a.requisicao.numero}
+                        <Wrench className="h-3 w-3" />{" "}
+                        {a.requisicao.encerrada
+                          ? `Requisição ${a.requisicao.numero} · ${a.requisicao.status}`
+                          : MANUTENCAO_ATIVA
+                            ? `Manutenção avisada · ${a.requisicao.numero}`
+                            : `Requisição ${a.requisicao.numero}`}
                       </span>
                     ))}
                 </div>

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { auditar, diferencas } from "@/lib/auditoria";
 import { db } from "@/lib/db";
 import { LOGIN_REGEX } from "@/lib/constantes";
-import { PERFIS_ATRIBUIVEIS, modulosDe } from "@/lib/permissoes";
+import { PERFIS_ATRIBUIVEIS } from "@/lib/permissoes";
 import { exigirPermissao } from "@/lib/session";
 import type { EstadoForm } from "./auth";
 
@@ -51,7 +51,11 @@ export async function salvarUsuario(_: EstadoForm, form: FormData): Promise<Esta
     return { erro: "Perfil inválido" };
   }
   if (id === eu.id && !resto.ativo) return { erro: "Você não pode desativar o próprio usuário" };
-  if (modulosDe(resto).length === 0) return { erro: "Escolha o perfil de acesso ao sistema (ou dê acesso de Gerente)" };
+  // Precisa de algum perfil. Não usa modulosDe(): com a Manutenção em teste, quem só tem perfil nela
+  // (ex.: manutentor) ficaria sem módulo e o gerente não conseguiria nem redefinir a senha dele.
+  if (resto.perfil === "SEM_ACESSO" && !resto.perfilProducao) {
+    return { erro: "Escolha o perfil na Serraria ou na Manutenção (ou dê acesso de Gerente)" };
+  }
 
   try {
     if (id && existente) {
@@ -85,11 +89,16 @@ export async function salvarUsuario(_: EstadoForm, form: FormData): Promise<Esta
 export async function salvarSetor(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const eu = await exigirPermissao("setores");
   const id = String(form.get("id") ?? "");
-  const nome = String(form.get("nome") ?? "").trim();
+  const nome = String(form.get("nome") ?? "").trim().replace(/\s+/g, " ");
   if (nome.length < 2) return { erro: "Informe o nome do setor" };
+  if (nome.length > 80) return { erro: "Nome do setor muito longo" };
+  // O @unique do banco diferencia maiúsculas: "Setor QA" e "setor qa" seriam dois setores
+  const repetido = await db.setor.findFirst({ where: { nome: { equals: nome, mode: "insensitive" }, ...(id ? { NOT: { id } } : {}) }, select: { id: true } });
+  if (repetido) return { erro: "Setor já cadastrado" };
   try {
     if (id) {
-      const antes = await db.setor.findUniqueOrThrow({ where: { id } });
+      const antes = await db.setor.findUnique({ where: { id } });
+      if (!antes) return { erro: "Setor não encontrado" };
       await db.setor.update({ where: { id }, data: { nome } });
       if (antes.nome !== nome) {
         await auditar({ usuarioId: eu.id, acao: "setor.editar", entidade: "Setor", entidadeId: id, resumo: `Renomeou o setor ${antes.nome} para ${nome}` });
@@ -124,9 +133,16 @@ export async function salvarEquipamento(_: EstadoForm, form: FormData): Promise<
   const dados = equipamentoSchema.safeParse(Object.fromEntries(form));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { id, ...resto } = dados.data;
+  // O código é guardado em maiúsculas, mas cadastros antigos podem ter minúsculas (o @unique diferencia)
+  const repetido = await db.equipamento.findFirst({
+    where: { codigo: { equals: resto.codigo, mode: "insensitive" }, ...(id ? { NOT: { id } } : {}) },
+    select: { id: true },
+  });
+  if (repetido) return { erro: "Já existe um equipamento com este código" };
   try {
     if (id) {
-      const antes = await db.equipamento.findUniqueOrThrow({ where: { id } });
+      const antes = await db.equipamento.findUnique({ where: { id } });
+      if (!antes) return { erro: "Equipamento não encontrado" };
       await db.equipamento.update({ where: { id }, data: resto });
       const mudou = diferencas(antes, resto, ["codigo", "nome", "descricao", "fabricante", "modelo", "numeroSerie", "setorId", "ativo", "linhaSerraria"]);
       if (Object.keys(mudou).length) {

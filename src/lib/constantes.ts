@@ -1,4 +1,5 @@
 import type { Perfil, PerfilProducao, Prioridade, StatusRequisicao, TipoManutencao } from "@/generated/prisma/enums";
+import { MODULOS, temModulo, type UsuarioComPerfis } from "@/lib/permissoes";
 
 export const STATUS: Record<StatusRequisicao, { label: string; cor: string }> = {
   ABERTA: { label: "Aberta", cor: "bg-blue-50 text-blue-700 ring-blue-200" },
@@ -47,6 +48,24 @@ export const PERFIL_PRODUCAO: Record<PerfilProducao, string> = {
   APONTADOR: "Apontador",
   CONSULTA: "Consulta",
 };
+
+/**
+ * Perfis da pessoa nos módulos que ela usa hoje, com o nome do módulo:
+ * ["Serraria: Apontador", "Manutenção: Operador"]. Admin/Gerente: ["Gerente · acesso total"].
+ * A Manutenção só entra quando a pessoa enxerga o módulo (em teste: só o administrador).
+ */
+export function perfisPorModulo(u: UsuarioComPerfis): string[] {
+  if (u.perfil === "ADMIN" || u.perfil === "GERENTE") return [`${PERFIL[u.perfil]} · acesso total`];
+  const itens: string[] = [];
+  if (u.perfilProducao && temModulo(u, "producao")) itens.push(`${MODULOS.producao.nome}: ${PERFIL_PRODUCAO[u.perfilProducao]}`);
+  if (temModulo(u, "manutencao")) itens.push(`${MODULOS.manutencao.nome}: ${PERFIL[u.perfil]}`);
+  return itens.length ? itens : [PERFIL.SEM_ACESSO];
+}
+
+/** Os perfis da pessoa numa linha: "Serraria: Supervisor · Manutenção: Supervisor". */
+export function rotuloPerfis(u: UsuarioComPerfis) {
+  return perfisPorModulo(u).join(" · ");
+}
 
 export function formatarData(d: Date | null | undefined, comHora = false) {
   if (!d) return "—";

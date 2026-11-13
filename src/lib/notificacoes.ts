@@ -1,7 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { db } from "@/lib/db";
-import { temModulo } from "@/lib/permissoes";
+import { temModulo, type Modulo } from "@/lib/permissoes";
 import type { Perfil } from "@/generated/prisma/enums";
 
 export type Aviso = { titulo: string; mensagem: string; link?: string };
@@ -68,6 +68,23 @@ export async function notificar(usuarioIds: (string | null | undefined)[], aviso
       }
     })
   );
+}
+
+/**
+ * Dos usuários indicados, os ativos que enxergam o módulo — quem de fato recebe um aviso com link
+ * daquele módulo (em teste, a manutenção só para o administrador). Serve para não mandar dois avisos
+ * do mesmo fato a quem usa os dois módulos. Nunca lança erro: na falha devolve null (sem filtro).
+ */
+export async function idsComModulo(usuarioIds: (string | null | undefined)[], modulo: Modulo): Promise<string[] | null> {
+  const ids = [...new Set(usuarioIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return [];
+  try {
+    const usuarios = await db.usuario.findMany({ where: { id: { in: ids }, ativo: true }, select: { id: true, perfil: true, perfilProducao: true } });
+    return usuarios.filter((u) => temModulo(u, modulo)).map((u) => u.id);
+  } catch (e) {
+    console.error("Falha ao conferir destinatários", e);
+    return null;
+  }
 }
 
 /** Usuários ativos dos perfis indicados, opcionalmente sem o autor da ação. */

@@ -54,22 +54,26 @@ export async function calcularIndicadores(periodo: Periodo, setorId?: string) {
     db.requisicao.count({ where: { ...filtroSetor, status: { in: STATUS_PENDENTES } } }),
   ]);
 
-  const abertas = requisicoes.filter((r) => r.criadoEm >= de);
+  // Canceladas (abertas por engano, repetidas…) não são falhas nem tempo parado: ficam fora de todas as contas,
+  // só aparecem no total de canceladas do período
+  const canceladas = requisicoes.filter((r) => r.status === "CANCELADA" && r.criadoEm >= de).length;
+  const validas = requisicoes.filter((r) => r.status !== "CANCELADA");
+  const abertas = validas.filter((r) => r.criadoEm >= de);
   const corretivas = abertas.filter((r) => r.tipo === "CORRETIVA");
-  const concluidas = requisicoes.filter((r) => r.status === "CONCLUIDA" && r.dataConclusao && r.dataConclusao >= de);
+  const concluidas = validas.filter((r) => r.status === "CONCLUIDA" && r.dataConclusao && r.dataConclusao >= de);
 
   // Tempo médio de atendimento: abertura → conclusão
   const atendimento = concluidas.map((r) => (r.dataConclusao!.getTime() - r.criadoEm.getTime()) / 60000);
   const tempoMedioAtendimento = atendimento.length ? atendimento.reduce((a, b) => a + b, 0) / atendimento.length : null;
 
   // MTTR: duração média das paradas encerradas no período
-  const paradasEncerradas = requisicoes.filter((r) => r.maquinaParada && r.paradaInicio && r.paradaFim && r.paradaFim >= de);
+  const paradasEncerradas = validas.filter((r) => r.maquinaParada && r.paradaInicio && r.paradaFim && r.paradaFim >= de);
   const mttr = paradasEncerradas.length
     ? paradasEncerradas.reduce((t, r) => t + (r.paradaFim!.getTime() - r.paradaInicio!.getTime()) / 60000, 0) / paradasEncerradas.length
     : null;
 
   // Tempo parado dentro do período (inclui paradas ainda em aberto)
-  const paradoPorReq = requisicoes.map((r) => ({ r, min: r.maquinaParada ? minutosNoPeriodo(r.paradaInicio, r.paradaFim, de, ate) : 0 }));
+  const paradoPorReq = validas.map((r) => ({ r, min: r.maquinaParada ? minutosNoPeriodo(r.paradaInicio, r.paradaFim, de, ate) : 0 }));
   const minutosParados = paradoPorReq.reduce((t, x) => t + x.min, 0);
   const minutosPeriodo = (ate.getTime() - de.getTime()) / 60000;
   const disponibilidade = equipamentosAtivos ? Math.max(0, 1 - minutosParados / (minutosPeriodo * equipamentosAtivos)) : null;
@@ -79,7 +83,7 @@ export async function calcularIndicadores(periodo: Periodo, setorId?: string) {
   const mtbfHoras = falhas ? (minutosPeriodo * equipamentosAtivos - minutosParados) / 60 / falhas : null;
 
   // Preventivas no prazo: concluídas até o fim do dia agendado
-  const preventivasDevidas = requisicoes.filter((r) => r.tipo === "PREVENTIVA" && r.dataAgendada && r.dataAgendada >= de && r.dataAgendada <= ate && r.status !== "CANCELADA");
+  const preventivasDevidas = validas.filter((r) => r.tipo === "PREVENTIVA" && r.dataAgendada && r.dataAgendada >= de && r.dataAgendada <= ate);
   const noPrazo = preventivasDevidas.filter((r) => r.dataConclusao && r.dataConclusao.getTime() <= r.dataAgendada!.getTime() + DIA).length;
 
   // Série mensal: abertas por tipo
@@ -125,7 +129,9 @@ export async function calcularIndicadores(periodo: Periodo, setorId?: string) {
     de,
     ate,
     resumo: {
+      /** Abertas no período, sem as canceladas. */
       abertas: abertas.length,
+      canceladas,
       corretivas: corretivas.length,
       preventivas: abertas.filter((r) => r.tipo === "PREVENTIVA").length,
       concluidas: concluidas.length,

@@ -8,13 +8,38 @@ import { auditar, diferencas } from "@/lib/auditoria";
 import { ErroFoto, fotosDoForm, processarFoto } from "@/lib/fotos";
 import { criarRequisicaoCompleta, novaRequisicaoSchema } from "@/lib/requisicoes";
 import { exigirModulo } from "@/lib/session";
-import { PERFIS_RESPONSAVEIS, pode } from "@/lib/permissoes";
-import { PRIORIDADE, STATUS, STATUS_FINAIS, dataLocalParaDate, formatarData, formatarDuracao, numeroRequisicao } from "@/lib/constantes";
-import { idsPorPerfil, notificar } from "@/lib/notificacoes";
+import { MODULOS_ATIVOS, PERFIS_RESPONSAVEIS, pode } from "@/lib/permissoes";
+import { PRIORIDADE, STATUS, STATUS_FINAIS, dataLocalParaDate, dateParaDataLocal, formatarData, formatarDuracao, minutosEntre, numeroRequisicao } from "@/lib/constantes";
+import { idsSerraria } from "@/lib/alertas-serraria";
+import { idsComModulo, idsPorPerfil, notificar, type Aviso } from "@/lib/notificacoes";
 import { refletirRequisicaoNaParada } from "@/lib/paradas";
 import type { EstadoForm } from "./auth";
 
 const vazioParaNull = (v: unknown) => (v === "" || v === undefined ? null : v);
+
+/**
+ * Valor de um campo datetime-local (precisão de minuto). O mesmo minuto do que está gravado mantém a
+ * data gravada, com os segundos: salvar sem mexer no campo não muda a parada nem o boletim.
+ */
+function dataDoCampo(valor: string | null, gravada: Date | null) {
+  if (valor && gravada && valor === dateParaDataLocal(gravada)) return gravada;
+  return dataLocalParaDate(valor);
+}
+
+/**
+ * Avisa envolvidos numa requisição. Se ela está ligada a uma parada da serraria e o solicitante não usa
+ * a manutenção (ex.: o apontador que tocou "Máquina parou"), ele recebe o aviso com o link das paradas —
+ * o link da requisição seria descartado para ele. Só com a manutenção liberada: em teste, o que o
+ * administrador faz nas requisições não vira aviso para a serraria.
+ */
+async function avisarEnvolvidos(ids: (string | null | undefined)[], aviso: Aviso, solicitanteDaParada: string | null) {
+  const desviar = solicitanteDaParada && ids.includes(solicitanteDaParada) && MODULOS_ATIVOS.includes("manutencao");
+  if (!desviar) return notificar(ids, aviso);
+  const comManutencao = await idsComModulo([solicitanteDaParada], "manutencao");
+  if (!comManutencao || comManutencao.includes(solicitanteDaParada)) return notificar(ids, aviso);
+  await notificar(ids.filter((id) => id !== solicitanteDaParada), aviso);
+  await notificar([solicitanteDaParada], { ...aviso, link: "/producao/paradas" });
+}
 
 export type ResultadoNova = { erro?: string; id?: number };
 
@@ -56,13 +81,16 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
   const dados = statusSchema.safeParse(Object.fromEntries(form));
   if (!dados.success) return { erro: dados.error.issues[0].message };
   const { id, status, observacao, responsavelId, solucao } = dados.data;
-  const dataAgendada = dataLocalParaDate(dados.data.dataAgendada);
 
   const atual = await db.requisicao.findUnique({
     where: { id },
-    include: { checklist: { select: { feito: true } } },
+    include: {
+      checklist: { select: { feito: true } },
+      paradaMaquina: { select: { id: true, origem: true, inicio: true, fim: true, abertaPorId: true, equipamento: { select: { nome: true } } } },
+    },
   });
   if (!atual) return { erro: "Requisição não encontrada" };
+  const dataAgendada = dataDoCampo(dados.data.dataAgendada, atual.dataAgendada);
 
   if (status === "CANCELADA" && atual.status !== "CANCELADA" && !pode(eu.perfil, "cancelarRequisicoes")) {
     return { erro: "Só gerente ou supervisor pode cancelar requisições" };
@@ -91,17 +119,33 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
   const mudouStatus = status !== atual.status;
   const mudouData = (dataAgendada?.getTime() ?? null) !== (atual.dataAgendada?.getTime() ?? null);
   const agora = new Date();
+  const p0 = atual.paradaMaquina;
 
   // Máquina parada: início padrão = agora; ao concluir, considera que voltou a operar
-  const maquinaParada = dados.data.maquinaParada;
-  const paradaInicio = maquinaParada ? (dataLocalParaDate(dados.data.paradaInicio) ?? atual.paradaInicio ?? agora) : null;
+  let maquinaParada = dados.data.maquinaParada;
+  let paradaInicio = maquinaParada ? (dataDoCampo(dados.data.paradaInicio, atual.paradaInicio) ?? atual.paradaInicio ?? agora) : null;
   // Campo vazio não reabre uma parada já liberada (ex.: liberada na serraria com esta tela aberta)
-  let paradaFim = maquinaParada ? (dataLocalParaDate(dados.data.paradaFim) ?? atual.paradaFim) : null;
+  let paradaFim = maquinaParada ? (dataDoCampo(dados.data.paradaFim, atual.paradaFim) ?? atual.paradaFim) : null;
   if (maquinaParada && !paradaFim && status === "CONCLUIDA") paradaFim = atual.paradaFim ?? agora;
+  // Cancelada: os dados da parada ficam como estavam (a marcada na serraria, a serraria libera)...
+  let paradaDesfeita = false;
+  if (status === "CANCELADA") {
+    maquinaParada = atual.maquinaParada;
+    paradaInicio = atual.paradaInicio;
+    paradaFim = atual.paradaFim;
+    // ...e a máquina parada aberta pela manutenção, que ainda corria, é desfeita junto (também numa
+    // cancelada antes desta regra que ainda tem a parada correndo na serraria)
+    if (maquinaParada && !paradaFim && p0?.origem !== "SERRARIA" && (mudouStatus || (p0 && !p0.fim))) {
+      maquinaParada = false;
+      paradaInicio = null;
+      paradaFim = null;
+      paradaDesfeita = true;
+    }
+  }
   if (paradaInicio && paradaFim && paradaFim < paradaInicio) return { erro: "O fim da parada não pode ser antes do início" };
   if (paradaInicio && paradaInicio > agora) return { erro: "O início da parada não pode ser no futuro" };
 
-  await db.requisicao.update({
+  const atualizar = db.requisicao.update({
     where: { id },
     data: {
       status,
@@ -116,22 +160,30 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
       paradaInicio,
       paradaFim,
       historico:
-        mudouStatus || observacao
+        mudouStatus || observacao || paradaDesfeita
           ? {
               create: {
                 statusAnterior: atual.status,
                 statusNovo: status,
-                observacao,
+                observacao: paradaDesfeita
+                  ? [observacao, "Máquina parada desfeita: a requisição foi cancelada antes de a máquina voltar a operar."].filter(Boolean).join("\n")
+                  : observacao,
                 usuarioId: eu.id,
               },
             }
           : undefined,
     },
   });
+  // Cancelamento que desfaz a parada aberta pela manutenção: a parada sai junto, na mesma transação
+  if (paradaDesfeita && p0?.origem === "MANUTENCAO" && !p0.fim) await db.$transaction([atualizar, db.paradaMaquina.delete({ where: { id: p0.id } })]);
+  else await atualizar;
 
   // Máquina da linha da serraria: a parada (e o boletim) acompanha a requisição
   const parada = await refletirRequisicaoNaParada(id, eu.id, dados.data.centroParada ?? "MEC");
-  if (parada) revalidatePath("/producao", "layout");
+  if (parada || p0) {
+    revalidatePath("/producao", "layout");
+    revalidatePath("/tv");
+  }
 
   const num = numeroRequisicao(id);
   const link = `/requisicoes/${id}`;
@@ -150,11 +202,43 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
       acao: mudouStatus ? "requisicao.status" : "requisicao.editar",
       entidade: "Requisicao",
       entidadeId: id,
-      resumo: mudouStatus ? `${num}: ${STATUS[atual.status].label} → ${STATUS[status].label}` : `Atualizou a requisição ${num}`,
-      detalhes: { ...mudou, ...(observacao ? { observacao: { de: null, para: observacao } } : {}) },
+      resumo: `${mudouStatus ? `${num}: ${STATUS[atual.status].label} → ${STATUS[status].label}` : `Atualizou a requisição ${num}`}${paradaDesfeita ? " · máquina parada desfeita" : ""}`,
+      detalhes: { ...mudou, ...(observacao ? { observacao: { de: null, para: observacao } } : {}), ...(paradaDesfeita && p0 ? { paradaMaquinaExcluida: p0.id } : {}) },
     });
   }
+
+  // Serraria: a manutenção liberou a máquina, corrigiu os horários da parada (o boletim muda) ou cancelou
+  // com a parada marcada na serraria ainda aberta
+  let avisoSerraria: Aviso | null = null;
+  if (p0 && parada) {
+    const maquina = p0.equipamento.nome;
+    if (!p0.fim && parada.fim) {
+      avisoSerraria = {
+        titulo: `✅ Máquina liberada pela manutenção · ${maquina}`,
+        mensagem: `Ficou parada ${formatarDuracao(minutosEntre(parada.inicio, parada.fim))} · ${eu.nome}${status === "CONCLUIDA" ? ` concluiu a ${num}` : ` · ${num}`}`,
+        link: "/producao/paradas",
+      };
+    } else if (p0.fim && parada.fim && (p0.inicio.getTime() !== parada.inicio.getTime() || p0.fim.getTime() !== parada.fim.getTime())) {
+      avisoSerraria = {
+        titulo: `⏱ Parada corrigida pela manutenção · ${maquina}`,
+        mensagem: `Agora de ${formatarData(parada.inicio, true)} a ${formatarData(parada.fim, true)} (${formatarDuracao(minutosEntre(parada.inicio, parada.fim))}) · ${eu.nome} na ${num} · o boletim foi atualizado`,
+        link: "/producao/paradas",
+      };
+    } else if (status === "CANCELADA" && mudouStatus && !parada.fim) {
+      avisoSerraria = {
+        titulo: `${num} cancelada · ${maquina}`,
+        mensagem: `${eu.nome} cancelou a requisição — a parada continua aberta: toque em "Máquina liberada" quando a máquina voltar${observacao ? ` · ${observacao}` : ""}`,
+        link: "/producao/paradas",
+      };
+    }
+  }
+  const solicitanteDaParada = parada || p0 ? atual.solicitanteId : null;
   after(async () => {
+    const avisadosSerraria: string[] = [];
+    if (avisoSerraria && p0) {
+      avisadosSerraria.push(...[...(await idsSerraria(["SUPERVISOR"])), p0.abertaPorId].filter((u) => u !== eu.id));
+      await notificar(avisadosSerraria, avisoSerraria);
+    }
     if (mudouStatus || (status === "AGENDADA" && mudouData)) {
       const detalhe =
         status === "AGENDADA" && dataAgendada
@@ -162,11 +246,9 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
           : observacao
             ? ` — ${observacao}`
             : "";
-      await notificar([atual.solicitanteId === eu.id ? null : atual.solicitanteId], {
-        titulo: `${num}: ${STATUS[status].label}`,
-        mensagem: `${atual.titulo}${detalhe}`,
-        link,
-      });
+      // Quem já recebeu o aviso da serraria sobre a mesma mudança não ganha um segundo
+      const solicitante = atual.solicitanteId === eu.id || avisadosSerraria.includes(atual.solicitanteId) ? null : atual.solicitanteId;
+      await avisarEnvolvidos([solicitante], { titulo: `${num}: ${STATUS[status].label}`, mensagem: `${atual.titulo}${detalhe}`, link }, solicitanteDaParada);
     }
     if (responsavelId && responsavelId !== atual.responsavelId && responsavelId !== eu.id) {
       await notificar([responsavelId], {
@@ -183,35 +265,84 @@ export async function atualizarStatus(_: EstadoForm, form: FormData): Promise<Es
   return { ok: mudouStatus ? `Status alterado para "${STATUS[status].label}"` : "Requisição atualizada" };
 }
 
-/** O solicitante pode cancelar a própria requisição enquanto ainda não foi tratada. */
+/**
+ * O solicitante pode cancelar a própria requisição enquanto ainda não foi tratada. Com a máquina ainda
+ * parada, a parada aberta pela manutenção é desfeita junto; a marcada na serraria continua (a serraria libera).
+ */
 export async function cancelarPropria(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const eu = await exigirModulo("manutencao");
   const id = Number(form.get("id"));
   const motivo = String(form.get("motivo") ?? "").trim();
   if (!motivo) return { erro: "Informe o motivo do cancelamento" };
+  if (motivo.length > 2000) return { erro: "Motivo muito longo" };
 
-  const req = await db.requisicao.findUnique({ where: { id } });
+  const req = await db.requisicao.findUnique({
+    where: { id },
+    include: { paradaMaquina: { select: { id: true, origem: true, fim: true, abertaPorId: true, equipamento: { select: { nome: true } } } } },
+  });
   if (!req || req.solicitanteId !== eu.id) return { erro: "Sem permissão" };
   if (req.status !== "ABERTA") return { erro: "Só é possível cancelar requisições ainda abertas" };
 
-  await db.requisicao.update({
+  const p0 = req.paradaMaquina;
+  const paradaDesfeita = req.maquinaParada && !req.paradaFim && p0?.origem !== "SERRARIA";
+  const cancelar = db.requisicao.update({
     where: { id },
     data: {
       status: "CANCELADA",
+      ...(paradaDesfeita ? { maquinaParada: false, paradaInicio: null, paradaFim: null } : {}),
       historico: {
-        create: { statusAnterior: req.status, statusNovo: "CANCELADA", observacao: motivo, usuarioId: eu.id },
+        create: {
+          statusAnterior: req.status,
+          statusNovo: "CANCELADA",
+          observacao: paradaDesfeita ? `${motivo}\nMáquina parada desfeita: a requisição foi cancelada antes de a máquina voltar a operar.` : motivo,
+          usuarioId: eu.id,
+        },
       },
     },
   });
-  await auditar({ usuarioId: eu.id, acao: "requisicao.cancelar", entidade: "Requisicao", entidadeId: id, resumo: `Cancelou a própria requisição ${numeroRequisicao(id)}`, detalhes: { motivo } });
-  after(async () =>
-    notificar(req.responsavelId ? [req.responsavelId] : await idsPorPerfil(["SUPERVISOR"], eu.id), {
+  if (paradaDesfeita && p0 && !p0.fim) await db.$transaction([cancelar, db.paradaMaquina.delete({ where: { id: p0.id } })]);
+  else await cancelar;
+
+  await auditar({
+    usuarioId: eu.id,
+    acao: "requisicao.cancelar",
+    entidade: "Requisicao",
+    entidadeId: id,
+    resumo: `Cancelou a própria requisição ${numeroRequisicao(id)}${paradaDesfeita ? " · máquina parada desfeita" : ""}`,
+    detalhes: {
+      motivo,
+      ...(paradaDesfeita
+        ? {
+            maquinaParada: { de: true, para: false },
+            paradaInicio: { de: req.paradaInicio?.toISOString() ?? null, para: null },
+            ...(p0 ? { paradaMaquinaExcluida: p0.id } : {}),
+          }
+        : {}),
+    },
+  });
+  // Parada marcada na serraria ainda aberta: a serraria fica sabendo que a requisição saiu (ela libera a máquina)
+  const paradaSerraria = p0 && p0.origem === "SERRARIA" && !p0.fim ? p0 : null;
+  after(async () => {
+    await notificar(req.responsavelId ? [req.responsavelId] : await idsPorPerfil(["SUPERVISOR"], eu.id), {
       titulo: `${numeroRequisicao(id)} cancelada pelo solicitante`,
       mensagem: `${req.titulo} — ${motivo}`,
       link: `/requisicoes/${id}`,
-    })
-  );
+    });
+    if (paradaSerraria) {
+      await notificar([...(await idsSerraria(["SUPERVISOR"])), paradaSerraria.abertaPorId].filter((u) => u !== eu.id), {
+        titulo: `${numeroRequisicao(id)} cancelada · ${paradaSerraria.equipamento.nome}`,
+        mensagem: `${eu.nome} cancelou a requisição — a parada continua aberta: toque em "Máquina liberada" quando a máquina voltar · ${motivo}`,
+        link: "/producao/paradas",
+      });
+    }
+  });
   revalidatePath(`/requisicoes/${id}`);
+  revalidatePath("/requisicoes");
+  revalidatePath("/manutencao");
+  if (p0) {
+    revalidatePath("/producao", "layout");
+    revalidatePath("/tv");
+  }
   return { ok: "Requisição cancelada" };
 }
 
@@ -223,7 +354,7 @@ export async function comentar(_: EstadoForm, form: FormData): Promise<EstadoFor
 
   const req = await db.requisicao.findUnique({
     where: { id },
-    select: { status: true, titulo: true, solicitanteId: true, responsavelId: true },
+    select: { status: true, titulo: true, solicitanteId: true, responsavelId: true, paradaMaquina: { select: { id: true } } },
   });
   if (!req) return { erro: "Requisição não encontrada" };
   if (STATUS_FINAIS.includes(req.status) && !pode(eu.perfil, "atenderRequisicoes")) {
@@ -236,13 +367,14 @@ export async function comentar(_: EstadoForm, form: FormData): Promise<EstadoFor
     // Avisa solicitante e responsável; sem responsável, a equipe fica sabendo do comentário do solicitante.
     const destinos = [req.solicitanteId, req.responsavelId];
     if (!req.responsavelId && eu.id === req.solicitanteId) destinos.push(...(await idsPorPerfil(PERFIS_RESPONSAVEIS)));
-    await notificar(
+    await avisarEnvolvidos(
       destinos.filter((d) => d !== eu.id),
       {
         titulo: `💬 ${eu.nome} comentou em ${numeroRequisicao(id)}`,
         mensagem: texto.length > 140 ? `${texto.slice(0, 137)}…` : texto,
         link: `/requisicoes/${id}`,
-      }
+      },
+      req.paradaMaquina ? req.solicitanteId : null,
     );
   });
   revalidatePath(`/requisicoes/${id}`);
@@ -251,7 +383,7 @@ export async function comentar(_: EstadoForm, form: FormData): Promise<EstadoFor
 
 /** Quem pode mexer em fotos de uma requisição: solicitante, responsável e equipe. */
 async function podeAnexar(eu: { id: string; perfil: Parameters<typeof pode>[0] }, requisicaoId: number) {
-  const req = await db.requisicao.findUnique({ where: { id: requisicaoId }, select: { solicitanteId: true, responsavelId: true } });
+  const req = await db.requisicao.findUnique({ where: { id: requisicaoId }, select: { solicitanteId: true, responsavelId: true, status: true } });
   if (!req) return null;
   const ok = pode(eu.perfil, "atenderRequisicoes") || req.solicitanteId === eu.id || req.responsavelId === eu.id;
   return ok ? req : null;
@@ -260,8 +392,12 @@ async function podeAnexar(eu: { id: string; perfil: Parameters<typeof pode>[0] }
 export async function enviarFotos(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const eu = await exigirModulo("manutencao");
   const id = Number(form.get("id"));
-  const tipo = form.get("tipo") === "SERVICO" && pode(eu.perfil, "atenderRequisicoes") ? "SERVICO" : "PROBLEMA";
-  if (!(await podeAnexar(eu, id))) return { erro: "Sem permissão" };
+  const equipe = pode(eu.perfil, "atenderRequisicoes");
+  const tipo = form.get("tipo") === "SERVICO" && equipe ? "SERVICO" : "PROBLEMA";
+  const req = await podeAnexar(eu, id);
+  if (!req) return { erro: "Sem permissão" };
+  // Encerrada: só a equipe ainda anexa (ex.: a foto do serviço feito depois de concluir)
+  if (STATUS_FINAIS.includes(req.status) && !equipe) return { erro: "Requisição encerrada" };
   const fotos = fotosDoForm(form);
   if (fotos.length === 0) return { erro: "Escolha ao menos uma foto" };
 

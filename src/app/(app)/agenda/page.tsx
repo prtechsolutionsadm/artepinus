@@ -27,15 +27,24 @@ export default async function AgendaPage() {
     }),
   ]);
 
-  const porDia = new Map<string, ItemRequisicao[]>();
+  // Agrupa pelo dia em Brasília; o título leva o ano só quando não é o ano corrente
+  const anoAtual = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", year: "numeric" });
+  const porDia = new Map<string, { titulo: string; itens: ItemRequisicao[] }>();
   for (const r of futuras) {
-    const dia = r.dataAgendada!.toLocaleDateString("pt-BR", {
+    const data = r.dataAgendada!;
+    const chave = data.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const ano = data.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", year: "numeric" });
+    const texto = data.toLocaleDateString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       weekday: "long",
-      day: "2-digit",
+      day: "numeric",
       month: "long",
+      ...(ano !== anoAtual ? { year: "numeric" } : {}),
     });
-    porDia.set(dia, [...(porDia.get(dia) ?? []), r]);
+    // Só a primeira letra maiúscula: "Sábado, 14 de novembro" (o capitalize do CSS faria "14 De Novembro")
+    const grupo = porDia.get(chave) ?? { titulo: texto.charAt(0).toUpperCase() + texto.slice(1), itens: [] };
+    grupo.itens.push(r);
+    porDia.set(chave, grupo);
   }
 
   return (
@@ -51,9 +60,9 @@ export default async function AgendaPage() {
         <Vazio>Nenhuma manutenção agendada.</Vazio>
       ) : (
         <div className="space-y-8">
-          {[...porDia].map(([dia, itens]) => (
-            <section key={dia}>
-              <h2 className="mb-2 font-semibold capitalize text-stone-800">{dia}</h2>
+          {[...porDia].map(([chave, { titulo, itens }]) => (
+            <section key={chave}>
+              <h2 className="mb-2 font-semibold text-stone-800">{titulo}</h2>
               <ListaRequisicoes itens={itens} />
             </section>
           ))}

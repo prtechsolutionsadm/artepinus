@@ -44,8 +44,10 @@ export default async function EquipamentoPage({ params }: Params) {
 
   const link = await linkEquipamento(equip.codigo);
   const svg = await qrSvg(link);
-  const corretivas = stats.filter((r) => r.tipo === "CORRETIVA");
-  const minutosParado = stats.reduce((t, r) => t + (r.maquinaParada ? (minutosEntre(r.paradaInicio, r.paradaFim) ?? 0) : 0), 0);
+  // Canceladas (abertas por engano) não contam como falha nem como tempo parado
+  const validas = stats.filter((r) => r.status !== "CANCELADA");
+  const corretivas = validas.filter((r) => r.tipo === "CORRETIVA");
+  const minutosParado = validas.reduce((t, r) => t + (r.maquinaParada ? (minutosEntre(r.paradaInicio, r.paradaFim) ?? 0) : 0), 0);
   const minutosTrabalhados = stats.reduce((t, r) => t + r.apontamentos.reduce((s, a) => s + a.minutos, 0), 0);
   const pendentes = stats.filter((r) => STATUS_PENDENTES.includes(r.status)).length;
   const ultimaFalha = corretivas.reduce<Date | null>((m, r) => (!m || r.criadoEm > m ? r.criadoEm : m), null);

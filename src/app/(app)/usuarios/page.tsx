@@ -6,7 +6,7 @@ import { Badge, Titulo } from "@/components/ui";
 import { PERFIL, PERFIL_PRODUCAO } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { exigirPermissao } from "@/lib/session";
-import { MODULOS_ATIVOS, PERFIS_ATRIBUIVEIS } from "@/lib/permissoes";
+import { MODULOS_ATIVOS, PERFIS_ATRIBUIVEIS, modulosDe } from "@/lib/permissoes";
 import type { Perfil, PerfilProducao } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = { title: "Usuários" };
@@ -15,16 +15,34 @@ type Usr = { id: string; nome: string; login: string; perfil: Perfil; perfilProd
 
 const MANUTENCAO_ATIVA = MODULOS_ATIVOS.includes("manutencao");
 
-/** Com a manutenção desligada, o perfil geral só distingue Gerente (acesso total) dos demais. */
+/** O que cada perfil da Manutenção faz (Gerente vale para os dois módulos). */
+const DESCRICAO_PERFIL: Record<Perfil, string> = {
+  ADMIN: PERFIL.ADMIN,
+  GERENTE: "Gerente · acesso total aos dois módulos e aos usuários",
+  SUPERVISOR: "Supervisor · atende, distribui, planeja e vê indicadores",
+  MANUTENTOR: "Manutentor · atende as requisições",
+  OPERADOR: "Operador · abre e acompanha requisições",
+  SEM_ACESSO: "Sem acesso · não usa a Manutenção",
+};
+
+/**
+ * Perfis da Manutenção. Durante o teste também podem ser escolhidos: ficam guardados e só passam a
+ * valer quando a Manutenção for liberada (assim o gerente prepara a equipe antes). Gerente vale na hora.
+ */
 function opcoesPerfil(atual?: Perfil): { valor: Perfil; rotulo: string }[] {
   if (atual === "ADMIN") return [{ valor: "ADMIN", rotulo: PERFIL.ADMIN }];
-  if (MANUTENCAO_ATIVA) return PERFIS_ATRIBUIVEIS.map((k) => ({ valor: k, rotulo: PERFIL[k] }));
-  const base: { valor: Perfil; rotulo: string }[] = [
-    { valor: "SEM_ACESSO", rotulo: "Usuário (acesso pelo perfil no sistema)" },
-    { valor: "GERENTE", rotulo: "Gerente (acesso total e usuários)" },
-  ];
-  // Mantém o perfil de manutenção de quem já tinha, para não perder ao salvar
-  return atual && !base.some((b) => b.valor === atual) ? [...base, { valor: atual, rotulo: `${PERFIL[atual]} (manutenção)` }] : base;
+  return PERFIS_ATRIBUIVEIS.map((k) => ({ valor: k, rotulo: DESCRICAO_PERFIL[k] }));
+}
+
+/** Quem passa a usar a Manutenção quando ela for liberada: "2 gerentes, 1 supervisor e 3 operadores". */
+function contagemPerfis(usuarios: Usr[]) {
+  const partes = (["GERENTE", "SUPERVISOR", "MANUTENTOR", "OPERADOR"] as const).flatMap((k) => {
+    const n = usuarios.filter((u) => u.ativo && u.perfil === k).length;
+    const nome = PERFIL[k].toLowerCase();
+    return n ? [`${n} ${n === 1 ? nome : nome.endsWith("r") ? `${nome}es` : `${nome}s`}`] : [];
+  });
+  if (partes.length === 0) return "ninguém por enquanto";
+  return partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`;
 }
 
 function CamposUsuario({ u }: { u?: Usr }) {
@@ -49,7 +67,7 @@ function CamposUsuario({ u }: { u?: Usr }) {
           />
         </div>
         <div>
-          <label>{MANUTENCAO_ATIVA ? "Perfil na Manutenção" : "Acesso geral"}</label>
+          <label>Perfil na Manutenção</label>
           <select name="perfil" defaultValue={u?.perfil ?? (MANUTENCAO_ATIVA ? "OPERADOR" : "SEM_ACESSO")} className="campo">
             {opcoesPerfil(u?.perfil).map((o) => (
               <option key={o.valor} value={o.valor}>
@@ -57,9 +75,12 @@ function CamposUsuario({ u }: { u?: Usr }) {
               </option>
             ))}
           </select>
+          {!MANUTENCAO_ATIVA && (
+            <p className="mt-1 text-xs text-stone-500">A Manutenção ainda está em teste: o perfil escolhido aqui só passa a valer quando ela for liberada. Gerente vale já.</p>
+          )}
         </div>
         <div>
-          <label>Perfil no sistema</label>
+          <label>Perfil na Serraria</label>
           {u?.perfil === "ADMIN" || u?.perfil === "GERENTE" ? (
             <p className="campo flex items-center bg-stone-50 text-stone-500">Acesso total (Admin/Gerente)</p>
           ) : (
@@ -113,29 +134,41 @@ export default async function UsuariosPage() {
           <CamposUsuario />
         </ActionForm>
       </details>
+      {!MANUTENCAO_ATIVA && (
+        <p className="mb-4 rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900 ring-1 ring-sky-200">
+          A Manutenção ainda está em teste. Quando ela for liberada, passam a usá-la os gerentes e os usuários ativos com o selo &ldquo;Manutenção&rdquo;:{" "}
+          <b>{contagemPerfis(usuarios)}</b>. Confira o perfil de cada um antes da liberação.
+        </p>
+      )}
       <ul className="divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white">
-        {usuarios.map((u) => (
-          <li key={u.id} className="px-4 py-3">
-            <details>
-              <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2">
-                <span className="font-medium">{u.nome}</span>
-                <span className="font-mono text-sm text-stone-500">{u.login}</span>
-                {(u.perfil === "ADMIN" || u.perfil === "GERENTE") && <Badge cor="bg-marca-50 text-marca-700 ring-marca-100">{PERFIL[u.perfil]} · acesso total</Badge>}
-                {MANUTENCAO_ATIVA && u.perfil !== "SEM_ACESSO" && u.perfil !== "ADMIN" && u.perfil !== "GERENTE" && (
-                  <Badge cor="bg-marca-50 text-marca-700 ring-marca-100">Manutenção · {PERFIL[u.perfil]}</Badge>
-                )}
-                {u.perfilProducao && u.perfil !== "ADMIN" && u.perfil !== "GERENTE" && (
-                  <Badge cor="bg-amber-50 text-amber-800 ring-amber-100">{PERFIL_PRODUCAO[u.perfilProducao]}</Badge>
-                )}
-                {!u.ativo && <Badge cor="bg-stone-200 text-stone-700 ring-stone-300">Inativo</Badge>}
-                <Pencil className="ml-auto h-4 w-4 text-stone-400" />
-              </summary>
-              <ActionForm action={salvarUsuario} className="mt-3">
-                <CamposUsuario u={u} />
-              </ActionForm>
-            </details>
-          </li>
-        ))}
+        {usuarios.map((u) => {
+          const total = u.perfil === "ADMIN" || u.perfil === "GERENTE";
+          return (
+            <li key={u.id} className="px-4 py-3">
+              <details>
+                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2">
+                  <span className="font-medium">{u.nome}</span>
+                  <span className="font-mono text-sm text-stone-500">{u.login}</span>
+                  {total && <Badge cor="bg-marca-50 text-marca-700 ring-marca-100">{PERFIL[u.perfil]} · acesso total</Badge>}
+                  {!total && u.perfilProducao && <Badge cor="bg-amber-50 text-amber-800 ring-amber-100">Serraria · {PERFIL_PRODUCAO[u.perfilProducao]}</Badge>}
+                  {!total &&
+                    u.perfil !== "SEM_ACESSO" &&
+                    (MANUTENCAO_ATIVA ? (
+                      <Badge cor="bg-marca-50 text-marca-700 ring-marca-100">Manutenção · {PERFIL[u.perfil]}</Badge>
+                    ) : (
+                      <Badge cor="bg-sky-50 text-sky-800 ring-sky-200">Manutenção · {PERFIL[u.perfil]} (quando liberada)</Badge>
+                    ))}
+                  {u.ativo && modulosDe(u).length === 0 && <Badge cor="bg-stone-100 text-stone-600 ring-stone-300">Ainda sem acesso</Badge>}
+                  {!u.ativo && <Badge cor="bg-stone-200 text-stone-700 ring-stone-300">Inativo</Badge>}
+                  <Pencil className="ml-auto h-4 w-4 text-stone-400" />
+                </summary>
+                <ActionForm action={salvarUsuario} className="mt-3">
+                  <CamposUsuario u={u} />
+                </ActionForm>
+              </details>
+            </li>
+          );
+        })}
       </ul>
     </>
   );

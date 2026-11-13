@@ -46,10 +46,11 @@ function menuManutencao(u: UsuarioComPerfis): GrupoNav[] {
   const perfil = u.perfil;
   const se = (cond: boolean, item: ItemNav) => (cond ? [item] : []);
   return [
+    // Início sem título (o menu lateral já mostra o nome do módulo), como na Serraria
+    { titulo: "", itens: [{ href: "/manutencao", label: "Início", icone: "inicio" }] },
     {
-      titulo: "Manutenção",
+      titulo: "Operação",
       itens: [
-        { href: "/manutencao", label: "Início", icone: "inicio" },
         { href: "/requisicoes", label: "Requisições", icone: "requisicoes" },
         { href: "/agenda", label: "Agenda", icone: "agenda" },
       ],

@@ -66,9 +66,32 @@ export default function PrivacidadePage() {
           <li>Dados de aparelho para avisos no celular, se você ativar as notificações.</li>
         </ul>
         <p>
-          <b>Finalidades:</b> dar acesso ao sistema, controlar a produção, a rastreabilidade e a expedição, manter a segurança (inclusive o bloqueio de tentativas repetidas de
-          senha) e registrar a responsabilidade por cada lançamento. <b>Bases legais:</b> execução do contrato de trabalho ou de prestação de serviço, cumprimento de obrigações
+          <b>Finalidades:</b> dar acesso ao sistema, controlar a produção, a rastreabilidade, a expedição e a manutenção dos equipamentos, manter a segurança (inclusive o
+          bloqueio de tentativas repetidas de senha) e registrar a responsabilidade por cada lançamento. <b>Bases legais:</b> execução do contrato de trabalho ou de prestação de serviço, cumprimento de obrigações
           legais e legítimo interesse da empresa na segurança e na organização da produção.
+        </p>
+      </Secao>
+
+      <Secao titulo="Manutenção dos equipamentos">
+        <p>No módulo de Manutenção, o sistema registra também:</p>
+        <ul>
+          <li>Quem abriu cada requisição de manutenção, quem ficou responsável pelo atendimento e quem mudou cada status, com data e hora;</li>
+          <li>Os comentários escritos nas requisições, com o autor, a data e a hora;</li>
+          <li>
+            As fotos anexadas do problema e do serviço, que podem mostrar o local de trabalho e pessoas. Antes de guardar, o sistema reduz a foto e apaga os dados
+            escondidos no arquivo (metadados, como a localização por GPS e o modelo do aparelho);
+          </li>
+          <li>As horas trabalhadas por cada pessoa da manutenção em cada requisição (início, duração e o que foi feito);</li>
+          <li>Os equipamentos, setores e paradas de máquina ligados a cada requisição (dados das máquinas, não das pessoas).</li>
+        </ul>
+        <p>
+          Comentários, fotos e horas só aparecem para quem entra no sistema e usa o módulo de Manutenção. O total de horas por pessoa aparece nos
+          indicadores da manutenção, que só gerentes, supervisores e o administrador do sistema veem.
+        </p>
+        <p>
+          <b>Finalidades:</b> pedir, organizar e acompanhar a manutenção das máquinas e instalações, registrar o que foi feito e por quem, planejar as manutenções
+          preventivas, medir o tempo de máquina parada e a carga de trabalho da equipe e manter o histórico de cada equipamento. <b>Bases legais:</b> execução do
+          contrato de trabalho ou de prestação de serviço e legítimo interesse da empresa na segurança, na conservação dos equipamentos e na organização do trabalho.
         </p>
       </Secao>
 
@@ -98,8 +121,9 @@ export default function PrivacidadePage() {
             qual foi o último usuário a entrar (para apagar as telas guardadas quando outra pessoa entra).
           </li>
           <li>
-            Para funcionar sem internet, o aparelho guarda as telas de apontamento (com os dados que elas mostram) e os lançamentos feitos sem internet, inclusive fotos, até
-            serem enviados. Tudo isso é apagado ao tocar em Sair.
+            Para funcionar sem internet, o aparelho guarda as telas de apontamento da serraria, a tela de nova requisição de manutenção e páginas do manual
+            (com os dados que elas mostram), além dos lançamentos e requisições feitos sem internet, inclusive fotos, até serem enviados. Tudo isso é apagado ao tocar em
+            Sair.
           </li>
         </ul>
       </Secao>
@@ -114,6 +138,10 @@ export default function PrivacidadePage() {
           <li>Notificações já lidas: {RETENCAO.notificacoesLidasDias} dias.</li>
           <li>Registros de alterações (auditoria), inclusive o valor anterior dos cadastros alterados: {RETENCAO.auditoriaAnos} anos.</li>
           <li>Dados de produção, rastreabilidade e expedição: enquanto forem necessários à atividade e às obrigações legais e fiscais.</li>
+          <li>
+            Requisições de manutenção, com fotos, comentários, horas trabalhadas e histórico: enquanto forem necessárias ao histórico dos equipamentos e às obrigações
+            legais.
+          </li>
           <li>Conta de usuário: enquanto houver vínculo; depois é desativada.</li>
         </ul>
         <p>A exclusão dos registros que passam do prazo é feita automaticamente, todos os dias.</p>

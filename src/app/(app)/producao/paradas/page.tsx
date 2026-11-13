@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PainelParadas } from "@/components/producao/PainelParadas";
 import { Titulo } from "@/components/ui";
-import { STATUS, formatarData, formatarDuracao, minutosEntre, numeroRequisicao, diaValido } from "@/lib/constantes";
+import { STATUS, STATUS_FINAIS, formatarData, formatarDuracao, minutosEntre, numeroRequisicao, diaValido } from "@/lib/constantes";
 import { db } from "@/lib/db";
-import { podeProducao, temModulo } from "@/lib/permissoes";
+import { MODULOS_ATIVOS, podeProducao, temModulo } from "@/lib/permissoes";
 import { CENTRO, hojeSP } from "@/lib/producao";
 import { exigirProducao } from "@/lib/session";
 
@@ -41,7 +41,13 @@ export default async function ParadasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Titulo subtitulo="Marque na hora em que a máquina parar. Mecânica e elétrica avisam a manutenção; ao liberar, o tempo vai para o boletim do dia.">
+      <Titulo
+        subtitulo={
+          MODULOS_ATIVOS.includes("manutencao")
+            ? "Marque na hora em que a máquina parar. Mecânica e elétrica avisam a manutenção; ao liberar, o tempo vai para o boletim do dia."
+            : "Marque na hora em que a máquina parar; ao liberar, o tempo vai para o boletim do dia. Falha mecânica ou elétrica: avise a manutenção."
+        }
+      >
         Paradas de máquina
       </Titulo>
 
@@ -62,7 +68,9 @@ export default async function ParadasPage({ searchParams }: { searchParams: Prom
           inicio: p.inicio.toISOString(),
           abertaPor: p.abertaPor.nome,
           origem: p.origem,
-          requisicao: p.requisicao ? { id: p.requisicao.id, numero: numeroRequisicao(p.requisicao.id), status: STATUS[p.requisicao.status].label } : null,
+          requisicao: p.requisicao
+            ? { id: p.requisicao.id, numero: numeroRequisicao(p.requisicao.id), status: STATUS[p.requisicao.status].label, encerrada: STATUS_FINAIS.includes(p.requisicao.status) }
+            : null,
         }))}
       />
 
