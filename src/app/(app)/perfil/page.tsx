@@ -9,7 +9,7 @@ import { CamposNovaSenha } from "@/components/CamposNovaSenha";
 import { AtivarPush } from "@/components/AtivarPush";
 import { iniciais } from "@/lib/menu";
 import { Titulo } from "@/components/ui";
-import { PERFIL } from "@/lib/constantes";
+import { rotuloPerfis } from "@/lib/constantes";
 import { exigirUsuario } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Meu perfil" };
@@ -29,7 +29,7 @@ export default async function PerfilPage() {
         <div className="min-w-0 text-sm">
           <div className="text-lg font-semibold">{eu.nome}</div>
           <div className="font-mono text-stone-600">{eu.login}</div>
-          <div className="text-stone-500">{PERFIL[eu.perfil]}</div>
+          <div className="text-stone-500">{rotuloPerfis(eu)}</div>
         </div>
       </div>
       <AtivarPush />

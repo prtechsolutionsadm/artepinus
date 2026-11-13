@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CircleHelp } from "lucide-react";
 import { BotaoImprimir } from "@/components/BotaoImprimir";
 import { Titulo, Vazio } from "@/components/ui";
 import { db } from "@/lib/db";
@@ -37,14 +37,23 @@ export default async function EtiquetasPacotesPage({ searchParams }: { searchPar
           <ArrowLeft className="h-4 w-4" /> Pacotes
         </Link>
         <Titulo
-          subtitulo="Imprima (de preferência em papel adesivo resistente ou etiqueta plástica) e prenda no pacote. O QR abre a história completa do pacote."
+          subtitulo={
+            <>
+              Imprima (de preferência em papel adesivo resistente ou etiqueta plástica) e prenda no pacote. O QR abre a história completa do pacote.
+              <span className="nao-imprimir mt-1 block">
+                <Link href="/ajuda/problemas#etiquetas" prefetch={false} className="inline-flex items-center gap-1 font-medium text-marca-700 hover:underline">
+                  <CircleHelp className="h-4 w-4 shrink-0" aria-hidden /> A etiqueta saiu cortada ou fora do tamanho?
+                </Link>
+              </span>
+            </>
+          }
           acao={etiquetas.length > 0 && <BotaoImprimir rotulo={`Imprimir ${etiquetas.length} etiqueta(s)`} />}
         >
           Etiquetas de pacotes
         </Titulo>
       </div>
       {etiquetas.length === 0 ? (
-        <Vazio>Nenhum pacote escolhido. Selecione os pacotes na lista e toque em Imprimir etiquetas.</Vazio>
+        <Vazio>Nenhum pacote escolhido. Selecione os pacotes na lista e toque em Etiquetas.</Vazio>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 print:grid-cols-2 print:gap-0">
           {etiquetas.map((p) => (

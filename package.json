@@ -13,6 +13,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:local": "prisma dev",
+    "manual:capturas": "tsx --tsconfig tsconfig.json scripts/capturas-manual.ts",
+    "manual:validar": "tsx --tsconfig tsconfig.json scripts/validar-manual.ts",
     "vercel-build": "prisma generate && node scripts/migrar.mjs && tsx prisma/seed.ts && next build"
   },
   "dependencies": {

@@ -83,7 +83,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
         {pedidos.length > 0 && (
           <Grupo titulo="Pedidos" Icone={ClipboardList}>
             {pedidos.map((p) => (
-              <Item key={p.id} href={`/producao/cadastros?aba=pedidos`} a={`${p.numero} · ${p.cliente}`} b={`${p.destino ?? "—"} · ${p._count.lotes} lote(s) · ${p._count.pacotes} pacote(s) · ${p.status === "ABERTO" ? "aberto" : "concluído"}`} />
+              <Item key={p.id} href={`/producao/pedidos/${p.id}`} a={`${p.numero} · ${p.cliente}`} b={`${p.destino ?? "—"} · ${p._count.lotes} lote(s) · ${p._count.pacotes} pacote(s) · ${p.status === "ABERTO" ? "aberto" : "concluído"}`} />
             ))}
           </Grupo>
         )}

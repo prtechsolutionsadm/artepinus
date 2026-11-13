@@ -1,17 +1,16 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { CircleHelp } from "lucide-react";
 import { sair } from "@/app/actions/auth";
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
 import { BarraInferior, BuscaTopo, MenuLateral, TopoComputador } from "@/components/Navegacao";
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
 import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
-import { PERFIL, PERFIL_PRODUCAO } from "@/lib/constantes";
+import { rotuloPerfis } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { COOKIE_MODULO, iniciais, menusDoUsuario, moduloSalvo } from "@/lib/menu";
-import { temModulo } from "@/lib/permissoes";
 import { exigirUsuario, inicioDe } from "@/lib/session";
 
 import type { Metadata } from "next";
@@ -22,12 +21,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const eu = await exigirUsuario();
   const menus = menusDoUsuario(eu);
   const salvo = moduloSalvo((await cookies()).get(COOKIE_MODULO)?.value);
-  const perfilLabel = [
-    temModulo(eu, "manutencao") ? PERFIL[eu.perfil] : null,
-    eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? `Acesso: ${PERFIL_PRODUCAO[eu.perfilProducao]}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  // "Serraria: Apontador · Manutenção: Operador" (só os módulos que a pessoa enxerga)
+  const perfilLabel = rotuloPerfis(eu);
   // Sem nenhum módulo ativo (ex.: só tinha acesso à manutenção, que está desligada)
   if (Object.keys(menus).length === 0) {
     return (
@@ -39,7 +34,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <img src="/marca.svg" alt="" className="h-7 w-auto" />
               <span className="font-serif text-lg font-bold italic tracking-wide text-[#177009]">ARTEPINUS</span>
             </Link>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <BotaoAjuda />
               <BotaoSair sair={sair} usuarioId={eu.id} variante="botao" />
             </div>
           </div>
@@ -75,10 +71,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="ml-auto flex items-center gap-1">
             <BuscaTopo menus={menus} salvo={salvo} celular />
-            <BotaoTema />
-            <Link href="/ajuda" aria-label="Manual do usuário" title="Manual do usuário" className="hidden h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100 sm:grid">
-              <CircleHelp className="h-5 w-5" />
-            </Link>
+            {/* No celular estreito o tema fica em Mais e em Meu perfil; a ajuda da tela fica sempre à mão */}
+            <BotaoTema className="hidden sm:grid" />
+            <BotaoAjuda />
             <Sininho naoLidasInicial={naoLidas} />
             <Link href="/perfil" aria-label="Meu perfil" className="ml-1 grid h-9 w-9 place-items-center rounded-full bg-marca-100 text-sm font-semibold text-marca-700">
               {iniciais(eu.nome)}
@@ -97,9 +92,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           acoes={
             <>
               <BotaoTema />
-              <Link href="/ajuda" aria-label="Manual do usuário" title="Manual do usuário" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100">
-                <CircleHelp className="h-5 w-5" />
-              </Link>
+              <BotaoAjuda />
               <Sininho naoLidasInicial={naoLidas} />
             </>
           }

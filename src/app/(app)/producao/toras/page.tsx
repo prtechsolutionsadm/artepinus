@@ -69,24 +69,32 @@ export default async function TorasPage({ searchParams }: { searchParams: Promis
               ))}
             </dl>
             <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200 bg-white">
-              {cargas.map((c) => (
-                <li key={c.id}>
-                  <Link href={`/producao/toras/${c.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50">
-                    <div className="w-14 shrink-0 font-semibold">{formatarDia(c.data, { day: "2-digit", month: "2-digit" })}</div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">
-                        {c.floresta?.nome ?? c.origem ?? "—"}
-                        {c.fornecedor && <span className="font-normal text-stone-500"> · {c.fornecedor.nome}</span>}
+              {cargas.map((c) => {
+                const detalhes = [c.pesoT ? `${fmtNum(c.pesoT, 1)} t` : null, c.classeDiametro ? CLASSE_DIAMETRO[c.classeDiametro] : null, c.motorista, c.placa].filter(Boolean).join(" · ");
+                return (
+                  <li key={c.id}>
+                    <Link href={`/producao/toras/${c.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50">
+                      <div className="w-14 shrink-0 font-semibold">{formatarDia(c.data, { day: "2-digit", month: "2-digit" })}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">
+                          {c.floresta?.nome ?? c.origem ?? "—"}
+                          {c.fornecedor && <span className="font-normal text-stone-500"> · {c.fornecedor.nome}</span>}
+                        </div>
+                        <div className="truncate text-sm text-stone-500">
+                          {/* No celular o código CT- vem no começo desta linha (no computador, à direita) */}
+                          <span className="font-mono text-xs sm:hidden">
+                            {codigoCarga(c.numero)}
+                            {detalhes && " · "}
+                          </span>
+                          {detalhes}
+                        </div>
                       </div>
-                      <div className="truncate text-sm text-stone-500">
-                        {[c.pesoT ? `${fmtNum(c.pesoT, 1)} t` : null, c.classeDiametro ? CLASSE_DIAMETRO[c.classeDiametro] : null, c.motorista, c.placa].filter(Boolean).join(" · ")}
-                      </div>
-                    </div>
-                    <span className="hidden font-mono text-xs text-stone-400 sm:block">{codigoCarga(c.numero)}</span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-stone-300" />
-                  </Link>
-                </li>
-              ))}
+                      <span className="hidden font-mono text-xs text-stone-400 sm:block">{codigoCarga(c.numero)}</span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-stone-300" />
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
           <section className="cartao h-fit">

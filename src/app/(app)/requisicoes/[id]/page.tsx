@@ -13,6 +13,7 @@ import {
   removerHoras,
 } from "@/app/actions/requisicoes";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
+import { BotaoFormAcao } from "@/components/BotaoFormAcao";
 import { BotaoImprimir } from "@/components/BotaoImprimir";
 import { Galeria } from "@/components/Galeria";
 import { SeletorFotos } from "@/components/SeletorFotos";
@@ -86,6 +87,11 @@ export default async function RequisicaoPage({ params }: Params) {
   const apontaHoras = pode(eu.perfil, "apontarHoras");
   const envolvido = equipe || req.solicitanteId === eu.id || req.responsavel?.id === eu.id;
   const encerrada = STATUS_FINAIS.includes(req.status);
+  // Encerrada: só a equipe ainda anexa fotos (ex.: a do serviço feito) e comenta
+  const enviaFotos = envolvido && (equipe || !encerrada);
+  const comenta = equipe || !encerrada;
+  // Máquina ainda parada (o cronômetro corre) só enquanto a requisição está pendente
+  const paradaCorrendo = req.maquinaParada && !req.paradaFim && !encerrada;
 
   const fotoGaleria = (tipo: "PROBLEMA" | "SERVICO") =>
     req.anexos
@@ -151,22 +157,30 @@ export default async function RequisicaoPage({ params }: Params) {
           {req.maquinaParada && (
             <div
               className={`mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ring-1 ${
-                req.paradaFim ? "bg-stone-50 text-stone-700 ring-stone-200" : "bg-rose-50 text-rose-800 ring-rose-200"
+                paradaCorrendo ? "bg-rose-50 text-rose-800 ring-rose-200" : "bg-stone-50 text-stone-700 ring-stone-200"
               }`}
             >
               <OctagonAlert className="h-4 w-4 shrink-0" />
               <span className="min-w-0 flex-1">
                 {req.paradaFim
                   ? `Máquina ficou parada ${formatarDuracao(minutosParada)} (de ${formatarData(req.paradaInicio, true)} a ${formatarData(req.paradaFim, true)})`
-                  : `Máquina parada há ${formatarDuracao(minutosParada)} (desde ${formatarData(req.paradaInicio, true)})`}
+                  : paradaCorrendo
+                    ? `Máquina parada há ${formatarDuracao(minutosParada)} (desde ${formatarData(req.paradaInicio, true)})`
+                    : `Máquina parada desde ${formatarData(req.paradaInicio, true)}`}
                 {req.paradaMaquina && (
                   <span className="block text-xs font-normal opacity-80">
                     Linha da serraria · {CENTRO[req.paradaMaquina.centro].label.toLowerCase()} ·{" "}
                     {req.paradaMaquina.origem === "SERRARIA" ? "marcada na serraria" : "marcada aqui"} · o tempo entra no boletim do dia
                   </span>
                 )}
+                {encerrada && !req.paradaFim && req.paradaMaquina && !req.paradaMaquina.fim && (
+                  <span className="block text-xs font-normal opacity-80">Requisição encerrada: a parada continua aberta na serraria até a serraria liberar a máquina.</span>
+                )}
+                {!encerrada && req.paradaFim && equipe && (
+                  <span className="block text-xs font-normal opacity-80">A máquina já voltou a operar: confira o serviço e conclua a requisição.</span>
+                )}
               </span>
-              {req.paradaMaquina && !req.paradaMaquina.fim && equipe && (
+              {req.paradaMaquina && !req.paradaMaquina.fim && equipe && !encerrada && (
                 <BotaoAcao
                   acao={liberarMaquina}
                   arg={req.paradaMaquina.id}
@@ -204,7 +218,7 @@ export default async function RequisicaoPage({ params }: Params) {
           </p>
         </article>
 
-        {(fotosProblema.length > 0 || fotosServico.length > 0 || (envolvido && !encerrada)) && (
+        {(fotosProblema.length > 0 || fotosServico.length > 0 || enviaFotos) && (
           <section className="cartao space-y-4">
             <h2 className="flex items-center gap-2 font-semibold">
               <Camera className="h-4 w-4 text-stone-400" /> Fotos
@@ -221,7 +235,7 @@ export default async function RequisicaoPage({ params }: Params) {
                 <Galeria fotos={fotosServico} />
               </div>
             )}
-            {envolvido && (
+            {enviaFotos && (
               <ActionForm action={enviarFotos} limparAoSalvar className="nao-imprimir space-y-3 border-t border-stone-100 pt-4">
                 <input type="hidden" name="id" value={req.id} />
                 {equipe && (
@@ -261,29 +275,27 @@ export default async function RequisicaoPage({ params }: Params) {
                 <ul className="divide-y divide-stone-100">
                   {req.checklist.map((item) => (
                     <li key={item.id}>
-                      <form action={marcarItemChecklist.bind(null, item.id, !item.feito)}>
-                        <button
-                          type="submit"
-                          disabled={!apontaHoras || encerrada}
-                          className="flex w-full items-start gap-3 py-2.5 text-left disabled:cursor-default"
+                      <BotaoFormAcao
+                        acao={marcarItemChecklist.bind(null, item.id, !item.feito)}
+                        disabled={!apontaHoras || encerrada}
+                        className="flex w-full items-start gap-3 py-2.5 text-left disabled:cursor-default aria-busy:cursor-wait aria-busy:opacity-60"
+                      >
+                        <span
+                          className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${
+                            item.feito ? "border-emerald-600 bg-emerald-600 text-white" : "border-stone-300 bg-white"
+                          }`}
                         >
-                          <span
-                            className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${
-                              item.feito ? "border-emerald-600 bg-emerald-600 text-white" : "border-stone-300 bg-white"
-                            }`}
-                          >
-                            {item.feito && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block text-sm ${item.feito ? "text-stone-500 line-through" : "text-stone-800"}`}>{item.texto}</span>
-                            {item.feito && item.feitoPor && (
-                              <span className="block text-xs text-stone-400">
-                                {item.feitoPor.nome} · {formatarData(item.feitoEm, true)}
-                              </span>
-                            )}
-                          </span>
-                        </button>
-                      </form>
+                          {item.feito && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className={`block text-sm ${item.feito ? "text-stone-500 line-through" : "text-stone-800"}`}>{item.texto}</span>
+                          {item.feito && item.feitoPor && (
+                            <span className="block text-xs text-stone-400">
+                              {item.feitoPor.nome} · {formatarData(item.feitoEm, true)}
+                            </span>
+                          )}
+                        </span>
+                      </BotaoFormAcao>
                     </li>
                   ))}
                 </ul>
@@ -333,11 +345,13 @@ export default async function RequisicaoPage({ params }: Params) {
                       </div>
                     </div>
                     {(a.usuarioId === eu.id || atribuiOutros) && (
-                      <form action={removerHoras.bind(null, a.id)} className="nao-imprimir">
-                        <button aria-label="Remover lançamento" className="grid h-8 w-8 place-items-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-rose-600">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </form>
+                      <BotaoFormAcao
+                        acao={removerHoras.bind(null, a.id)}
+                        rotulo="Remover lançamento"
+                        className="nao-imprimir grid h-8 w-8 shrink-0 place-items-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-rose-600 aria-busy:cursor-wait aria-busy:opacity-60"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </BotaoFormAcao>
                     )}
                   </li>
                 ))}
@@ -421,14 +435,16 @@ export default async function RequisicaoPage({ params }: Params) {
           </ol>
         </section>
 
-        <ActionForm action={comentar} limparAoSalvar className="cartao nao-imprimir">
-          <input type="hidden" name="id" value={req.id} />
-          <label htmlFor="texto">Adicionar comentário</label>
-          <textarea id="texto" name="texto" rows={3} required className="campo" placeholder="Informações adicionais, fotos enviadas, dúvidas…" />
-          <div className="mt-3 flex justify-end">
-            <BotaoEnviar className="btn-secundario">Comentar</BotaoEnviar>
-          </div>
-        </ActionForm>
+        {comenta && (
+          <ActionForm action={comentar} limparAoSalvar className="cartao nao-imprimir">
+            <input type="hidden" name="id" value={req.id} />
+            <label htmlFor="texto">Adicionar comentário</label>
+            <textarea id="texto" name="texto" rows={3} required className="campo" placeholder="Informações adicionais, fotos enviadas, dúvidas…" />
+            <div className="mt-3 flex justify-end">
+              <BotaoEnviar className="btn-secundario">Comentar</BotaoEnviar>
+            </div>
+          </ActionForm>
+        )}
       </div>
 
       <aside className="nao-imprimir space-y-6">

@@ -9,7 +9,7 @@ import { STATUS, STATUS_HEX, STATUS_PENDENTES, formatarDuracao, minutosEntre, nu
 import { CENTRO } from "@/lib/producao";
 import { db } from "@/lib/db";
 import { exigirModulo } from "@/lib/session";
-import { pode } from "@/lib/permissoes";
+import { PERFIS_RESPONSAVEIS, pode } from "@/lib/permissoes";
 
 function saudacao() {
   const h = Number(new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }));
@@ -19,12 +19,15 @@ function saudacao() {
 export default async function InicioPage() {
   const eu = await exigirModulo("manutencao");
   const equipe = pode(eu.perfil, "atenderRequisicoes");
+  // Só supervisor e manutentor podem ser responsáveis; gerente/admin veem as que estão sem responsável
+  const responsavel = PERFIS_RESPONSAVEIS.includes(eu.perfil);
+  const semResponsavel = equipe && !responsavel;
   const agora = new Date();
   const em7dias = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
   const hojeBR = new Date(agora.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const inicioMes = new Date(`${hojeBR.slice(0, 8)}01T00:00:00-03:00`);
 
-  const [porStatus, urgentes, minhas, proximas, concluidasMes, paradas] = await Promise.all([
+  const [porStatus, urgentes, minhas, proximas, concluidasMes, paradas, liberadas] = await Promise.all([
     db.requisicao.groupBy({ by: ["status"], _count: { _all: true } }),
     db.requisicao.findMany({
       where: { status: { in: STATUS_PENDENTES }, prioridade: { in: ["URGENTE", "ALTA"] } },
@@ -33,9 +36,13 @@ export default async function InicioPage() {
       take: 5,
     }),
     db.requisicao.findMany({
-      where: equipe ? { responsavelId: eu.id, status: { in: STATUS_PENDENTES } } : { solicitanteId: eu.id },
+      where: semResponsavel
+        ? { responsavelId: null, status: { in: STATUS_PENDENTES } }
+        : equipe
+          ? { responsavelId: eu.id, status: { in: STATUS_PENDENTES } }
+          : { solicitanteId: eu.id },
       select: selectItemRequisicao,
-      orderBy: { atualizadoEm: "desc" },
+      orderBy: semResponsavel ? [{ prioridade: "desc" }, { criadoEm: "asc" }] : { atualizadoEm: "desc" },
       take: 5,
     }),
     db.requisicao.findMany({
@@ -58,6 +65,16 @@ export default async function InicioPage() {
       },
       orderBy: { paradaInicio: "asc" },
     }),
+    // A máquina já voltou a operar (liberada na serraria ou aqui), mas a requisição segue pendente:
+    // a equipe confere o serviço e conclui
+    equipe
+      ? db.requisicao.findMany({
+          where: { maquinaParada: true, paradaFim: { not: null }, status: { in: STATUS_PENDENTES } },
+          select: selectItemRequisicao,
+          orderBy: { paradaFim: "asc" },
+          take: 5,
+        })
+      : Promise.resolve([]),
   ]);
 
   const contagem = Object.fromEntries(porStatus.map((s) => [s.status, s._count._all])) as Record<string, number>;
@@ -163,18 +180,33 @@ export default async function InicioPage() {
       )}
 
       <div className="grid min-w-0 gap-8 lg:grid-cols-2">
-        <Bloco titulo="Prioridade alta e urgente" icone={<TriangleAlert className="h-4 w-4 text-orange-500" />} href="/requisicoes?status=pendentes&prioridade=URGENTE">
-          <ListaRequisicoes itens={urgentes} vazio="Nenhuma requisição urgente pendente." />
+        <Bloco titulo="Prioridade alta e urgente" icone={<TriangleAlert className="h-4 w-4 text-orange-500" />} href="/requisicoes?status=pendentes&prioridade=ALTA,URGENTE">
+          <ListaRequisicoes itens={urgentes} vazio="Nenhuma requisição de prioridade alta ou urgente pendente." />
         </Bloco>
         <Bloco titulo="Agendadas nos próximos 7 dias" icone={<CalendarClock className="h-4 w-4 text-teal-600" />} href="/agenda">
           <ListaRequisicoes itens={proximas} vazio="Nada agendado para os próximos dias." />
         </Bloco>
-        <Bloco
-          titulo={equipe ? "Atribuídas a mim" : "Minhas requisições"}
-          href={equipe ? "/requisicoes?responsavel=eu&status=pendentes" : "/requisicoes?minhas=1"}
-        >
-          <ListaRequisicoes itens={minhas} vazio={equipe ? "Nenhuma requisição atribuída a você." : "Você ainda não abriu requisições."} />
-        </Bloco>
+        {semResponsavel ? (
+          <Bloco titulo="Sem responsável" href="/requisicoes?status=pendentes&responsavel=nenhum">
+            <ListaRequisicoes itens={minhas} vazio="Todas as requisições pendentes têm responsável." />
+          </Bloco>
+        ) : (
+          <Bloco
+            titulo={equipe ? "Atribuídas a mim" : "Minhas requisições"}
+            href={equipe ? "/requisicoes?responsavel=eu&status=pendentes" : "/requisicoes?minhas=1"}
+          >
+            <ListaRequisicoes itens={minhas} vazio={equipe ? "Nenhuma requisição atribuída a você." : "Você ainda não abriu requisições."} />
+          </Bloco>
+        )}
+        {liberadas.length > 0 && (
+          <Bloco
+            titulo="Máquina liberada: conferir e concluir"
+            icone={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+            href="/requisicoes?status=pendentes&maquina=liberada"
+          >
+            <ListaRequisicoes itens={liberadas} />
+          </Bloco>
+        )}
       </div>
     </>
   );

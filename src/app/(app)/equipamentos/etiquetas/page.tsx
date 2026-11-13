@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CircleHelp } from "lucide-react";
 import { BotaoImprimir } from "@/components/BotaoImprimir";
 import { Titulo, Vazio } from "@/components/ui";
 import { db } from "@/lib/db";
@@ -33,7 +33,19 @@ export default async function EtiquetasPage({ searchParams }: { searchParams: Pr
         <Link href="/equipamentos" className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-stone-500 hover:text-stone-900">
           <ArrowLeft className="h-4 w-4" /> Equipamentos
         </Link>
-        <Titulo subtitulo="Imprima em papel adesivo e cole em cada máquina. O QR abre a requisição já com o equipamento." acao={<BotaoImprimir rotulo="Imprimir etiquetas" />}>
+        <Titulo
+          subtitulo={
+            <>
+              Imprima em papel adesivo e cole em cada máquina. O QR abre a requisição já com o equipamento.
+              <span className="nao-imprimir mt-1 block">
+                <Link href="/ajuda/problemas#etiquetas" prefetch={false} className="inline-flex items-center gap-1 font-medium text-marca-700 hover:underline">
+                  <CircleHelp className="h-4 w-4 shrink-0" aria-hidden /> A etiqueta saiu cortada ou fora do tamanho?
+                </Link>
+              </span>
+            </>
+          }
+          acao={<BotaoImprimir rotulo="Imprimir etiquetas" />}
+        >
           Etiquetas QR
         </Titulo>
         {!lista?.length && (

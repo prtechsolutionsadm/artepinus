@@ -64,11 +64,16 @@ export async function exigirModulo(modulo: Modulo) {
   return usuario;
 }
 
-/** Usuário logado com permissão para a ação de manutenção; senão volta para o início. */
+/**
+ * Usuário logado com permissão para a ação de manutenção; senão volta para o início. Sem a permissão
+ * de uma tela da manutenção, fica no Início da Manutenção (não é jogado para a Serraria, o primeiro
+ * módulo de quem usa os dois).
+ */
 export async function exigirPermissao(acao: Acao) {
   // Usuários e auditoria valem para o sistema todo; o resto é do módulo de manutenção
-  const usuario = ACOES_GERAIS.includes(acao) ? await exigirUsuario() : await exigirModulo("manutencao");
-  if (!pode(usuario.perfil, acao)) redirect(inicioDe(usuario));
+  const geral = ACOES_GERAIS.includes(acao);
+  const usuario = geral ? await exigirUsuario() : await exigirModulo("manutencao");
+  if (!pode(usuario.perfil, acao)) redirect(geral ? inicioDe(usuario) : MODULOS.manutencao.inicio);
   return usuario;
 }
 

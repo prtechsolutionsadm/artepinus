@@ -4,13 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sem conexão · Artepinus</title>
+<!-- Fica no cache ESTATICO do public/sw.js: mudou este arquivo? Suba a versão do cache lá. -->
 <style>
-  body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f5f5f4;color:#1c1917;padding:16px}
-  main{max-width:360px;text-align:center}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f5f5f4;color:#1c1917;padding:16px;box-sizing:border-box}
+  main{width:100%;max-width:380px;text-align:center}
   img{height:96px;width:auto} a{color:#1d7a10;font-weight:600}
-  ul{list-style:none;margin:12px 0 0;padding:0;text-align:left}
+  h2{margin:20px 0 0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#57534e;text-align:left}
+  h2 small{font-weight:500;letter-spacing:0;text-transform:none;color:#78716c}
+  ul{list-style:none;margin:4px 0 0;padding:0;text-align:left}
   li a{display:block;margin-top:8px;padding:12px 14px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px #e7e5e4;text-decoration:none}
-  button{margin-top:16px;padding:10px 18px;border:0;border-radius:8px;background:#1d7a10;color:#fff;font-weight:600;font-size:15px}
+  .nota{margin-top:6px;font-size:13px;color:#78716c;text-align:left}
+  button{margin-top:20px;padding:10px 18px;border:0;border-radius:8px;background:#1d7a10;color:#fff;font-weight:600;font-size:15px}
 </style>
 </head>
 <body>
@@ -18,16 +22,33 @@
   <img src="/logo.svg" alt="Artepinus">
   <h1>Sem conexão</h1>
   <p>Não foi possível acessar o sistema. Verifique sua internet e tente novamente.</p>
-  <p>Estas telas abrem sem internet se o app já foi aberto com internet neste aparelho. O que você lançar fica guardado e é enviado quando a conexão voltar:</p>
+  <p>Estas telas abrem sem internet se o app já foi aberto com internet neste aparelho depois de entrar. O que você lançar fica guardado e é enviado quando a conexão voltar.</p>
+
+  <h2>Serraria</h2>
   <ul>
-    <li><a href="/producao">Início</a></li>
+    <li><a href="/producao">Início da Serraria</a></li>
     <li><a href="/producao/boletins/novo">Apontar serraria</a></li>
     <li><a href="/producao/toras/nova">Nova carga de toras</a></li>
-    <li><a href="/producao/estoque/novo">Inventário</a></li>
+    <li><a href="/producao/estoque/novo">Inventário do dia</a></li>
     <li><a href="/producao/paradas">Paradas de máquina</a></li>
     <li><a href="/producao/escanear">Ler etiqueta</a></li>
   </ul>
-  <button onclick="location.reload()">Tentar novamente</button>
+
+  <h2>Manutenção <small>· para quem usa a Manutenção</small></h2>
+  <ul>
+    <li><a href="/manutencao">Início da Manutenção</a></li>
+    <li><a href="/requisicoes/nova">Nova requisição</a></li>
+  </ul>
+
+  <h2>Manual</h2>
+  <ul>
+    <li><a href="/ajuda/sem-internet">Trabalhar sem internet</a></li>
+    <li><a href="/ajuda/problemas">Problemas comuns</a></li>
+    <li><a href="/ajuda">Manual do usuário</a></li>
+  </ul>
+  <p class="nota">As outras páginas do manual que você já abriu neste aparelho também abrem sem internet.</p>
+
+  <button type="button" onclick="location.reload()">Tentar novamente</button>
   <p style="margin-top:32px;font-size:12px;color:#a8a29e">© Artepinus Indústria e Comércio de Madeiras LTDA. Todos os direitos reservados.<br>Desenvolvido por PR Tech Solutions</p>
 </main>
 </body>

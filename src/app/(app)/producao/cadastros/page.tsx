@@ -11,11 +11,14 @@ import {
   zerarMovimento,
 } from "@/app/actions/cadastros";
 import { salvarEstufa, salvarMotivo } from "@/app/actions/producao";
+import { previaTriagem, triarRequisicoesTeste, type PreviaTriagem } from "@/app/actions/triagem";
 import { ActionForm, BotaoEnviar } from "@/components/ActionForm";
 import { Badge, Titulo, Vazio } from "@/components/ui";
+import { diaValido, formatarData, numeroRequisicao } from "@/lib/constantes";
 import { db } from "@/lib/db";
 import { situacaoPedidos } from "@/lib/pedidos";
-import { CENTRO, fmtM3, fmtNum } from "@/lib/producao";
+import { MODULOS_ATIVOS } from "@/lib/permissoes";
+import { CENTRO, fmtM3, fmtNum, hojeSP } from "@/lib/producao";
 import { configSerraria } from "@/lib/producao-dados";
 import { exigirProducao } from "@/lib/session";
 import type { CentroParada } from "@/generated/prisma/enums";
@@ -252,10 +255,11 @@ const Ativo = ({ v }: { v?: boolean }) => (
 export default async function CadastrosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ aba?: string }>;
+  searchParams: Promise<{ aba?: string; ate?: string }>;
 }) {
   const eu = await exigirProducao("gerir");
-  const q = (await searchParams).aba;
+  const sp = await searchParams;
+  const q = sp.aba;
   const aba: Aba = ABAS.some((a) => a.id === q) ? (q as Aba) : "pedidos";
 
   return (
@@ -288,7 +292,7 @@ export default async function CadastrosPage({
       {aba === "motivos" && <Motivos />}
       {aba === "maquinas" && <Maquinas />}
       {aba === "estufas" && <Estufas />}
-      {aba === "config" && <Config admin={eu.perfil === "ADMIN"} />}
+      {aba === "config" && <Config admin={eu.perfil === "ADMIN"} ate={sp.ate} />}
     </>
   );
 }
@@ -773,7 +777,7 @@ async function Maquinas() {
   );
 }
 
-async function Config({ admin }: { admin: boolean }) {
+async function Config({ admin, ate }: { admin: boolean; ate?: string }) {
   const c = await configSerraria();
   return (
     <>
@@ -835,6 +839,7 @@ async function Config({ admin }: { admin: boolean }) {
           </div>
         </ActionForm>
       </section>
+      {admin && <TriagemTeste ate={ate} />}
       {admin && (
         <section className="cartao mt-6 max-w-2xl border-rose-200">
           <h2 className="mb-1 font-semibold text-rose-700">
@@ -880,5 +885,162 @@ async function Config({ admin }: { admin: boolean }) {
         </section>
       )}
     </>
+  );
+}
+
+type ItemTriagem = PreviaTriagem["paradas"]["itens"][number];
+type OpcaoTriagem = { valor: "manter" | "concluir" | "cancelar"; rotulo: string; efeito?: string };
+
+/**
+ * Triagem do período de teste da Manutenção (só o administrador): prévia por grupo e, depois de o
+ * administrador escolher Concluir ou Cancelar e confirmar, encerra tudo de uma vez (triarRequisicoesTeste).
+ */
+async function TriagemTeste({ ate }: { ate?: string }) {
+  const hoje = hojeSP();
+  const previa = await previaTriagem(diaValido(ate) ? ate : hoje);
+  if (!previa) return null;
+  const manter: OpcaoTriagem = { valor: "manter", rotulo: "Deixar como está" };
+  const grupos: {
+    id: "paradas" | "preventivas" | "excluidas";
+    campo: string;
+    titulo: string;
+    texto: string;
+    lista: PreviaTriagem["paradas"];
+    referencia: (r: ItemTriagem) => string;
+    opcoes: OpcaoTriagem[];
+  }[] = [
+    {
+      id: "paradas",
+      campo: "idsParadas",
+      titulo: "Máquina parou: máquina já liberada",
+      texto:
+        "Abertas pelo botão Máquina parou (mecânica ou elétrica). A serraria já liberou a máquina, mas a requisição continua Aberta, sem responsável, sem comentários e sem horas lançadas.",
+      lista: previa.paradas,
+      referencia: (r) => `liberada ${formatarData(r.paradaFim, true)}`,
+      opcoes: [
+        manter,
+        {
+          valor: "concluir",
+          rotulo: "Concluir",
+          efeito: "a conclusão fica na hora em que a serraria liberou a máquina; entram no tempo de atendimento, no MTTR e no tempo parado da manutenção",
+        },
+        { valor: "cancelar", rotulo: "Cancelar", efeito: "ficam fora dos indicadores da manutenção; o tempo parado continua no boletim da serraria" },
+      ],
+    },
+    {
+      id: "preventivas",
+      campo: "idsPreventivas",
+      titulo: "Preventivas geradas no teste e vencidas",
+      texto:
+        "Geradas pelos planos de preventiva, ainda Agendadas, com a data já passada e sem comentários, horas ou checklist marcado. Os planos continuam ativos e geram as próximas normalmente: depois, confira o responsável e a próxima data de cada plano em Preventivas.",
+      lista: previa.preventivas,
+      referencia: (r) => `${r.equipamento ? `${r.equipamento.codigo} · ` : ""}agendada ${formatarData(r.dataAgendada, true)}`,
+      opcoes: [
+        manter,
+        { valor: "concluir", rotulo: "Concluir", efeito: "só se o serviço foi feito de fato: a conclusão fica na data agendada" },
+        { valor: "cancelar", rotulo: "Cancelar", efeito: "ficam fora dos indicadores, inclusive de preventivas no prazo" },
+      ],
+    },
+    {
+      id: "excluidas",
+      campo: "idsExcluidas",
+      titulo: "Paradas excluídas na serraria",
+      texto:
+        "A serraria excluiu a parada (marcada por engano), mas a requisição aberta junto ficou Aberta, sem máquina parada. Hoje a exclusão já cancela a requisição sozinha; estas são de antes.",
+      lista: previa.excluidas,
+      referencia: (r) => `aberta ${formatarData(r.criadoEm, true)}`,
+      opcoes: [manter, { valor: "cancelar", rotulo: "Cancelar", efeito: "saem das pendências e ficam fora dos indicadores" }],
+    },
+  ];
+  const comItens = grupos.filter((g) => g.lista.itens.length > 0);
+  const dataAte = formatarData(new Date(`${previa.ate}T12:00:00Z`));
+
+  return (
+    <section className="cartao mt-6 max-w-2xl border-amber-200">
+      <h2 className="mb-1 font-semibold">Triagem do período de teste</h2>
+      <p className="mb-3 text-sm text-stone-600">
+        Enquanto a Manutenção esteve em teste, cada <b>Máquina parou</b> mecânica ou elétrica abriu uma requisição que ficou Aberta mesmo depois de a serraria liberar
+        a máquina, e os planos de preventiva continuaram gerando requisições que ninguém via. Use antes de liberar o módulo: confira a prévia, escolha o que fazer com
+        cada grupo e confirme. <b>Nada é feito sozinho.</b> Fica de fora o que alguém da manutenção já assumiu, comentou ou em que lançou horas: essas, resolva na
+        própria requisição.
+      </p>
+      {MODULOS_ATIVOS.includes("manutencao") && (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
+          A Manutenção já está liberada: em <b>Criadas até</b>, use o último dia do teste para não encerrar requisições de verdade.
+        </p>
+      )}
+      <form method="get" action="/producao/cadastros" className="mb-4 flex flex-wrap items-end gap-2">
+        <input type="hidden" name="aba" value="config" />
+        <div>
+          <label htmlFor="triagem-ate">Criadas até</label>
+          <input id="triagem-ate" name="ate" type="date" required max={hoje} defaultValue={previa.ate} className="campo" />
+        </div>
+        <button type="submit" className="btn-secundario">
+          Atualizar prévia
+        </button>
+      </form>
+      <ActionForm action={triarRequisicoesTeste} limparAoSalvar className="space-y-4">
+        <input type="hidden" name="ate" value={previa.ate} />
+        {comItens.length === 0 ? (
+          <p className="rounded-lg bg-stone-50 px-3 py-2 text-sm text-stone-600 ring-1 ring-stone-200">
+            Nenhuma requisição do período de teste para encerrar (criadas até {dataAte}).
+          </p>
+        ) : (
+          <>
+            {comItens.map((g) => (
+              <fieldset key={g.id} className="min-w-0 rounded-lg border border-stone-200 px-3 pb-3">
+                <legend className="px-1 font-semibold">
+                  {g.titulo} · {g.lista.itens.length}
+                  {g.lista.mais ? "+" : ""}
+                </legend>
+                <input type="hidden" name={g.campo} value={g.lista.itens.map((r) => r.id).join(",")} />
+                <p className="text-sm text-stone-600">{g.texto}</p>
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm font-semibold text-marca-700">Ver as requisições</summary>
+                  <ul className="mt-2 max-h-64 divide-y divide-stone-100 overflow-y-auto rounded-lg border border-stone-200 text-sm">
+                    {g.lista.itens.map((r) => (
+                      <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 px-3 py-1.5">
+                        <Link href={`/requisicoes/${r.id}`} className="font-mono font-semibold text-marca-700 hover:underline">
+                          {numeroRequisicao(r.id)}
+                        </Link>
+                        <span className="min-w-0 flex-1 truncate">{r.titulo}</span>
+                        <span className="text-xs text-stone-500">{g.referencia(r)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+                {g.lista.mais && (
+                  <p className="mt-2 text-xs text-amber-800">
+                    Mostrando as primeiras {previa.max}. Aplique a triagem e atualize a prévia para ver as seguintes.
+                  </p>
+                )}
+                <div role="radiogroup" aria-label={`O que fazer: ${g.titulo}`} className="mt-3 space-y-1.5">
+                  {g.opcoes.map((o) => (
+                    <label key={o.valor} className="flex items-start gap-2 text-sm font-normal">
+                      <input type="radio" name={g.id} value={o.valor} defaultChecked={o.valor === "manter"} className="mt-1" />
+                      <span>
+                        <b>{o.rotulo}</b>
+                        {o.efeito && <span className="text-stone-500"> — {o.efeito}</span>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
+            <p className="text-xs text-stone-500">
+              Cada requisição ganha o motivo no histórico de status e o registro na auditoria. Os avisos não são enviados. Para desfazer, mude o status na própria
+              requisição.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div>
+                <label htmlFor="triagem-confirmacao">Digite ENCERRAR para confirmar</label>
+                <input id="triagem-confirmacao" name="confirmacao" autoComplete="off" required className="campo" />
+              </div>
+              <BotaoEnviar className="btn-perigo">Aplicar triagem</BotaoEnviar>
+            </div>
+          </>
+        )}
+      </ActionForm>
+    </section>
   );
 }

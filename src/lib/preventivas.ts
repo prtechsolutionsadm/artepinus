@@ -43,7 +43,8 @@ function somarIntervalo(data: Date, intervalo: number, unidade: UnidadeFrequenci
 
 /**
  * Gera as requisições das preventivas que estão dentro da antecedência.
- * Chamada pelo cron diário e pelo botão "Gerar agora". `planoId` limita a um plano.
+ * Chamada pelo cron diário (só com a Manutenção liberada, ver /api/cron/lembretes) e pelo botão
+ * "Gerar agora" (também em teste, pelo administrador). `planoId` limita a um plano.
  */
 export async function gerarPreventivas({ planoId, usuarioId }: { planoId?: string; usuarioId?: string } = {}) {
   const agora = new Date();

@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BookOpen,
   ChevronRight,
-  CircleHelp,
   Factory,
   Flame,
   FlaskConical,
@@ -19,11 +18,12 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { sair } from "@/app/actions/auth";
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
 import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
-import { PERFIL, PERFIL_PRODUCAO, STATUS_PENDENTES } from "@/lib/constantes";
+import { rotuloPerfis, STATUS_PENDENTES } from "@/lib/constantes";
 import { iniciais } from "@/lib/menu";
 import { MODULOS, MODULOS_ATIVOS, MODULOS_EM_TESTE, pode, temModulo, type Modulo } from "@/lib/permissoes";
 import { exigirUsuario } from "@/lib/session";
@@ -109,7 +109,8 @@ export default async function SistemaPage() {
     manutencao ? db.requisicao.count({ where: { status: { in: STATUS_PENDENTES } } }) : null,
   ]);
   const temPergunta = seg.perguntaSeguranca != null && !!seg.respostaHash;
-  const perfil = eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? PERFIL_PRODUCAO[eu.perfilProducao] : PERFIL[eu.perfil];
+  // "Serraria: Apontador · Manutenção: Operador" (só os módulos que a pessoa enxerga)
+  const perfil = rotuloPerfis(eu);
   const primeiro = eu.nome.split(" ")[0];
 
   const numeros = [
@@ -140,9 +141,7 @@ export default async function SistemaPage() {
           <img src="/logo-branco.svg" alt="Artepinus" className="hidden h-10 w-auto dark:block" />
           <div className="ml-auto flex items-center gap-1">
             <BotaoTema />
-            <Link href="/ajuda" aria-label="Manual do usuário" title="Manual do usuário" className="grid h-10 w-10 place-items-center rounded-full text-stone-600 hover:bg-stone-100">
-              <CircleHelp className="h-5 w-5" />
-            </Link>
+            <BotaoAjuda />
             <Sininho naoLidasInicial={naoLidas} />
             <Link href="/perfil" className="ml-1 hidden items-center gap-2.5 rounded-full py-1 pl-1 pr-3 hover:bg-stone-100 sm:flex" title="Meu perfil">
               <span className="fundo-marca grid h-8 w-8 place-items-center rounded-full text-xs font-semibold text-white">{iniciais(eu.nome)}</span>

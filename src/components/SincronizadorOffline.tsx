@@ -2,11 +2,23 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { CloudOff, CloudUpload, RotateCcw, Trash2, X } from "lucide-react";
+import { CircleHelp, CloudOff, CloudUpload, RotateCcw, Trash2, X } from "lucide-react";
 import { reativarPush } from "@/components/AtivarPush";
 import { EVENTO_FILA, definirDonoFila, descartarDaFila, limparPaginasGuardadas, listarFila, sincronizarFila, tentarDeNovo, type ItemFila } from "@/lib/fila-offline";
 
 const ULTIMO_USUARIO = "artepinus:usuario-offline";
+
+/**
+ * Link para o manual. <a> comum (e não o Link do Next): a faixa aparece justamente sem internet, e a
+ * página inteira sai da cópia guardada no aparelho (/ajuda/problemas e /ajuda/sem-internet ficam guardadas).
+ */
+function LinkAjuda({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} className="nao-imprimir inline-flex items-center gap-1 whitespace-nowrap font-medium underline underline-offset-2">
+      <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden /> {children}
+    </a>
+  );
+}
 
 /**
  * Envia a fila de lançamentos feitos sem internet assim que a conexão volta,
@@ -86,7 +98,11 @@ export function SincronizadorOffline({ usuarioId, nome }: { usuarioId: string; n
   if (!online && fila.length === 0) {
     return (
       <div className="nao-imprimir mb-4 flex items-center gap-2 rounded-xl bg-stone-100 px-3 py-2 text-sm text-stone-700 ring-1 ring-stone-200">
-        <CloudOff className="h-4 w-4" /> Sem internet. Continue apontando: os lançamentos ficam guardados e são enviados quando a conexão voltar.
+        <CloudOff className="h-4 w-4 shrink-0" />
+        <span className="min-w-0">
+          Sem internet. Continue apontando: os lançamentos ficam guardados e são enviados quando a conexão voltar.{" "}
+          <LinkAjuda href="/ajuda/sem-internet">O que funciona sem internet?</LinkAjuda>
+        </span>
       </div>
     );
   }
@@ -107,10 +123,16 @@ export function SincronizadorOffline({ usuarioId, nome }: { usuarioId: string; n
         <CloudOff className="h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1">
           {resumo.join(" · ")}
-          {recusados > 0 && (
+          {recusados > 0 ? (
             <b className="block">
-              {recusados} lançamento{recusados > 1 ? "s recusados" : " recusado"} pelo servidor. {aberto ? "Veja o motivo abaixo." : "Toque em Ver para saber o motivo."}
+              {recusados} lançamento{recusados > 1 ? "s recusados" : " recusado"} pelo servidor. {aberto ? "Veja o motivo abaixo." : "Toque em Ver para saber o motivo."}{" "}
+              <LinkAjuda href="/ajuda/problemas#recusado">Como resolver?</LinkAjuda>
             </b>
+          ) : (
+            <>
+              {" "}
+              <LinkAjuda href="/ajuda/problemas#fila-offline">O que é isso?</LinkAjuda>
+            </>
           )}
         </span>
         <button onClick={() => setAberto(!aberto)} className="font-medium underline">

@@ -10,7 +10,8 @@ import { enfileirar } from "@/lib/fila-offline";
 
 type Props = {
   setores: { id: string; nome: string }[];
-  equipamentos: { id: string; codigo: string; nome: string; setor: string | null }[];
+  /** `linhaSerraria`: máquina da linha da serraria (a parada entra no boletim e pede o tipo da falha). */
+  equipamentos: { id: string; codigo: string; nome: string; setor: string | null; linhaSerraria?: boolean }[];
   equipamentoInicial?: string;
 };
 
@@ -24,10 +25,18 @@ export function FormNovaRequisicao({ setores, equipamentos, equipamentoInicial }
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [salvaOffline, setSalvaOffline] = useState(false);
+  const [equipamentoId, setEquipamentoId] = useState(equipamentoInicial ?? "");
+
+  // "Tipo da falha" só vale para as máquinas da linha da serraria (vira o centro da parada no boletim).
+  // Sem a informação da linha (lista antiga), aparece para qualquer equipamento, com o aviso no rótulo.
+  const escolhido = equipamentos.find((e) => e.id === equipamentoId);
+  const linhaConhecida = escolhido?.linhaSerraria !== undefined;
+  const pedeTipoFalha = escolhido ? escolhido.linhaSerraria !== false : false;
 
   const guardarOffline = async (dados: FormData) => {
     await enfileirar(dados);
     ref.current?.reset();
+    setEquipamentoId(equipamentoInicial ?? "");
     setSalvaOffline(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -78,12 +87,12 @@ export function FormNovaRequisicao({ setores, equipamentos, equipamentoInicial }
             <span>
               <span className="block font-semibold text-rose-800">A máquina está parada</span>
               <span className="block text-sm text-rose-700/80">
-                Marca o início do tempo de máquina parada e avisa a manutenção com prioridade. Máquina da serraria: a parada entra no boletim do dia.
+                Marca o início do tempo de máquina parada e avisa a manutenção com prioridade. Máquina da linha da serraria: a parada entra no boletim do dia.
               </span>
             </span>
           </label>
-          <div className="mt-3 hidden flex-wrap items-center gap-x-4 gap-y-1 pl-8 text-sm group-has-checked:flex">
-            <span className="font-medium text-rose-800">Tipo da falha:</span>
+          <div className={`mt-3 hidden flex-wrap items-center gap-x-4 gap-y-1 pl-8 text-sm ${pedeTipoFalha ? "group-has-checked:flex" : ""}`}>
+            <span className="font-medium text-rose-800">{linhaConhecida ? "Tipo da falha:" : "Tipo da falha (máquinas da linha da serraria):"}</span>
             <label className="flex items-center gap-1.5 font-normal">
               <input type="radio" name="centroParada" value="MEC" defaultChecked className="accent-rose-600" /> Mecânica
             </label>
@@ -96,7 +105,7 @@ export function FormNovaRequisicao({ setores, equipamentos, equipamentoInicial }
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label htmlFor="equipamentoId">Equipamento</label>
-            <select id="equipamentoId" name="equipamentoId" defaultValue={equipamentoInicial ?? ""} className="campo">
+            <select id="equipamentoId" name="equipamentoId" defaultValue={equipamentoInicial ?? ""} onChange={(e) => setEquipamentoId(e.target.value)} className="campo">
               <option value="">— Não se aplica / não sei —</option>
               {equipamentos.map((e) => (
                 <option key={e.id} value={e.id}>

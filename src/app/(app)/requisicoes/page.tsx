@@ -11,6 +11,9 @@ import type { Prioridade, StatusRequisicao, TipoManutencao } from "@/generated/p
 
 export const metadata: Metadata = { title: "Requisições" };
 
+const PRIORIDADE_ORDEM = Object.keys(PRIORIDADE) as Prioridade[];
+const ALTA_E_URGENTE = "ALTA,URGENTE";
+
 const POR_PAGINA = 30;
 
 type Filtros = {
@@ -20,22 +23,39 @@ type Filtros = {
   tipo?: string;
   setor?: string;
   responsavel?: string;
+  maquina?: string;
   minhas?: string;
   pagina?: string;
 };
 
+/** Filtro "Máquina": parada agora ou já liberada (falta conferir e concluir). */
+const MAQUINA = {
+  parada: { label: "Parada agora", where: { maquinaParada: true, paradaFim: null } },
+  liberada: { label: "Já liberada", where: { maquinaParada: true, paradaFim: { not: null } } },
+} satisfies Record<string, { label: string; where: Prisma.RequisicaoWhereInput }>;
+
+/** Chave própria do objeto (não confunde "toString" com um valor válido). */
+const chave = <T extends object>(obj: T, k: string | undefined): k is Extract<keyof T, string> => !!k && Object.hasOwn(obj, k);
+
 export default async function RequisicoesPage({ searchParams }: { searchParams: Promise<Filtros> }) {
   const eu = await exigirModulo("manutencao");
-  const f = await searchParams;
-  const pagina = Math.max(1, Number(f.pagina) || 1);
+  // Parâmetro repetido na URL (?status=a&status=b) chega como lista: vale o primeiro
+  const f = Object.fromEntries(Object.entries(await searchParams).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])) as Filtros;
+  const pagina = inteiroPositivo(f.pagina) ?? 1;
 
   const where: Prisma.RequisicaoWhereInput = {};
   if (f.status === "pendentes") where.status = { in: STATUS_PENDENTES };
-  else if (f.status && f.status in STATUS) where.status = f.status as StatusRequisicao;
-  if (f.prioridade && f.prioridade in PRIORIDADE) where.prioridade = f.prioridade as Prioridade;
-  if (f.tipo && f.tipo in TIPO) where.tipo = f.tipo as TipoManutencao;
+  else if (chave(STATUS, f.status)) where.status = f.status as StatusRequisicao;
+  // Uma prioridade ou uma lista ("ALTA,URGENTE", usada pelo Início da Manutenção)
+  const prioridades = PRIORIDADE_ORDEM.filter((p) => (f.prioridade ?? "").split(",").includes(p));
+  const valorPrioridade = prioridades.join(",");
+  if (prioridades.length === 1) where.prioridade = prioridades[0];
+  else if (prioridades.length > 1) where.prioridade = { in: prioridades };
+  if (chave(TIPO, f.tipo)) where.tipo = f.tipo as TipoManutencao;
   if (f.setor) where.setorId = f.setor;
   if (f.responsavel === "eu") where.responsavelId = eu.id;
+  else if (f.responsavel === "nenhum") where.responsavelId = null;
+  if (chave(MAQUINA, f.maquina)) Object.assign(where, MAQUINA[f.maquina].where);
   if (f.minhas) where.solicitanteId = eu.id;
   if (f.q?.trim()) {
     const q = f.q.trim();
@@ -100,13 +120,17 @@ export default async function RequisicoesPage({ searchParams }: { searchParams: 
         </div>
         <div>
           <label htmlFor="prioridade">Prioridade</label>
-          <select id="prioridade" name="prioridade" defaultValue={f.prioridade ?? ""} className="campo">
+          <select id="prioridade" name="prioridade" defaultValue={valorPrioridade} className="campo">
             <option value="">Todas</option>
-            {Object.entries(PRIORIDADE).map(([k, v]) => (
+            {PRIORIDADE_ORDEM.map((k) => (
               <option key={k} value={k}>
-                {v.label}
+                {PRIORIDADE[k].label}
               </option>
             ))}
+            <option value={ALTA_E_URGENTE}>Alta e urgente</option>
+            {prioridades.length > 1 && valorPrioridade !== ALTA_E_URGENTE && (
+              <option value={valorPrioridade}>{prioridades.map((p) => PRIORIDADE[p].label).join(" e ")}</option>
+            )}
           </select>
         </div>
         <div>
@@ -131,12 +155,28 @@ export default async function RequisicoesPage({ searchParams }: { searchParams: 
             ))}
           </select>
         </div>
-        <div className="col-span-2 flex flex-wrap items-center gap-4 md:col-span-6">
+        <div>
+          <label htmlFor="responsavel">Responsável</label>
+          <select id="responsavel" name="responsavel" defaultValue={f.responsavel === "eu" || f.responsavel === "nenhum" ? f.responsavel : ""} className="campo">
+            <option value="">Todos</option>
+            <option value="eu">Atribuídas a mim</option>
+            <option value="nenhum">Sem responsável</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="maquina">Máquina</label>
+          <select id="maquina" name="maquina" defaultValue={chave(MAQUINA, f.maquina) ? f.maquina : ""} className="campo">
+            <option value="">Todas</option>
+            {Object.entries(MAQUINA).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="col-span-2 flex flex-wrap items-center gap-4 md:col-span-4 md:self-end">
           <label className="flex items-center gap-2 font-normal">
             <input type="checkbox" name="minhas" value="1" defaultChecked={!!f.minhas} /> Abertas por mim
-          </label>
-          <label className="flex items-center gap-2 font-normal">
-            <input type="checkbox" name="responsavel" value="eu" defaultChecked={f.responsavel === "eu"} /> Atribuídas a mim
           </label>
           <div className="ml-auto flex gap-2">
             <Link href="/requisicoes" className="btn-secundario">

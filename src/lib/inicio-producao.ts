@@ -1,9 +1,13 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { numeroRequisicao, STATUS, STATUS_FINAIS } from "@/lib/constantes";
+import { MODULOS_ATIVOS } from "@/lib/permissoes";
 import { calcularKpis, dateParaDia, diaParaDate, formatarDia, hojeSP, intervaloMes, mesDe } from "@/lib/producao";
 import { codigoCarga } from "@/lib/rastreio";
 
 const DIA = 864e5;
+/** Com a Manutenção em teste os avisos dela não chegam a ninguém: não dizer que ela foi avisada (como em PainelParadas). */
+const MANUTENCAO_ATIVA = MODULOS_ATIVOS.includes("manutencao");
 
 export type Pendencia = { tipo: "atraso" | "aviso" | "rastreio"; texto: string; detalhe?: string; href: string; acao: string };
 
@@ -63,7 +67,14 @@ export async function dadosInicio() {
     db.paradaMaquina.findMany({
       where: { fim: null },
       orderBy: { inicio: "asc" },
-      select: { inicio: true, centro: true, requisicaoId: true, equipamento: { select: { nome: true } }, motivo: { select: { descricao: true } } },
+      select: {
+        inicio: true,
+        centro: true,
+        origem: true,
+        requisicao: { select: { id: true, status: true } },
+        equipamento: { select: { nome: true } },
+        motivo: { select: { descricao: true } },
+      },
     }),
   ]);
 
@@ -94,10 +105,21 @@ export async function dadosInicio() {
   // Máquinas paradas agora vêm primeiro: a linha está perdendo tempo
   for (const p of paradas) {
     const min = Math.round((agora.getTime() - p.inicio.getTime()) / 6e4);
+    const r = p.requisicao;
+    // Mesmo texto do selo em Paradas de máquina
+    const req = !r
+      ? null
+      : STATUS_FINAIS.includes(r.status)
+        ? `requisição ${numeroRequisicao(r.id)} ${STATUS[r.status].label.toLowerCase()}`
+        : p.origem === "MANUTENCAO"
+          ? `marcada na requisição ${numeroRequisicao(r.id)}`
+          : MANUTENCAO_ATIVA
+            ? "manutenção avisada"
+            : `requisição ${numeroRequisicao(r.id)}`;
     pendencias.push({
       tipo: "atraso",
       texto: `${p.equipamento.nome} parada há ${min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`}`,
-      detalhe: [p.motivo?.descricao, p.requisicaoId ? "manutenção avisada" : null].filter(Boolean).join(" · ") || undefined,
+      detalhe: [p.motivo?.descricao, req].filter(Boolean).join(" · ") || undefined,
       href: "/producao/paradas",
       acao: "Liberar",
     });
@@ -131,9 +153,10 @@ export async function dadosInicio() {
     pendencias.push({
       tipo: "rastreio",
       texto: `Carga ${codigoCarga(c.numero)}${c.origem ? ` (${c.origem})` : ""} sem floresta informada`,
-      detalhe: "Sem isso, os pacotes não chegam até a floresta",
+      // Carga nova sempre tem floresta: estas são do formato antigo e abrem só para leitura
+      detalhe: "Carga no formato antigo (só leitura): os pacotes dela não chegam até a floresta",
       href: `/producao/toras/${c.id}`,
-      acao: "Corrigir",
+      acao: "Ver carga",
     });
   }
   for (const b of boletinsSemCarga) {

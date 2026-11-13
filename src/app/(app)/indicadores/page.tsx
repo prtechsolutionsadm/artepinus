@@ -14,8 +14,10 @@ const horas = (h: number | null) => (h === null ? "—" : h >= 48 ? `${Math.roun
 
 export default async function IndicadoresPage({ searchParams }: { searchParams: Promise<{ periodo?: string; setor?: string }> }) {
   await exigirPermissao("relatorios");
-  const sp = await searchParams;
-  const periodo: Periodo = sp.periodo && sp.periodo in PERIODOS ? (sp.periodo as Periodo) : "90";
+  const bruto = await searchParams;
+  // Só texto (parâmetro repetido chega como lista) e só períodos conhecidos
+  const sp = { periodo: typeof bruto.periodo === "string" ? bruto.periodo : undefined, setor: typeof bruto.setor === "string" ? bruto.setor : undefined };
+  const periodo: Periodo = sp.periodo && Object.hasOwn(PERIODOS, sp.periodo) ? (sp.periodo as Periodo) : "90";
   const [ind, setores] = await Promise.all([calcularIndicadores(periodo, sp.setor || undefined), db.setor.findMany({ orderBy: { nome: "asc" } })]);
   const r = ind.resumo;
   const link = (p: Partial<{ periodo: string; setor: string }>) => {
@@ -63,14 +65,18 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
         <Tile rotulo="Tempo médio de atendimento" valor={formatarDuracao(r.tempoMedioAtendimento)} nota="da abertura à conclusão" />
         <Tile rotulo="Preventivas no prazo" valor={pct(r.preventivasNoPrazo)} nota={`${r.preventivasDevidas} previstas no período`} />
         <Tile rotulo="Horas de manutenção" valor={formatarDuracao(r.minutosTrabalhados)} nota={`${r.concluidas} requisições concluídas`} />
-        <Tile rotulo="Pendentes agora" valor={String(r.backlog)} nota={`${r.abertas} abertas no período`} />
+        <Tile
+          rotulo="Pendentes agora"
+          valor={String(r.backlog)}
+          nota={`${r.abertas} abertas no período${r.canceladas ? ` · ${r.canceladas} cancelada${r.canceladas === 1 ? "" : "s"} fora da conta` : ""}`}
+        />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="cartao min-w-0 lg:col-span-2">
           <h2 className="font-semibold">Requisições abertas por mês</h2>
           <p className="mb-3 text-sm text-stone-500">
-            {r.preventivas} preventivas para {r.corretivas} corretivas no período
+            {r.preventivas} preventivas para {r.corretivas} corretivas no período (sem as canceladas)
           </p>
           <ColunasEmpilhadas
             titulo="Requisições abertas por mês, por tipo"
@@ -84,7 +90,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
         </section>
         <section className="cartao min-w-0">
           <h2 className="font-semibold">Equipamentos com mais falhas</h2>
-          <p className="mb-4 text-sm text-stone-500">Corretivas abertas no período</p>
+          <p className="mb-4 text-sm text-stone-500">Corretivas abertas no período (sem as canceladas)</p>
           <BarrasHorizontais itens={ind.topFalhas} vazio="Nenhuma falha registrada no período." />
         </section>
         <section className="cartao min-w-0">
@@ -99,7 +105,7 @@ export default async function IndicadoresPage({ searchParams }: { searchParams: 
         </section>
         <section className="cartao min-w-0">
           <h2 className="font-semibold">Requisições por setor</h2>
-          <p className="mb-4 text-sm text-stone-500">Abertas no período</p>
+          <p className="mb-4 text-sm text-stone-500">Abertas no período (sem as canceladas)</p>
           <BarrasHorizontais itens={ind.porSetor} />
         </section>
       </div>

@@ -82,7 +82,7 @@ export default async function BoletinsPage({ searchParams }: { searchParams: Pro
                   </div>
                   <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-0.5 text-sm sm:grid-cols-4">
                     <span>
-                      <span className="text-stone-500">Prod. </span>
+                      <span className="text-stone-500">Serrado </span>
                       <b className="tabular-nums">{fmtM3(k.producaoM3)}</b>
                     </span>
                     <span className="tabular-nums">

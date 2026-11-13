@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { formatarDia } from "@/lib/producao";
+import { fmtNum, formatarDia } from "@/lib/producao";
 import { codigoCarga, codigoLote } from "@/lib/rastreio";
 
 const selCarga = {
@@ -84,12 +84,25 @@ export async function cargasParaForm(ligadas: string[] = []) {
     where: { OR: [{ data: { gte: new Date(Date.now() - 60 * DIA) } }, { id: { in: ligadas } }] },
     orderBy: { data: "desc" },
     take: 150,
-    include: { itens: { select: { quantidade: true } } },
+    include: { floresta: { select: { nome: true } }, colheita: { select: { origem: { select: { nome: true } } } }, itens: { select: { quantidade: true } } },
   });
-  return lista.map((c) => ({
-    id: c.id,
-    rotulo: `${codigoCarga(c.numero)} · ${formatarDia(c.data, { day: "2-digit", month: "2-digit" })} · ${c.origem}${c.talhao ? ` (${c.talhao})` : ""} · ${c.itens.reduce((s, i) => s + i.quantidade, 0)} toras`,
-  }));
+  return lista.map((c) => {
+    // Carga nova: floresta e peso; carga antiga: origem/talhão e o número de toras
+    const origem = c.floresta?.nome ?? c.origem ?? c.colheita?.origem.nome ?? null;
+    const toras = c.itens.reduce((s, i) => s + i.quantidade, 0);
+    const quanto = c.pesoT ? `${fmtNum(c.pesoT, 1)} t` : toras ? `${fmtNum(toras)} toras` : null;
+    return {
+      id: c.id,
+      rotulo: [
+        codigoCarga(c.numero),
+        formatarDia(c.data, { day: "2-digit", month: "2-digit" }),
+        origem ? `${origem}${c.talhao ? ` (${c.talhao})` : ""}` : null,
+        quanto,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    };
+  });
 }
 
 /** Boletins dos últimos 30 dias (e os já ligados), para marcar no ciclo de estufa. */

@@ -7,9 +7,12 @@
 - **Sistema (PWA)** em módulos:
   - **Serraria** (rotas `/producao`) — toras, apontamento em grade com etiqueta de lote, estufas,
     pacotes com QR Code, inventário, indicadores (OEE) e pedidos, funcionando também sem internet.
-  - **Manutenção** — requisições de manutenção. **Em teste** (`MODULOS_EM_TESTE` em
-    `src/lib/permissoes.ts`): aparece como "Em breve" para todos e abre só para o Administrador. Para
-    liberar a todos, mova para `MODULOS_ATIVOS`. Código e dados continuam.
+  - **Manutenção** (rotas `/manutencao`, `/requisicoes`, `/agenda`, `/equipamentos`…) — requisições,
+    máquina parada ligada à serraria, preventivas, equipamentos com QR e indicadores. **Em teste**
+    (`MODULOS_EM_TESTE` em `src/lib/permissoes.ts`): aparece como "Em breve" para todos e abre só para o
+    Administrador. Para liberar a todos, siga o [Checklist para liberar a Manutenção](#checklist-para-liberar-a-manutenção);
+    a virada em si é mover `"manutencao"` para `MODULOS_ATIVOS`. Código e dados continuam.
+  - **Manual do usuário** em `/ajuda`, para os dois módulos (veja [Manual do usuário](#manual-do-usuário)).
 
 ## Rastreabilidade (da floresta ao pacote)
 
@@ -35,8 +38,9 @@ Carga de toras (CT-00001: floresta, fornecedor, motorista) → Boletim do dia (l
 Cada usuário tem um perfil por módulo (`perfil` na Manutenção, `perfilProducao` na Produção;
 regras em `src/lib/permissoes.ts`: `temModulo`, `pode`, `podeProducao`). Quem só usa a produção fica
 com *Sem acesso* na Manutenção. Admin e Gerente têm acesso total à Serraria; enquanto a Manutenção
-estiver em teste, só o Admin a abre. Quem usa os dois troca de módulo no rodapé do menu lateral (no
-celular, em *Mais*).
+estiver em teste, só o Admin a abre (os perfis da Manutenção já escolhidos ficam guardados e passam a valer
+na liberação). Quem usa os dois entra primeiro na Serraria e troca de módulo no rodapé do menu lateral
+ou em *Escolher módulo* (no celular, em *Mais*).
 
 | Serraria | Supervisor | Apontador | Consulta |
 |---|:-:|:-:|:-:|
@@ -89,6 +93,15 @@ celular, em *Mais*).
 - **Fotos** do problema e do serviço (câmera ou galeria), comprimidas no celular e sem dados de GPS;
   guardadas no banco e servidas só para quem está logado e usa o módulo de manutenção (`/api/anexos/[id]`).
 - **Máquina parada**: marcada na abertura; o tempo parado é calculado até a máquina voltar a operar.
+  Junto com a serraria (máquinas marcadas em Cadastros → *Máquinas da linha*):
+  - *Máquina parou* mecânica ou elétrica na tela de paradas abre na hora uma requisição de prioridade alta
+    (com o módulo liberado, supervisores e manutentores são avisados);
+  - *Máquina liberada* na serraria avisa o responsável da requisição (sem responsável, os supervisores da
+    manutenção) para conferir e concluir, e a lista mostra o selo "Máquina liberada";
+  - concluir a requisição informando o fim da parada avisa os supervisores da serraria e quem marcou a parada;
+  - parada excluída na serraria (marcada por engano) cancela sozinha a requisição que ninguém assumiu;
+    cancelar uma requisição desfaz a parada aberta pela manutenção (a marcada na serraria, a serraria libera).
+- Requisição concluída ou cancelada não aceita mais comentários nem fotos.
 - **Horas trabalhadas** por manutentor em cada requisição.
 - **Checklists** por tipo de serviço; a requisição só pode ser concluída com todos os itens marcados.
 - **Preventiva automática**: planos por equipamento (a cada N dias/semanas/meses) geram a requisição
@@ -97,8 +110,9 @@ celular, em *Mais*).
   máquina escolhida. Ficha do equipamento com dados, preventivas e histórico.
 - **Indicadores**: disponibilidade, tempo parado, MTTR, MTBF, tempo médio de atendimento, preventivas no
   prazo, horas por manutentor, requisições por mês, ranking de equipamentos e setores.
-- **Sem internet**: a nova requisição (com fotos) fica guardada no aparelho e é enviada sozinha quando a
-  conexão volta.
+- **Sem internet**: a tela *Nova requisição* abre sem sinal (fica guardada pelo service worker, como as telas
+  de apontamento da serraria) e a requisição, com fotos, fica no aparelho e é enviada sozinha quando a
+  conexão volta (`/api/requisicoes/offline`).
 - **Auditoria**: quem alterou o quê e quando (logins, usuários, equipamentos, requisições, planos…).
 - Tipo (corretiva, preventiva, preditiva, melhoria) e prioridade (baixa → urgente).
 - Painel inicial com indicadores, urgentes, agenda dos próximos 7 dias e "minhas requisições".
@@ -118,9 +132,119 @@ celular, em *Mais*).
     (estufa atrasada, pedido pronto) e a limpeza LGPD (prazos em `src/lib/retencao.ts`); às 18h dos dias
     úteis, `/api/cron/serraria` avisa quando o dia ficou sem apontamento.
   - No iPhone o push só funciona com o app instalado na tela de início (iOS 16.4+).
-- **Manual do usuário** dentro do app (`/ajuda`, conteúdo em `src/lib/manual.ts`): passo a passo por
-  tema, com busca, índice e impressão; cada perfil vê só as seções que usa.
+- **Triagem do período de teste** (só o Admin, em Cadastros → Configuração): encerra de uma vez, com
+  prévia e confirmação, as requisições que o teste deixou abertas (veja o checklist abaixo).
 - **PWA**: instalável no celular ("Adicionar à tela inicial"), com tela de "sem conexão".
+
+## Manual do usuário
+
+Dentro do app, em `/ajuda`, para os dois módulos. Cada pessoa vê só o que usa (por módulo e permissão).
+
+- **`/ajuda`**: entrada, com a busca e as seções organizadas em Geral, Serraria (na ordem do processo) e
+  Manutenção.
+- **`/ajuda/<seção>`**: uma seção por página (ex.: `/ajuda/serraria-ficha`); cada tópico tem âncora
+  própria (`/ajuda/serraria-ficha#lote`).
+- **`/ajuda/glossario`**, **`/ajuda/problemas`** (problemas comuns e como resolver) e **`/ajuda/roteiros`**
+  (roteiros por função para imprimir, de `src/lib/roteiros.ts`).
+- **Ajuda por tela**: o botão "?" abre a seção da tela atual — vale a seção (ou o tópico) cujo `rotas`
+  tem o prefixo mais longo do endereço.
+- **Sem internet**: `/ajuda`, `/ajuda/sem-internet` e `/ajuda/problemas` ficam guardadas no aparelho
+  depois do login, e toda página do manual que a pessoa abrir também (`public/sw.js`).
+
+**Conteúdo** em `src/lib/manual/`: `tipos.ts` (o formato: seções, tópicos e blocos), `geral.ts`,
+`serraria.ts`, `manutencao.ts`, `glossario.ts` e `problemas.ts`, juntados em `index.ts`. Os ids das seções
+viram o endereço (`/ajuda/<id>`) e não devem mudar, porque a ajuda das telas e os links apontam para eles.
+Link para outra parte do manual: escreva o caminho completo entre parênteses, ex.: "veja Trabalhar sem
+internet (/ajuda/sem-internet)". Texto que depende de a Manutenção estar liberada usa `MODULOS_ATIVOS`.
+Mudou uma tela (nome de botão, menu, campo)? Atualize o tópico dela no mesmo commit.
+
+**Capturas de tela**: blocos `{ tipo: "imagem", imagem: { arquivo, legenda, rota, perfil, tela?, acoes? } }`.
+O script `scripts/capturas-manual.ts` entra com o usuário de demonstração da `perfil` escolhida, abre a
+`rota`, faz as `acoes` e grava `public/ajuda/<arquivo>` (.webp; celular 390×844 se `tela` não for
+"computador"). Perfis: `apontador` (carlos.encarregado), `supervisor` (paulo.supervisor), `gerente`
+(ana.gerente), `manutentor` (joao.tecnico), `operador` (maria.operadora) e `admin` (pablo.ribas). Para gerar
+de novo, no banco **local** com os dados de demonstração (`SEED_DEMO=1 npm run db:seed`) e o app rodando:
+
+```bash
+npm run manual:capturas       # o mesmo que: npx tsx scripts/capturas-manual.ts
+```
+
+Rode de novo sempre que uma tela com captura mudar e commite as imagens de `public/ajuda/`. O service
+worker atualiza a cópia guardada das capturas sozinho (mesmo nome de arquivo).
+
+## Checklist para liberar a Manutenção
+
+A virada é uma linha de código (passo 7), mas o que trava são os dados e a configuração acumulados no teste.
+Faça na ordem; as consultas são **só de leitura** (rode num cliente SQL, ex.: `psql` com a `DATABASE_URL`
+de produção, e não altere nada por SQL: use as telas, que registram na auditoria).
+
+1. **Esta versão em produção** (avisos de máquina parada/liberada, nova requisição sem internet, triagem e
+   manual) — deploy normal antes de começar.
+2. **Levantamento dos dados**:
+
+   ```sql
+   -- Quem passa a usar a Manutenção na virada (perfil diferente de Sem acesso)
+   SELECT login, nome, perfil, "perfilProducao", ativo, "criadoEm" FROM "Usuario"
+   WHERE perfil NOT IN ('SEM_ACESSO','ADMIN') ORDER BY perfil, login;
+
+   -- Requisições ainda abertas (as do "Máquina parou" do teste aparecem com origem SERRARIA)
+   SELECT r.id, r.titulo, r.status, r.prioridade, r."responsavelId", r."paradaInicio", r."paradaFim", pm.origem
+   FROM "Requisicao" r LEFT JOIN "ParadaMaquina" pm ON pm."requisicaoId" = r.id
+   WHERE r.status NOT IN ('CONCLUIDA','CANCELADA') ORDER BY r."criadoEm";
+
+   -- Planos de preventiva e requisições pendentes de cada um
+   SELECT p.titulo, p.ativo, p."proximaData", count(r.id) FILTER (WHERE r.status NOT IN ('CONCLUIDA','CANCELADA')) AS pendentes
+   FROM "PlanoPreventivo" p LEFT JOIN "Requisicao" r ON r."planoId" = p.id GROUP BY p.id ORDER BY p.titulo;
+
+   -- Máquinas da linha (aparecem no "Máquina parou") e equipamentos ativos sem setor
+   SELECT codigo, nome, "linhaSerraria", ativo FROM "Equipamento" ORDER BY "linhaSerraria" DESC, codigo;
+   SELECT codigo, nome FROM "Equipamento" WHERE ativo AND "setorId" IS NULL ORDER BY codigo;
+
+   -- Quem recebe os avisos da manutenção e em quantos aparelhos ativou o push
+   SELECT u.login, u.perfil, count(i.id) AS aparelhos FROM "Usuario" u
+   LEFT JOIN "InscricaoPush" i ON i."usuarioId" = u.id
+   WHERE u.ativo AND u.perfil IN ('GERENTE','SUPERVISOR','MANUTENTOR') GROUP BY u.id ORDER BY u.perfil, u.login;
+   ```
+
+3. **Perfis** (a empresa decide quem usa o módulo e com qual perfil): na tela *Usuários*, deixe cada pessoa
+   com o perfil da Manutenção certo — *Sem acesso* para quem não deve entrar, *Operador* para quem só pede
+   manutenção, *Manutentor* e *Supervisor* para a equipe. Precisa haver pelo menos um Supervisor e um
+   Manutentor reais e ativos: sem eles, ninguém recebe as requisições novas. Lembre que o Gerente recebe os
+   avisos de prioridade alta, urgente e máquina parada.
+4. **Cadastros da manutenção**: equipamentos ativos com setor (a requisição herda o setor do equipamento),
+   setores, modelos de checklist e planos de preventiva (responsável e próxima data); em Cadastros →
+   *Máquinas da linha*, as máquinas da linha marcadas. Imprima e cole as etiquetas QR dos equipamentos
+   (`/equipamentos/etiquetas`).
+5. **Triagem do período de teste**: Cadastros → Configuração (entrando como Admin). Em *Criadas até*, o
+   último dia do teste; confira a prévia e escolha, em cada grupo, *Concluir* ou *Cancelar*:
+   - requisições do *Máquina parou* com a máquina já liberada, ainda Abertas e sem atendimento — concluídas
+     ficam com a data em que a serraria liberou a máquina (entram no MTTR e no tempo de atendimento);
+     canceladas ficam fora dos indicadores;
+   - preventivas geradas no teste, já vencidas e sem atendimento — conclua só as que foram feitas de fato;
+   - requisições de paradas excluídas na serraria antes desta versão — só cancelar.
+
+   Digite ENCERRAR e aplique. Fica de fora o que alguém assumiu, comentou ou em que lançou horas: resolva
+   na própria requisição. Rode as consultas do passo 2 de novo para conferir.
+6. **Avisos (push) e rotinas**: na Vercel (Production) confira `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+   `VAPID_PRIVATE_KEY` (e `VAPID_SUBJECT`, se usar) e `CRON_SECRET` (lembrete das 7h e preventivas). Peça a
+   supervisores e manutentores para ativar os avisos em *Meu perfil* no celular (no iPhone, com o app
+   instalado na tela de início).
+7. **Teste de ponta a ponta antes da virada**, no banco local com os dados de demonstração e a linha do
+   passo 8 trocada só na sua cópia: *Máquina parou* (mecânica) → aviso para supervisor e manutentor → o
+   manutentor assume → *Máquina liberada* na serraria → aviso para o responsável → concluir com o fim da
+   parada → serraria avisada; nova requisição em modo avião (abre, guarda e envia quando a conexão volta);
+   QR de uma máquina; comentário e foto; requisição concluída sem campo de comentário; manual da
+   Manutenção (`/ajuda`) para operador e manutentor.
+8. **A virada** — em `src/lib/permissoes.ts`:
+
+   ```ts
+   export const MODULOS_ATIVOS: Modulo[] = ["producao", "manutencao"];
+   export const MODULOS_EM_TESTE: Modulo[] = [];
+   ```
+
+   Mantenha o mecanismo de teste e o código. No mesmo commit, tire do `CLAUDE.md` e deste README as frases
+   de "em teste" e atualize os comentários de `src/lib/permissoes.ts`. Depois do deploy, repita o teste do
+   passo 7 em produção com um manutentor real e imprima os roteiros novos (`/ajuda/roteiros`) para os postos.
 
 ## Rodando localmente
 
@@ -200,12 +324,16 @@ db.prisma.io ou na Vercel).
 prisma/schema.prisma        modelos (manutenção + produção: BoletimProducao, ParadaProducao, CicloSecagem…)
 prisma/seed.ts              admin inicial, setores e catálogo da serraria (+ demo)
 prisma/dados/serraria.json  motivos de parada e equipamentos da linha (da planilha da serraria)
+scripts/capturas-manual.ts  gera as capturas de tela do manual (npm run manual:capturas → public/ajuda/)
 src/lib/producao.ts         cálculos (m³, KPIs/OEE), rótulos e checklist das estufas
 src/app/(app)/producao/     páginas do módulo de produção (+ /producao/excel)
 src/proxy.ts                bloqueia páginas para quem não está logado
 src/lib/session.ts          sessão (cookie JWT httpOnly) e guardas exigirModulo/exigirPermissao/exigirProducao
 src/lib/permissoes.ts       perfis, módulos e regras (temModulo, pode, podeProducao)
-src/app/actions/            Server Actions (auth, admin, requisições, planejamento, serraria, paradas, rastreio, cadastros, notificações)
-src/app/(app)/              páginas autenticadas
-public/sw.js                service worker do PWA
+src/app/actions/            Server Actions (auth, admin, requisições, planejamento, serraria, paradas, rastreio, cadastros, triagem, notificações)
+src/app/(app)/              páginas autenticadas (manual em src/app/(app)/ajuda)
+src/lib/manual/             conteúdo do manual do usuário (/ajuda), por grupo: geral, serraria, manutenção
+src/lib/roteiros.ts         roteiros por função para imprimir (/ajuda/roteiros)
+public/sw.js                service worker do PWA (telas offline em PAGINAS_OFFLINE; mudou? suba a versão do cache)
+public/ajuda/               capturas de tela do manual (geradas pelo script)
 ```

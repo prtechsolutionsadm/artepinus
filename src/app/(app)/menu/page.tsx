@@ -5,9 +5,8 @@ import { BotaoSair } from "@/components/BotaoSair";
 import { MenuCelular } from "@/components/Navegacao";
 import { SeletorTema } from "@/components/Tema";
 import { sair } from "@/app/actions/auth";
-import { PERFIL, PERFIL_PRODUCAO } from "@/lib/constantes";
+import { perfisPorModulo } from "@/lib/constantes";
 import { COOKIE_MODULO, iniciais, menusDoUsuario, moduloSalvo } from "@/lib/menu";
-import { temModulo } from "@/lib/permissoes";
 import { exigirUsuario } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Menu" };
@@ -15,10 +14,7 @@ export const metadata: Metadata = { title: "Menu" };
 /** Menu completo no celular (a barra inferior só tem os atalhos principais). */
 export default async function MenuPage() {
   const eu = await exigirUsuario();
-  const perfis = [
-    temModulo(eu, "manutencao") ? PERFIL[eu.perfil] : null,
-    eu.perfilProducao && eu.perfil !== "ADMIN" && eu.perfil !== "GERENTE" ? `Acesso: ${PERFIL_PRODUCAO[eu.perfilProducao]}` : null,
-  ].filter(Boolean);
+  const perfis = perfisPorModulo(eu);
 
   return (
     <div className="mx-auto max-w-md space-y-6">
