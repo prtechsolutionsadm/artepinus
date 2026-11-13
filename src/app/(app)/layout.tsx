@@ -89,7 +89,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* Créditos (celular e computador); no celular, acima da barra de baixo */}
       <div className="nao-imprimir border-t border-stone-200/70 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
-        <Rodape className={`${largura} py-5 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:text-left`} />
+        <Rodape novidades className="w-full px-4 py-5 sm:px-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:px-8 lg:text-left" />
       </div>
 
       </div>

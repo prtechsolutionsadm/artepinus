@@ -143,8 +143,8 @@ export function TopoApp({
 
   return (
     <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-      {/* Mesma largura e margens do <main> (layout do app) */}
-      <div className={`mx-auto flex h-14 w-full ${semMenuLateral ? "max-w-6xl 2xl:max-w-[1440px]" : "max-w-7xl"} items-center gap-2 px-4 sm:px-6 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)_minmax(0,1fr)] lg:gap-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,21rem)_minmax(0,1fr)]`}>
+      {/* Largura total: logo/Voltar encostados à esquerda e os ícones à direita (pedido do cliente) */}
+      <div className={`flex h-14 w-full items-center gap-2 px-4 sm:px-6 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)_minmax(0,1fr)] lg:gap-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,21rem)_minmax(0,1fr)]`}>
         <div className="flex min-w-0 items-center gap-4">
           <Link href={inicio} aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`} className={`shrink-0 rounded-md ${semMenuLateral ? "" : "lg:hidden"}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}

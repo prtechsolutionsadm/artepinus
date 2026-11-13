@@ -144,7 +144,7 @@ export const GERAL: Secao[] = [
                 ? "Um cartão para cada módulo, dizendo o que ele faz. Toque em Abrir a Serraria ou Abrir a Manutenção. Quem não usa um módulo vê o cartão dele tracejado, com Sem acesso: fale com o gerente."
                 : "Um cartão para cada módulo, dizendo o que ele faz. Toque em Abrir a Serraria. A Manutenção ainda está em teste: aparece tracejada, com Em breve (só o administrador abre, com o selo Em teste).",
             ],
-            ["Ajuda, Notificações e Administração", "Os cartões gerais: o manual do sistema, os seus avisos (com o número dos novos) e, para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria, o Painel Administrativo (/ajuda/navegacao#painel-administrativo)."],
+            ["Ajuda, Notificações, Novidades e Administração", "Os cartões gerais: o manual do sistema, os seus avisos (com o número dos novos), as notas de atualização (/ajuda/avisos#novidades) e, para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria, o Painel Administrativo (/ajuda/navegacao#painel-administrativo)."],
             ["Cadastre a sua pergunta de segurança", "Botão dentro da faixa verde, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
             ["Avisos recentes", "Só em telas largas (monitor grande): uma coluna à direita com os seus últimos avisos (o ponto vermelho marca os não lidos). Toque em um aviso para abrir a tela dele, ou em Ver todos."],
           ),
@@ -442,8 +442,8 @@ export const GERAL: Secao[] = [
     id: "avisos",
     grupo: "geral",
     titulo: "Avisos e notificações",
-    resumo: "O sininho, a tela Notificações, ligar e desligar os avisos no aparelho e quais avisos cada um recebe",
-    rotas: ["/notificacoes"],
+    resumo: "O sininho, a tela Notificações, ligar e desligar os avisos no aparelho, quais avisos cada um recebe e as Novidades de cada versão",
+    rotas: ["/notificacoes", "/novidades"],
     topicos: [
       {
         id: "sininho",
@@ -463,6 +463,21 @@ export const GERAL: Secao[] = [
             "Com o app instalado, o ícone do app pode mostrar o número de avisos não lidos (depende do celular).",
             "Os avisos já lidos são apagados depois de um tempo; o prazo está na Política de Privacidade.",
           ),
+        ],
+      },
+      {
+        id: "novidades",
+        titulo: "Novidades: o que mudou em cada versão",
+        rotas: ["/novidades"],
+        palavras: ["novidades", "versão", "versao", "atualização", "atualizacao", "notas de atualização", "o que mudou", "mudanças", "changelog"],
+        blocos: [
+          texto("Cada atualização do sistema ganha um número de versão (ex.: 2.3.0) e uma nota dizendo o que mudou, em três partes: Novidades (funções novas), Melhorias (o que ficou mais fácil) e Correções."),
+          passos(
+            "Na tela de início, toque no cartão Novidades. Ele mostra a versão atual e o selo Novo nos primeiros dias depois de uma atualização.",
+            "Ou toque em Versão, no rodapé de qualquer tela do sistema.",
+            "A versão atual aparece no alto, marcada como Atual; as anteriores vêm logo abaixo.",
+          ),
+          dica("O número no rodapé ajuda o suporte: se algo estranho acontecer, diga em qual versão você estava."),
         ],
       },
       {

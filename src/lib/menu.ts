@@ -34,7 +34,8 @@ export type IconeMenu =
   | "modulos"
   | "serraria"
   | "manutencao"
-  | "seguranca";
+  | "seguranca"
+  | "novidades";
 
 /**
  * `etapa`: posição no processo (1 = toras … 4 = pacote). `descricao`: uma linha simples, sem jargão,

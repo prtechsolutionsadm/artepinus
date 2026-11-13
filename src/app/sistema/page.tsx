@@ -12,6 +12,7 @@ import { FaixaPainel } from "@/components/painel";
 import { hojePorExtenso, saudacao } from "@/components/inicio/PecasInicio";
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { Rodape } from "@/components/Rodape";
+import { VERSAO, versaoRecente } from "@/lib/versao";
 import { Sininho } from "@/components/Sininho";
 import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
 import { formatarData, rotuloPerfis, STATUS_PENDENTES } from "@/lib/constantes";
@@ -101,7 +102,7 @@ function CartaoModulo({ modulo, liberado }: { modulo: Modulo; liberado: boolean 
 }
 
 /** Cartão geral da tela de início (ajuda, avisos, administração): ícone, título, uma linha e seta. */
-function CartaoGeral({ href, icone, titulo, texto, selo }: { href: string; icone: IconeMenu; titulo: string; texto: string; selo?: number }) {
+function CartaoGeral({ href, icone, titulo, texto, selo, etiqueta }: { href: string; icone: IconeMenu; titulo: string; texto: string; selo?: number; etiqueta?: string }) {
   const Icone = ICONES[icone];
   return (
     <Link
@@ -117,7 +118,10 @@ function CartaoGeral({ href, icone, titulo, texto, selo }: { href: string; icone
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold text-stone-900">{titulo}</span>
+        <span className="flex items-center gap-2 font-semibold text-stone-900">
+          {titulo}
+          {etiqueta && <span className="rounded-full bg-marca-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-marca-700 ring-1 ring-marca-200">{etiqueta}</span>}
+        </span>
         <span className="block text-sm text-stone-500">{texto}</span>
       </span>
       <ChevronRight className="h-5 w-5 shrink-0 text-stone-400 transition group-hover:translate-x-0.5 group-hover:text-marca-700" aria-hidden />
@@ -129,7 +133,7 @@ function CartaoGeral({ href, icone, titulo, texto, selo }: { href: string; icone
 function TopoSemModulo({ naoLidas, usuarioId }: { naoLidas: number; usuarioId: string }) {
   return (
     <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:px-6 lg:h-16 lg:px-8">
+      <div className="flex h-14 w-full items-center gap-2 px-4 sm:px-6 lg:h-16 lg:px-8">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="Artepinus" className="h-9 w-auto dark:hidden lg:h-10" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -190,7 +194,8 @@ export default async function SistemaPage() {
   // Painel de administração: usuários, auditoria ou os cadastros da Serraria (mesma regra de /administracao)
   const adm = { usuarios: pode(eu.perfil, "usuarios"), cadastros: podeProducao(eu, "gerir"), historico: pode(eu.perfil, "auditoria") };
   const administra = adm.usuarios || adm.cadastros || adm.historico;
-  const partes = [adm.usuarios && "usuários", adm.cadastros && "cadastros", adm.historico && "histórico", "dados do sistema"].filter(Boolean) as string[];
+  const partes = [adm.usuarios && "usuários", adm.cadastros && "cadastros", adm.historico && "histórico"].filter(Boolean) as string[];
+  if (partes.length < 2) partes.push("dados do sistema");
   const textoAdm = `${partes.slice(0, -1).join(", ")} e ${partes.at(-1)}`.replace(/^./, (c) => c.toUpperCase());
 
   // Mesma largura do topo e do conteúdo das telas do sistema (layout do app)
@@ -294,15 +299,22 @@ export default async function SistemaPage() {
             ))}
           </section>
 
-          {/* Funções gerais: ajuda, avisos e administração */}
-          <section aria-label="Geral" className={`mt-4 grid gap-4 sm:grid-cols-2 ${administra ? "lg:grid-cols-3" : ""}`}>
-            <CartaoGeral href="/ajuda" icone="ajuda" titulo="Ajuda" texto="Manual de cada tela, dúvidas e roteiros" />
+          {/* Funções gerais: ajuda, avisos, notas de atualização e administração */}
+          <section aria-label="Geral" className={`mt-4 grid gap-4 sm:grid-cols-2 ${administra ? "xl:grid-cols-4" : "lg:grid-cols-3"}`}>
+            <CartaoGeral href="/ajuda" icone="ajuda" titulo="Ajuda" texto="Manual e dúvidas" />
             <CartaoGeral
               href="/notificacoes"
               icone="notificacoes"
               titulo="Notificações"
-              texto={naoLidas === 0 ? "Nenhum aviso novo" : naoLidas === 1 ? "1 aviso novo para você" : `${naoLidas} avisos novos para você`}
+              texto={naoLidas === 0 ? "Nenhum aviso novo" : naoLidas === 1 ? "1 aviso novo" : `${naoLidas} avisos novos`}
               selo={naoLidas}
+            />
+            <CartaoGeral
+              href="/novidades"
+              icone="novidades"
+              titulo="Novidades"
+              texto={`Versão ${VERSAO}`}
+              etiqueta={versaoRecente() ? "Novo" : undefined}
             />
             {administra && <CartaoGeral href="/administracao" icone="seguranca" titulo="Administração" texto={textoAdm} />}
           </section>
@@ -350,7 +362,7 @@ export default async function SistemaPage() {
       </div>
 
       <div className="nao-imprimir border-t border-stone-200/70">
-        <Rodape className={`${largura} py-5 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:text-left`} />
+        <Rodape novidades className="w-full px-4 py-5 sm:px-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:px-8 lg:text-left" />
       </div>
     </div>
   );

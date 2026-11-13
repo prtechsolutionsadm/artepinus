@@ -3,7 +3,8 @@
 // Uso: npm run manual:validar
 import { GERAL, SERRARIA, MANUTENCAO, GLOSSARIO, PROBLEMAS, type Bloco, type Secao } from "@/lib/manual";
 import { ROTEIROS } from "@/lib/roteiros";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { NOTAS, VERSAO } from "@/lib/versao";
 const secoes: Secao[] = [...GERAL, ...SERRARIA, ...MANUTENCAO];
 const ids = new Map<string, Set<string>>();
 for (const s of secoes) ids.set(s.id, new Set(s.topicos.map((t) => t.id)));
@@ -37,5 +38,14 @@ checarTexto(JSON.stringify(ROTEIROS), "roteiros");
 console.log(`seções ${secoes.length} (geral ${GERAL.length}, serraria ${SERRARIA.length}, manutenção ${MANUTENCAO.length}); tópicos ${secoes.reduce((n, s) => n + s.topicos.length, 0)}; glossário ${GLOSSARIO.length}; problemas ${PROBLEMAS.length}`);
 console.log(`links /ajuda: ${links}; imagens: ${imagens} (faltando arquivo: ${faltaImg.length}); seções duplicadas: ${[...dup].join(",") || "nenhuma"}`);
 if (faltaImg.length) console.log(`Capturas faltando (rode npm run manual:capturas):\n  ` + faltaImg.join("\n  "));
+// Notas de atualização: package.json acompanha a versão atual; versões únicas e em ordem (mais nova primeiro)
+const pacote = JSON.parse(readFileSync("package.json", "utf8")) as { version: string };
+if (pacote.version !== VERSAO) erros.push(`package.json está na versão ${pacote.version}, mas a nota mais nova (src/lib/versao.ts) é ${VERSAO}`);
+const num = (v: string) => v.split(".").map(Number).reduce((a, n) => a * 1000 + n, 0);
+NOTAS.forEach((n, i) => {
+  if (!/^\d+\.\d+\.\d+$/.test(n.versao) || !/^\d{4}-\d{2}-\d{2}$/.test(n.data)) erros.push(`nota ${n.versao}: versão ou data fora do formato`);
+  const prox = NOTAS[i + 1];
+  if (prox && (num(n.versao) <= num(prox.versao) || n.data < prox.data)) erros.push(`nota ${n.versao}: precisa vir antes de ${prox.versao} (mais nova primeiro)`);
+});
 console.log(`ERROS (${erros.length}):\n` + erros.join("\n"));
 if (erros.length) process.exit(1);

@@ -14,6 +14,7 @@ import {
   Settings2,
   ShieldCheck,
   ShoppingCart,
+  Sparkles,
   Trees,
   TreePine,
   Truck,
@@ -71,4 +72,5 @@ export const ICONES: Record<IconeMenu, LucideIcon> = {
   serraria: Factory,
   manutencao: Wrench,
   seguranca: ShieldCheck,
+  novidades: Sparkles,
 };
