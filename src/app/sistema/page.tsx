@@ -21,12 +21,17 @@ import { exigirUsuario } from "@/lib/session";
 export const metadata: Metadata = { title: "Início", robots: { index: false, follow: false } };
 
 const MODULO: Record<Modulo, { icone: IconeMenu; descricao: string }> = {
-  producao: { icone: "serraria", descricao: "Toras, serraria, estufas, pacotes, romaneios e indicadores" },
-  manutencao: { icone: "manutencao", descricao: "Requisições, preventivas, checklists e equipamentos" },
+  producao: {
+    icone: "serraria",
+    descricao:
+      "Acompanha a madeira da tora ao caminhão: recebimento de toras, apontamento da serraria, paradas de máquina, estufas, pacotes com etiqueta QR, expedição com romaneio, pedidos, inventário e indicadores.",
+  },
+  manutencao: {
+    icone: "manutencao",
+    descricao:
+      "Organiza a manutenção da fábrica: abrir e acompanhar requisições (com fotos e máquina parada), atendimento pela equipe, agenda, preventivas, checklists, equipamentos com QR e indicadores.",
+  },
 };
-
-/** Escudo do painel de administração (o mesmo ícone de "seguranca" dos cartões). */
-const IconeAdmin = ICONES.seguranca;
 
 /** Módulo em teste (aparece "Em breve" para todos e abre só para o administrador). */
 const emTeste = (m: Modulo) => !MODULOS_ATIVOS.includes(m) && MODULOS_EM_TESTE.includes(m);
@@ -52,7 +57,7 @@ type Numero = { href: string; Icone: LucideIcon; n: number; rotulo: string; aler
  * Cartão de um módulo: ícone, nome, uma linha, o resumo do momento (chips que abrem a lista) e "Acessar".
  * Sem acesso fica tracejado, com o motivo no rodapé (ex.: Em breve).
  */
-function CartaoModulo({ modulo, liberado, numeros }: { modulo: Modulo; liberado: boolean; numeros: Numero[] }) {
+function CartaoModulo({ modulo, liberado }: { modulo: Modulo; liberado: boolean }) {
   const Icone = ICONES[MODULO[modulo].icone];
   const cabeca = (
     <div className="flex items-start gap-4">
@@ -66,7 +71,7 @@ function CartaoModulo({ modulo, liberado, numeros }: { modulo: Modulo; liberado:
           <h2 className={`text-lg font-semibold ${liberado ? "text-stone-900" : "text-stone-500"}`}>{MODULOS[modulo].nome}</h2>
           <Selo modulo={modulo} liberado={liberado} />
         </div>
-        <p className="mt-0.5 text-sm text-stone-500">{MODULO[modulo].descricao}</p>
+        <p className="mt-1 text-sm leading-relaxed text-stone-600">{MODULO[modulo].descricao}</p>
       </div>
     </div>
   );
@@ -82,23 +87,6 @@ function CartaoModulo({ modulo, liberado, numeros }: { modulo: Modulo; liberado:
   return (
     <div className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md">
       {cabeca}
-      {numeros.length > 0 && (
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {numeros.map(({ href, Icone: I, n, rotulo, alerta }) => (
-            <li key={href + rotulo}>
-              <Link
-                href={href}
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition ${
-                  alerta ? "bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100" : "bg-stone-50 text-stone-700 ring-stone-200 hover:bg-stone-100"
-                }`}
-              >
-                <I className="h-4 w-4 shrink-0" aria-hidden />
-                <b className="font-semibold tabular-nums">{n}</b> {rotulo}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
       <div className="flex-1" />
       <Link
         href={MODULOS[modulo].inicio}
@@ -108,6 +96,31 @@ function CartaoModulo({ modulo, liberado, numeros }: { modulo: Modulo; liberado:
         <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
       </Link>
     </div>
+  );
+}
+
+/** Cartão geral da tela de início (ajuda, avisos, administração): ícone, título, uma linha e seta. */
+function CartaoGeral({ href, icone, titulo, texto, selo }: { href: string; icone: IconeMenu; titulo: string; texto: string; selo?: number }) {
+  const Icone = ICONES[icone];
+  return (
+    <Link
+      href={href}
+      className="group flex h-full items-center gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500"
+    >
+      <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-marca-50 text-marca-700 ring-1 ring-marca-100">
+        <Icone className="h-5 w-5" aria-hidden />
+        {!!selo && (
+          <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+            {selo > 99 ? "99+" : selo}
+          </span>
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-stone-900">{titulo}</span>
+        <span className="block text-sm text-stone-500">{texto}</span>
+      </span>
+      <ChevronRight className="h-5 w-5 shrink-0 text-stone-400 transition group-hover:translate-x-0.5 group-hover:text-marca-700" aria-hidden />
+    </Link>
   );
 }
 
@@ -168,7 +181,7 @@ export default async function SistemaPage() {
       alerta: urgentes > 0,
     },
   ].filter(Boolean) as Numero[];
-  const numerosDe: Record<Modulo, Numero[]> = { producao: numerosSerraria, manutencao: numerosManutencao };
+  const numeros = [...numerosSerraria, ...numerosManutencao];
 
   const ordem = Object.keys(MODULOS) as Modulo[];
   const algum = ordem.some((m) => temModulo(eu, m));
@@ -213,29 +226,44 @@ export default async function SistemaPage() {
             subtitulo={algum ? "Escolha um módulo para começar" : "Assim que o gerente liberar o seu acesso, os módulos aparecem aqui"}
           />
 
-          {/* Os dois módulos, cada um com o resumo do momento */}
+          {/* Resumo do momento dos módulos que a pessoa usa */}
+          {numeros.length > 0 && (
+            <ul className="mt-4 flex flex-wrap justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgb(16_24_16/0.04)]">
+              {numeros.map(({ href, Icone: I, n, rotulo, alerta }) => (
+                <li key={href + rotulo}>
+                  <Link
+                    href={href}
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition ${
+                      alerta ? "bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100" : "bg-stone-50 text-stone-700 ring-stone-200 hover:bg-stone-100"
+                    }`}
+                  >
+                    <I className="h-4 w-4 shrink-0" aria-hidden />
+                    <b className="font-semibold tabular-nums">{n}</b> {rotulo}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Os dois módulos, com o que cada um faz */}
           <section aria-label="Módulos" className="mt-4 grid gap-4 lg:grid-cols-2">
             {ordem.map((m) => (
-              <CartaoModulo key={m} modulo={m} liberado={temModulo(eu, m)} numeros={numerosDe[m]} />
+              <CartaoModulo key={m} modulo={m} liberado={temModulo(eu, m)} />
             ))}
           </section>
 
-          {/* Administração: usuários, cadastros, histórico e dados do sistema */}
-          {administra && (
-            <Link
-              href="/administracao"
-              className="group mt-4 flex items-center gap-4 rounded-2xl border border-marca-200 bg-linear-to-r from-marca-50 via-white to-white p-4 shadow-[0_1px_2px_rgb(16_24_16/0.04)] transition hover:border-marca-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca-500"
-            >
-              <span className="fundo-marca grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md shadow-marca-900/20">
-                <IconeAdmin className="h-5 w-5" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-stone-900">Administração</span>
-                <span className="block text-sm text-stone-500">{textoAdm}</span>
-              </span>
-              <ChevronRight className="h-5 w-5 shrink-0 text-marca-700 transition group-hover:translate-x-0.5" aria-hidden />
-            </Link>
-          )}
+          {/* Funções gerais: ajuda, avisos e administração */}
+          <section aria-label="Geral" className={`mt-4 grid gap-4 sm:grid-cols-2 ${administra ? "lg:grid-cols-3" : ""}`}>
+            <CartaoGeral href="/ajuda" icone="ajuda" titulo="Ajuda" texto="Manual de cada tela, dúvidas e roteiros" />
+            <CartaoGeral
+              href="/notificacoes"
+              icone="notificacoes"
+              titulo="Notificações"
+              texto={naoLidas === 0 ? "Nenhum aviso novo" : naoLidas === 1 ? "1 aviso novo para você" : `${naoLidas} avisos novos para você`}
+              selo={naoLidas}
+            />
+            {administra && <CartaoGeral href="/administracao" icone="seguranca" titulo="Administração" texto={textoAdm} />}
+          </section>
 
           {!temPergunta && (
             <Link

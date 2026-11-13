@@ -137,20 +137,21 @@ export const GERAL: Secao[] = [
           texto("Depois de entrar, abre a tela de início do sistema. O app instalado também abre sempre por ela. De cima para baixo:"),
           termos(
             ["Faixa verde", "Olá, com o seu nome."],
+            ["Resumo do momento", "Logo abaixo da faixa: máquinas paradas, estufas secando e pacotes em estoque (Serraria) e requisições abertas e de prioridade alta ou urgente (Manutenção), só dos módulos que você usa. Vermelho pede atenção. Toque num número para abrir a lista."],
             [
               "Serraria e Manutenção",
               ATIVA
-                ? "Um cartão para cada módulo, com o resumo do momento: na Serraria, máquinas paradas, estufas secando e pacotes em estoque; na Manutenção, requisições abertas e as de prioridade alta ou urgente (vermelho pede atenção). Toque num número para abrir a lista ou em Abrir a Serraria / Abrir a Manutenção. Quem não usa um módulo vê o cartão dele tracejado, com Sem acesso: fale com o gerente."
-                : "Um cartão para cada módulo, com o resumo do momento: na Serraria, máquinas paradas, estufas secando e pacotes em estoque (vermelho pede atenção). Toque num número para abrir a lista ou em Abrir a Serraria. A Manutenção ainda está em teste: aparece tracejada, com Em breve (só o administrador abre, com o selo Em teste).",
+                ? "Um cartão para cada módulo, dizendo o que ele faz. Toque em Abrir a Serraria ou Abrir a Manutenção. Quem não usa um módulo vê o cartão dele tracejado, com Sem acesso: fale com o gerente."
+                : "Um cartão para cada módulo, dizendo o que ele faz. Toque em Abrir a Serraria. A Manutenção ainda está em teste: aparece tracejada, com Em breve (só o administrador abre, com o selo Em teste).",
             ],
-            ["Administração", "Cartão largo embaixo dos módulos, só para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria: abre o Painel Administrativo. Veja “Painel Administrativo” (/ajuda/navegacao#painel-administrativo)."],
+            ["Ajuda, Notificações e Administração", "Os cartões gerais: o manual do sistema, os seus avisos (com o número dos novos) e, para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria, o Painel Administrativo (/ajuda/navegacao#painel-administrativo)."],
             ["Cadastre a sua pergunta de segurança", "Faixa amarela no fim, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
           ),
           texto("Seu usuário ainda não tem acesso a nenhum módulo? A tela avisa: fale com o gerente para ele escolher o seu perfil."),
           texto(
-            "Esta tela não tem o ← Voltar: dela você vai para um módulo ou para o Painel Administrativo. Manual, Meu perfil e avisos ficam nos botões do topo. Para voltar a ela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita), que aparece para quem usa mais de um módulo ou tem o Painel Administrativo; no celular, em Mais › Módulos (para quem usa os dois módulos). Os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
+            "Esta tela não tem o ← Voltar: dela você vai para um módulo, para a ajuda, para os avisos ou para o Painel Administrativo. Para voltar a ela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita), que aparece para quem usa mais de um módulo ou tem o Painel Administrativo; no celular, em Mais › Módulos (para quem usa os dois módulos). Os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
           ),
-          imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: os dois módulos com o resumo do momento e o painel de Administração.", rota: "/sistema", perfil: "supervisor" }),
+          imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: o resumo do momento, os dois módulos e os cartões de Ajuda, Notificações e Administração.", rota: "/sistema", perfil: "supervisor" }),
         ],
       },
       {
