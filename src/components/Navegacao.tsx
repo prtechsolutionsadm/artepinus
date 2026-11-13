@@ -146,7 +146,7 @@ export function TopoApp({
       {/* Largura total: logo/Voltar encostados à esquerda e os ícones à direita (pedido do cliente) */}
       <div className={`flex h-14 w-full items-center gap-2 px-4 sm:px-6 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)_minmax(0,1fr)] lg:gap-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,21rem)_minmax(0,1fr)]`}>
         <div className="flex min-w-0 items-center gap-4">
-          <Link href={inicio} aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`} className={`shrink-0 rounded-md ${semMenuLateral ? "" : "lg:hidden"}`}>
+          <Link href="/sistema" aria-label="Artepinus: tela de início" className={`shrink-0 rounded-md ${semMenuLateral ? "" : "lg:hidden"}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="" className="h-9 w-auto dark:hidden lg:h-10" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -268,7 +268,7 @@ export function MenuLateral({ menus, salvo }: { menus: Menus; salvo: Modulo | nu
 
   return (
     <aside className="nao-imprimir fixed inset-y-0 left-0 z-30 hidden w-[var(--largura-menu)] flex-col border-r border-stone-200 bg-white transition-[width] duration-200 lg:flex">
-      <Link href={inicio} className="flex h-16 shrink-0 items-center px-5" aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`}>
+      <Link href="/sistema" className="flex h-16 shrink-0 items-center px-5" aria-label="Artepinus: tela de início">
         <span className="menu-texto">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="" className="h-10 w-auto dark:hidden" />

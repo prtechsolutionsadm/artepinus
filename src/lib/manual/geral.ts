@@ -150,7 +150,7 @@ export const GERAL: Secao[] = [
           ),
           texto("Seu usuário ainda não tem acesso a nenhum módulo? A tela avisa: fale com o gerente para ele escolher o seu perfil."),
           texto(
-            "Esta tela não tem o ← Voltar: dela você vai para um módulo, para a ajuda, para os avisos ou para o Painel Administrativo. Para voltar a ela depois: no computador, toque em Módulos (o ícone de quadradinhos no topo, à direita), que aparece para quem usa mais de um módulo ou tem o Painel Administrativo; no celular, em Mais › Módulos (para quem usa os dois módulos). Os outros usam o logo do topo, que leva ao Início do módulo. Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
+            "Esta tela não tem o ← Voltar: dela você vai para um módulo, para a ajuda, para os avisos ou para o Painel Administrativo. Para voltar a ela depois, toque no logo ARTEPINUS (no computador, também em Módulos, o ícone de quadradinhos no topo, à direita; no celular, também em Mais › Módulos). Veja “Trocar de módulo” (/ajuda/navegacao#trocar-de-modulo).",
           ),
           imagem({ arquivo: "geral/sistema.webp", legenda: "Tela de início: o resumo do momento, os dois módulos e os cartões de Ajuda, Notificações e Administração.", rota: "/sistema", perfil: "supervisor" }),
         ],
@@ -217,7 +217,7 @@ export const GERAL: Secao[] = [
         blocos: [
           texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No rodapé dele, o cartão do módulo leva à tela de início, para trocar de módulo. O botão Recolher menu, logo acima do cartão, deixa só os ícones (o nome aparece ao passar o mouse); toque de novo para abrir. O sistema lembra a escolha neste aparelho. O resto fica no topo, sempre igual em todas as telas:"),
           termos(
-            ["Logo ARTEPINUS", "No alto do menu à esquerda. Volta ao Início do módulo em que você está."],
+            ["Logo ARTEPINUS", "No alto do menu à esquerda. Volta à tela de início do sistema (a dos módulos)."],
             [
               "← Voltar",
               "No canto esquerdo do topo. Volta para a tela de cima: do detalhe para a lista (ex.: do ciclo para Estufas) e da lista para o Início do módulo. Usuários e Auditoria voltam ao Painel Administrativo, e o Painel volta à tela de início. Se você veio dessa tela, ela volta como estava, com os mesmos filtros. Não aparece no Início dos módulos nem na tela de início do sistema.",
@@ -321,7 +321,7 @@ export const GERAL: Secao[] = [
         palavras: ["celular", "barra de baixo", "barra inferior", "mais", "menu", "topo", "iniciais", "lupa", "botão do meio", "sua conta", "sair", "tema"],
         blocos: [
           termos(
-            ["Topo", "O logo ARTEPINUS volta ao Início. À direita ficam a lupa (busca), o botão do tema, o botão de ajuda (?), que abre a ajuda da tela em que você está, o sininho e as suas iniciais, que abrem Meu perfil."],
+            ["Topo", "O logo ARTEPINUS volta à tela de início do sistema. À direita ficam a lupa (busca), o botão do tema, o botão de ajuda (?), que abre a ajuda da tela em que você está, o sininho e as suas iniciais, que abrem Meu perfil."],
             ["Barra de baixo", "Os atalhos principais do módulo em uso, com o botão redondo do meio em destaque. A tela em que você está fica verde."],
             [
               "Mais",
