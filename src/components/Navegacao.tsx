@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFecharAoClicarFora } from "@/components/useFecharAoClicarFora";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Flame, House, LayoutGrid, Package, Plus, QrCode, Search, UserRound, type LucideIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Flame, House, LayoutGrid, Package, Plus, QrCode, Search, UserRound, type LucideIcon } from "lucide-react";
+import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
 import { ICONES } from "@/components/icones";
-import { COOKIE_MODULO, TITULO_CONTA, iniciais, itemAtivo, moduloDaRota, type GrupoNav, type ItemNav } from "@/lib/menu";
+import { Sininho } from "@/components/Sininho";
+import { BotaoTema } from "@/components/Tema";
+import { COOKIE_MODULO, iniciais, itemAtivo, moduloDaRota, type GrupoNav } from "@/lib/menu";
 import { MODULOS, type Modulo } from "@/lib/permissoes";
 
 type Usuario = { nome: string; perfilLabel: string };
@@ -56,200 +59,152 @@ function TrocaModulo({ menus, modulo }: { menus: Menus; modulo: Modulo }) {
   );
 }
 
-/**
- * Item do menu da tela atual: o que bate exatamente ou, nas telas internas (ex.: /producao/boletins/novo),
- * o de caminho mais longo que é prefixo. Daí sai o grupo destacado no topo e as abas mostradas.
- */
-function itemDaTela(grupos: GrupoNav[], path: string, inicio: string) {
-  const comTitulo = grupos.filter((g) => g.titulo && g.titulo !== TITULO_CONTA);
-  const itens = comTitulo.flatMap((g) => g.itens.map((i) => ({ g, i })));
-  const exato = itens.find(({ i }) => itemAtivo(path, i.href));
-  const prefixo = itens.filter(({ i }) => i.href !== inicio && path.startsWith(i.href + "/")).sort((a, b) => b.i.href.length - a.i.href.length)[0];
-  const achado = exato ?? prefixo;
-  return { grupo: achado?.g, href: achado?.i.href, mostrar: achado?.g ?? comTitulo[0] };
+/** Pais que não são telas: sobe mais um nível (ex.: /producao/estufas/ciclos/5 → Estufas). */
+const PAIS: Record<string, string> = {
+  "/producao/estufas/ciclos": "/producao/estufas",
+  "/producao/lotes": "/producao/boletins",
+  "/ajuda/tela": "/ajuda",
+  "/q": "",
+};
+
+/** Tela de cima da atual (detalhe → lista → início do módulo); as telas comuns voltam ao início do módulo. */
+function telaDeCima(path: string, inicio: string) {
+  const acima = path.replace(/\/[^/]*$/, "");
+  const pai = PAIS[acima] ?? acima;
+  return pai && pai !== "/" ? pai : inicio;
 }
 
-/**
- * Navegação do computador: menu lateral fixo com a busca, os grupos do processo
- * (Operação, Gestão, Cadastros), a conta e a troca de módulo. No celular continua a barra inferior.
- */
-export function MenuLateral({
-  menus,
-  salvo,
-}: {
-  menus: Menus;
-  salvo: Modulo | null;
-  sair: () => Promise<void>;
-  usuarioId: string;
-}) {
+/** Usuário no topo do computador (iniciais + primeiro nome ▾): só Meu perfil e Sair. */
+function MenuUsuario({ usuario, sair, usuarioId }: { usuario: Usuario; sair: () => Promise<void>; usuarioId: string }) {
   const path = usePathname();
-  const modulo = useModulo(menus, salvo);
-  const inicio = MODULOS[modulo].inicio;
-  const grupos = menus[modulo] ?? [];
-  // Só as telas do módulo: perfil, sair, avisos, manual e tema ficam no topo (ícones e menu do usuário)
-  const processo = grupos.filter((g) => g.titulo && g.titulo !== TITULO_CONTA);
-  const { href: hrefAtivo } = itemDaTela(grupos, path, inicio);
-  const disponiveis = Object.keys(menus) as Modulo[];
-
-  const item = (i: ItemNav, ativo: boolean) => (
-    <Link
-      key={i.href}
-      href={i.href}
-      aria-current={ativo ? "page" : undefined}
-      className={`group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${
-        ativo ? "fundo-marca text-white shadow-md shadow-marca-900/20" : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-      }`}
-    >
-      {(() => {
-        const Icone = ICONES[i.icone];
-        return <Icone className={`h-[18px] w-[18px] shrink-0 ${ativo ? "text-white" : "text-stone-400 group-hover:text-stone-600"}`} strokeWidth={2} />;
-      })()}
-      <span className="min-w-0 flex-1 truncate">{i.label}</span>
-      {i.etapa && (
-        <span
-          className={`grid h-5 min-w-5 place-items-center rounded-md px-1 text-[10px] font-bold tabular-nums ${ativo ? "bg-white/20 text-white" : "bg-stone-100 text-stone-500"}`}
-          title={`Etapa ${i.etapa} do processo`}
-        >
-          {i.etapa}
-        </span>
-      )}
-    </Link>
-  );
-
-  const titulo = (t: string) => <p className="mb-1.5 mt-5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-stone-400">{t}</p>;
-
+  const [aberto, setAberto] = useState(false);
+  const caixa = useRef<HTMLDivElement>(null);
+  const fechar = useCallback(() => setAberto(false), []);
+  useFecharAoClicarFora(aberto, caixa, fechar);
+  useEffect(() => setAberto(false), [path]);
+  const primeiro = usuario.nome.trim().split(/\s+/)[0];
   return (
-    <aside className="nao-imprimir fixed inset-y-0 left-0 z-30 hidden w-[17rem] flex-col border-r border-stone-200 bg-white lg:flex">
-      <Link href={inicio} className="flex h-16 shrink-0 items-center px-5" aria-label="Artepinus · início">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="Artepinus" className="h-10 w-auto dark:hidden" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-branco.svg" alt="Artepinus" className="hidden h-10 w-auto dark:block" />
-      </Link>
-      <div className="shrink-0 px-4 pb-1">
-        <BuscaTopo menus={menus} salvo={salvo} />
-      </div>
-
-      <nav aria-label="Menu principal" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 [scrollbar-width:thin]">
-        {titulo(MODULOS[modulo].nome)}
-        <div className="space-y-0.5">{item({ href: inicio, label: "Início", icone: "inicio" }, path === inicio)}</div>
-        {processo.map((g) => (
-          <div key={g.titulo}>
-            {titulo(g.titulo)}
-            <div className="space-y-0.5">{g.itens.map((i) => item(i, i.href === hrefAtivo))}</div>
+    <div ref={caixa} className="relative ml-1 hidden lg:block">
+      <button
+        type="button"
+        aria-label={`Menu do usuário: ${usuario.nome}`}
+        aria-expanded={aberto}
+        onClick={() => setAberto(!aberto)}
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-stone-100"
+      >
+        <span className="fundo-marca grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white">{iniciais(usuario.nome)}</span>
+        <span className="max-w-[8rem] truncate text-sm font-semibold text-stone-800">{primeiro}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-stone-400 transition ${aberto ? "rotate-180" : ""}`} />
+      </button>
+      {aberto && (
+        <div className="absolute right-0 top-12 z-40 w-72 overflow-hidden rounded-2xl border border-stone-200 bg-white py-1 text-stone-700 shadow-xl">
+          <div className="border-b border-stone-100 px-4 py-3">
+            <div className="truncate text-sm font-semibold text-stone-900">{usuario.nome}</div>
+            {usuario.perfilLabel && <div className="text-xs text-stone-500">{usuario.perfilLabel}</div>}
           </div>
-        ))}
-      </nav>
-
-      {/* Módulo em uso e troca de módulo */}
-      <div className="shrink-0 border-t border-stone-100 p-3">
-        <Link href="/sistema" className="flex items-center gap-3 rounded-xl bg-stone-50 px-3 py-2.5 ring-1 ring-stone-200 transition hover:bg-stone-100">
-          <span className="fundo-marca grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white">
-            <LayoutGrid className="h-4 w-4" />
-          </span>
-          <span className="min-w-0 flex-1 leading-tight">
-            <span className="block truncate text-sm font-semibold text-stone-900">Módulo {MODULOS[modulo].nome}</span>
-            <span className="block truncate text-[11px] text-stone-500">{disponiveis.length > 1 ? "Trocar de módulo" : "Ver os módulos"}</span>
-          </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-stone-400" />
-        </Link>
-        <p className="mt-2 px-1 text-[10px] text-stone-400">© {new Date().getFullYear()} Artepinus · PR Tech Solutions</p>
-      </div>
-    </aside>
+          {/* Tema, ajuda, avisos e módulos já são os ícones ao lado */}
+          <Link href="/perfil" className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-stone-50">
+            <UserRound className="h-4 w-4 text-stone-400" /> Meu perfil
+          </Link>
+          <div className="my-1 border-t border-stone-100" />
+          <BotaoSair sair={sair} usuarioId={usuarioId} variante="item" />
+        </div>
+      )}
+    </div>
   );
 }
 
 /**
- * Topo da área de conteúdo no computador: voltar/avançar, o caminho da tela atual
- * (módulo › grupo › tela) e, à direita, tema, manual, avisos e o usuário.
+ * Topo do sistema (um só, para celular e computador), no centro da tela como o conteúdo.
+ * Computador: logo (início do módulo) e "← Voltar" (fora das telas iniciais) · busca no meio ·
+ * módulos, tema, ajuda, avisos e o usuário (Meu perfil / Sair) à direita.
+ * Celular: logo · lupa, tema, ajuda, avisos e o avatar (Meu perfil); o resto fica na barra de baixo.
  */
-export function TopoComputador({
+export function TopoApp({
   menus,
   salvo,
   usuario,
   sair,
   usuarioId,
-  acoes,
+  naoLidas,
+  mostrarModulos,
 }: {
   menus: Menus;
   salvo: Modulo | null;
   usuario: Usuario;
   sair: () => Promise<void>;
   usuarioId: string;
-  /** Tema, manual e sininho (lado direito). */
-  acoes: React.ReactNode;
+  naoLidas: number;
+  /** Botão "Módulos" (/sistema): para quem usa mais de um módulo ou administra usuários/auditoria. */
+  mostrarModulos: boolean;
 }) {
   const path = usePathname();
+  const router = useRouter();
   const modulo = useModulo(menus, salvo);
   const inicio = MODULOS[modulo].inicio;
-  const grupos = menus[modulo] ?? [];
-  const conta = grupos.find((g) => g.titulo === TITULO_CONTA)?.itens ?? [];
-  const { grupo, href } = itemDaTela(grupos, path, inicio);
-  const atual = grupo?.itens.find((i) => i.href === href) ?? conta.find((i) => itemAtivo(path, i.href));
-  const [menuUsuario, setMenuUsuario] = useState(false);
-  const caixaUsuario = useRef<HTMLDivElement>(null);
-  const fecharUsuario = useCallback(() => setMenuUsuario(false), []);
-  useFecharAoClicarFora(menuUsuario, caixaUsuario, fecharUsuario);
-  useEffect(() => setMenuUsuario(false), [path]);
+  const naInicio = Object.values(MODULOS).some((m) => m.inicio === path);
+  const destino = telaDeCima(path, inicio);
 
-  const seta = "grid h-8 w-8 place-items-center rounded-lg text-stone-500 ring-1 ring-stone-200 transition hover:bg-stone-50 hover:text-stone-800";
+  // Tela anterior dentro do sistema: se for a de cima, o Voltar usa o histórico (mantém filtros e rolagem)
+  const atual = useRef(path);
+  const anterior = useRef<string | null>(null);
+  useEffect(() => {
+    if (atual.current === path) return;
+    anterior.current = atual.current;
+    atual.current = path;
+  }, [path]);
+
   return (
-    <header className="nao-imprimir sticky top-0 z-20 hidden border-b border-stone-200 bg-white/90 backdrop-blur lg:block">
-      <div className="flex h-16 items-center gap-3 px-8">
-        <div className="flex gap-1.5">
-          <button type="button" onClick={() => history.back()} className={seta} aria-label="Voltar" title="Voltar">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button type="button" onClick={() => history.forward()} className={seta} aria-label="Avançar" title="Avançar">
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-        <nav aria-label="Você está em" className="ml-2 flex min-w-0 items-center gap-1.5 text-sm">
-          <Link href={inicio} className="shrink-0 text-stone-500 hover:text-stone-900">
-            {MODULOS[modulo].nome}
+    <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      {/* Mesma largura e margens do <main> (layout do app) */}
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:px-6 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)_minmax(0,1fr)] lg:gap-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,21rem)_minmax(0,1fr)]">
+        <div className="flex min-w-0 items-center gap-4">
+          <Link href={inicio} aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`} className="shrink-0 rounded-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="" className="h-9 w-auto dark:hidden lg:h-10" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-branco.svg" alt="" className="hidden h-9 w-auto dark:block lg:h-10" />
           </Link>
-          {grupo && (
+          {!naInicio && (
             <>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-stone-300" />
-              <span className="shrink-0 text-stone-500">{grupo.titulo}</span>
+              <span aria-hidden className="hidden h-6 w-px bg-stone-200 lg:block" />
+              <Link
+                href={destino}
+                onClick={(e) => {
+                  if (anterior.current !== destino || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  router.back();
+                }}
+                className="hidden items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium text-stone-500 transition hover:bg-stone-100 hover:text-stone-900 lg:inline-flex"
+              >
+                <ArrowLeft className="h-4 w-4" /> Voltar
+              </Link>
             </>
           )}
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-stone-300" />
-          <span className="truncate font-semibold text-stone-900">{path === inicio ? "Início" : (atual?.label ?? "Página")}</span>
-        </nav>
+        </div>
 
-        <div className="ml-auto flex items-center gap-1.5">
-          {acoes}
-          <div ref={caixaUsuario} className="relative ml-1.5">
-            <button
-              type="button"
-              aria-label="Menu do usuário"
-              onClick={() => setMenuUsuario(!menuUsuario)}
-              aria-expanded={menuUsuario}
-              className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2.5 transition hover:bg-stone-100"
-            >
-              <span className="fundo-marca grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white">{iniciais(usuario.nome)}</span>
-              <span className="hidden max-w-[11rem] text-left leading-tight xl:block">
-                <span className="block truncate text-sm font-semibold text-stone-800">{usuario.nome.split(" ").slice(0, 2).join(" ")}</span>
-                {usuario.perfilLabel && <span className="block truncate text-[11px] text-stone-500">{usuario.perfilLabel}</span>}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
-            </button>
-            {menuUsuario && (
-              <div className="absolute right-0 top-12 z-40 w-72 overflow-hidden rounded-2xl border border-stone-200 bg-white py-1 text-stone-700 shadow-xl">
-                <div className="border-b border-stone-100 px-4 py-3">
-                  <div className="truncate text-sm font-semibold text-stone-900">{usuario.nome}</div>
-                  <div className="truncate text-xs text-stone-500">{usuario.perfilLabel}</div>
-                </div>
-                {/* Avisos, manual e tema já são os ícones ao lado; o módulo troca no rodapé do menu lateral */}
-                <Link href="/perfil" className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-stone-50">
-                  <UserRound className="h-4 w-4 text-stone-400" /> Meu perfil
-                </Link>
-                <div className="my-1 border-t border-stone-100" />
-                <BotaoSair sair={sair} usuarioId={usuarioId} variante="item" />
-              </div>
-            )}
-          </div>
+        <div className="hidden lg:block">
+          <BuscaTopo menus={menus} salvo={salvo} />
+        </div>
+
+        <div className="ml-auto flex items-center lg:gap-1 lg:justify-self-end xl:gap-1.5">
+          <BuscaTopo menus={menus} salvo={salvo} celular />
+          {mostrarModulos && (
+            <Link href="/sistema" aria-label="Módulos" title="Ver os módulos" className="hidden h-10 w-10 shrink-0 place-items-center rounded-full text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 lg:grid">
+              <LayoutGrid className="h-5 w-5" />
+            </Link>
+          )}
+          <BotaoTema />
+          <BotaoAjuda />
+          <Sininho naoLidasInicial={naoLidas} />
+          <MenuUsuario usuario={usuario} sair={sair} usuarioId={usuarioId} />
+          <Link
+            href="/perfil"
+            aria-label="Meu perfil"
+            className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-marca-100 text-xs font-semibold text-marca-700 lg:hidden"
+          >
+            {iniciais(usuario.nome)}
+          </Link>
         </div>
       </div>
     </header>
@@ -317,7 +272,7 @@ export function BarraInferior({ menus, salvo }: { menus: Menus; salvo: Modulo | 
   );
 }
 
-/** Busca do menu lateral (computador, atalho "/") e lupa do topo (celular e tablet): na Serraria vai para
+/** Busca no meio do topo (computador, atalho "/") e lupa do topo (celular e tablet): na Serraria vai para
  * /producao/buscar (pacote, lote, carga…); na Manutenção, para /requisicoes. */
 export function BuscaTopo({ menus, salvo, celular = false }: { menus: Menus; salvo: Modulo | null; celular?: boolean }) {
   const modulo = useModulo(menus, salvo);
@@ -330,7 +285,7 @@ export function BuscaTopo({ menus, salvo, celular = false }: { menus: Menus; sal
     const tecla = (e: KeyboardEvent) => {
       const alvo = e.target as HTMLElement;
       if (e.key !== "/" || e.ctrlKey || e.metaKey || alvo.closest("input, textarea, select, [contenteditable=true]")) return;
-      // Campo oculto (menu lateral escondido abaixo de lg): não engole a tecla
+      // Campo oculto (a busca do topo some abaixo de lg): não engole a tecla
       const el = campo.current;
       if (!el || el.getClientRects().length === 0) return;
       e.preventDefault();

@@ -3,15 +3,16 @@ import Link from "next/link";
 import { sair } from "@/app/actions/auth";
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
-import { BarraInferior, BuscaTopo, MenuLateral, TopoComputador } from "@/components/Navegacao";
+import { BarraInferior, TopoApp } from "@/components/Navegacao";
+import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
-import { Sininho } from "@/components/Sininho";
-import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
+import { SCRIPT_TEMA, TemaApp } from "@/components/Tema";
 import { rotuloPerfis } from "@/lib/constantes";
 import { db } from "@/lib/db";
-import { COOKIE_MODULO, iniciais, menusDoUsuario, moduloSalvo } from "@/lib/menu";
-import { exigirUsuario, inicioDe } from "@/lib/session";
+import { COOKIE_MODULO, menusDoUsuario, moduloSalvo } from "@/lib/menu";
+import { pode } from "@/lib/permissoes";
+import { exigirUsuario } from "@/lib/session";
 
 import type { Metadata } from "next";
 
@@ -51,58 +52,40 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
   const naoLidas = await db.notificacao.count({ where: { usuarioId: eu.id, lida: false } });
+  // Botão "Módulos" do topo: só para quem tem o que escolher em /sistema (outro módulo ou a administração)
+  const mostrarModulos = Object.keys(menus).length > 1 || pode(eu.perfil, "usuarios") || pode(eu.perfil, "auditoria");
 
+  // Largura do conteúdo: a mesma do topo (TopoApp), centralizada, sem menu lateral
+  const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col">
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <TemaApp />
-      {/* Computador: menu lateral + topo com o caminho da tela */}
-      <MenuLateral menus={menus} salvo={salvo} sair={sair} usuarioId={eu.id} />
+      <MedidaRolagem />
+      <TopoApp
+        menus={menus}
+        salvo={salvo}
+        usuario={{ nome: eu.nome, perfilLabel }}
+        sair={sair}
+        usuarioId={eu.id}
+        naoLidas={naoLidas}
+        mostrarModulos={mostrarModulos}
+      />
 
-      {/* Celular e tablet: topo simples + barra inferior */}
-      <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6">
-          <Link href={inicioDe(eu)} className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/marca.svg" alt="" className="h-7 w-auto dark:hidden" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/marca-branca.svg" alt="" className="hidden h-7 w-auto dark:block" />
-            <span className="font-serif text-lg font-bold italic tracking-wide text-[#177009] dark:text-white">ARTEPINUS</span>
-          </Link>
-          <div className="ml-auto flex items-center gap-1">
-            <BuscaTopo menus={menus} salvo={salvo} celular />
-            {/* No celular estreito o tema fica em Mais e em Meu perfil; a ajuda da tela fica sempre à mão */}
-            <BotaoTema className="hidden sm:grid" />
-            <BotaoAjuda />
-            <Sininho naoLidasInicial={naoLidas} />
-            <Link href="/perfil" aria-label="Meu perfil" className="ml-1 grid h-9 w-9 place-items-center rounded-full bg-marca-100 text-sm font-semibold text-marca-700">
-              {iniciais(eu.nome)}
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="lg:pl-[17rem]">
-        <TopoComputador
-          menus={menus}
-          salvo={salvo}
-          usuario={{ nome: eu.nome, perfilLabel }}
-          sair={sair}
-          usuarioId={eu.id}
-          acoes={
-            <>
-              <BotaoTema />
-              <BotaoAjuda />
-              <Sininho naoLidasInicial={naoLidas} />
-            </>
-          }
-        />
-        <main className="mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-8 lg:pt-7 2xl:max-w-[1500px]">
+      {/* overflow-x-clip: a FaixaPainel sai do container até as bordas sem criar rolagem lateral
+          (clip, e não hidden, para não quebrar os elementos sticky das páginas) */}
+      <div className="flex-1 overflow-x-clip">
+        {/* Avisos da fila offline fora do <main>: a faixa verde das telas iniciais encosta no topo sem cobri-los */}
+        <div className={`${largura} nao-imprimir pt-4 empty:hidden`}>
           <SincronizadorOffline usuarioId={eu.id} nome={eu.nome} />
-          {children}
-          {/* No computador os créditos ficam no menu lateral */}
-          <Rodape className="nao-imprimir mt-12 border-t border-stone-200/70 pt-6 lg:hidden" />
-        </main>
+        </div>
+        {/* pt-5/lg:pt-7: a FaixaPainel desconta exatamente esse respiro (-mt-5/lg:-mt-7) */}
+        <main className={`${largura} pb-10 pt-5 lg:pt-7`}>{children}</main>
+      </div>
+
+      {/* Créditos (celular e computador); no celular, acima da barra de baixo */}
+      <div className="nao-imprimir border-t border-stone-200/70 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <Rodape className={`${largura} py-5 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:text-left`} />
       </div>
 
       <BarraInferior menus={menus} salvo={salvo} />
