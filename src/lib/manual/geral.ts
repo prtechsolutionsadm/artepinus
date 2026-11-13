@@ -215,9 +215,9 @@ export const GERAL: Secao[] = [
           "onde está o menu",
         ],
         blocos: [
-          texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No rodapé dele, o cartão do módulo leva à tela de início, para trocar de módulo. O botão Recolher menu, logo acima do cartão, deixa só os ícones (o nome aparece ao passar o mouse); toque de novo para abrir. O sistema lembra a escolha neste aparelho. O resto fica no topo, sempre igual em todas as telas:"),
+          texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No alto, as árvores da Artepinus com o nome do módulo em uso. Toque na setinha ao lado do nome de um grupo para fechar ou abrir as telas dele. O botão Recolher menu, no rodapé do menu, deixa só os ícones (o nome aparece ao passar o mouse); toque de novo para abrir. O sistema lembra essas escolhas neste aparelho. O resto fica no topo, sempre igual em todas as telas:"),
           termos(
-            ["Logo ARTEPINUS", "No alto do menu à esquerda. Volta à tela de início do sistema (a dos módulos)."],
+            ["Artepinus e o módulo", "No alto do menu à esquerda. Volta à tela de início do sistema (a dos módulos)."],
             [
               "← Voltar",
               "No canto esquerdo do topo. Volta para a tela de cima: do detalhe para a lista (ex.: do ciclo para Estufas) e da lista para o Início do módulo. Usuários e Auditoria voltam ao Painel Administrativo, e o Painel volta à tela de início. Se você veio dessa tela, ela volta como estava, com os mesmos filtros. Não aparece no Início dos módulos nem na tela de início do sistema.",
@@ -370,7 +370,7 @@ export const GERAL: Secao[] = [
         blocos: [
           texto("Quem usa a Serraria e a Manutenção troca de módulo pela tela de início do sistema:"),
           termos(
-            ["No computador", "Toque em Módulos (o ícone de quadradinhos no topo, à direita). Abre a tela de início: toque no cartão do módulo."],
+            ["No computador", "Toque em Artepinus, no alto do menu à esquerda, ou em Módulos (o ícone de quadradinhos no topo, à direita). Abre a tela de início: toque no cartão do módulo."],
             ["No celular", "Toque em Mais › Módulos e, na tela de início, no cartão do módulo."],
           ),
           texto("O sistema lembra o último módulo usado: Notificações, Meu perfil e o manual abrem com a busca e a barra de baixo do módulo em que você estava. Quem usa os dois módulos tem a Serraria como módulo principal: ela é o cartão grande da tela de início."),

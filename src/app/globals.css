@@ -306,3 +306,7 @@ input[type="search"]::-webkit-search-decoration {
 :root:not([data-menu="recolhido"]) .menu-so-icone {
   display: none;
 }
+/* Grupo do menu lateral fechado pela setinha: some com o menu aberto; recolhido (só ícones) mostra tudo */
+:root:not([data-menu="recolhido"]) .grupo-fechado {
+  display: none;
+}

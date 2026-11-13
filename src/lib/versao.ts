@@ -30,7 +30,7 @@ export const NOTAS: NotaAtualizacao[] = [
       "Painel Administrativo: usuários, cadastros, histórico e dados do sistema em um só lugar.",
     ],
     melhorias: [
-      "Menu lateral enxuto, só com as telas do módulo, e que pode ser recolhido para mostrar só os ícones (o computador lembra a escolha).",
+      "Menu lateral enxuto, só com as telas do módulo: cada grupo abre e fecha pela setinha e o menu pode ser recolhido para mostrar só os ícones (o computador lembra as escolhas).",
       "Telas iniciais em cartões, com o que fazer agora primeiro.",
       "Barras de rolagem finas, na cor do sistema.",
       "Paradas de máquina e requisições de manutenção ligadas: o tempo parado entra sozinho no boletim do dia.",
