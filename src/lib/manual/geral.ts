@@ -146,6 +146,7 @@ export const GERAL: Secao[] = [
             ],
             ["Ajuda, Notificações e Administração", "Os cartões gerais: o manual do sistema, os seus avisos (com o número dos novos) e, para quem cuida dos usuários, da auditoria ou dos cadastros da Serraria, o Painel Administrativo (/ajuda/navegacao#painel-administrativo)."],
             ["Cadastre a sua pergunta de segurança", "Botão dentro da faixa verde, até você cadastrar a pergunta. Toque para abrir Meu perfil."],
+            ["Avisos recentes", "Só em telas largas (monitor grande): uma coluna à direita com os seus últimos avisos (o ponto vermelho marca os não lidos). Toque em um aviso para abrir a tela dele, ou em Ver todos."],
           ),
           texto("Seu usuário ainda não tem acesso a nenhum módulo? A tela avisa: fale com o gerente para ele escolher o seu perfil."),
           texto(

@@ -14,7 +14,7 @@ import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { Rodape } from "@/components/Rodape";
 import { Sininho } from "@/components/Sininho";
 import { BotaoTema, SCRIPT_TEMA, TemaApp } from "@/components/Tema";
-import { rotuloPerfis, STATUS_PENDENTES } from "@/lib/constantes";
+import { formatarData, rotuloPerfis, STATUS_PENDENTES } from "@/lib/constantes";
 import { COOKIE_MODULO, menusDoUsuario, moduloSalvo, type IconeMenu } from "@/lib/menu";
 import { MODULOS, MODULOS_ATIVOS, MODULOS_EM_TESTE, pode, podeProducao, temModulo, type Modulo } from "@/lib/permissoes";
 import { exigirUsuario } from "@/lib/session";
@@ -150,7 +150,8 @@ export default async function SistemaPage() {
   const eu = await exigirUsuario();
   const serraria = temModulo(eu, "producao");
   const manutencao = temModulo(eu, "manutencao");
-  const [seg, naoLidas, paradas, secando, pacotes, requisicoes, urgentes] = await Promise.all([
+  const [avisos, seg, naoLidas, paradas, secando, pacotes, requisicoes, urgentes] = await Promise.all([
+    db.notificacao.findMany({ where: { usuarioId: eu.id }, orderBy: { criadoEm: "desc" }, take: 6, select: { id: true, titulo: true, mensagem: true, link: true, lida: true, criadoEm: true } }),
     db.usuario.findUniqueOrThrow({ where: { id: eu.id }, select: { perguntaSeguranca: true, respostaHash: true } }),
     db.notificacao.count({ where: { usuarioId: eu.id, lida: false } }),
     serraria ? db.paradaMaquina.count({ where: { fim: null } }) : null,
@@ -193,7 +194,7 @@ export default async function SistemaPage() {
   const textoAdm = `${partes.slice(0, -1).join(", ")} e ${partes.at(-1)}`.replace(/^./, (c) => c.toUpperCase());
 
   // Mesma largura do topo e do conteúdo das telas do sistema (layout do app)
-  const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
+  const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 2xl:max-w-[1440px]";
   return (
     <div className="flex min-h-dvh flex-col">
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
@@ -217,6 +218,9 @@ export default async function SistemaPage() {
       {/* overflow-x-clip: a FaixaPainel vai até as bordas sem rolagem lateral (como no layout do app) */}
       <div className="flex-1 overflow-x-clip">
         <main className={`${largura} pb-8 pt-5 lg:pt-6`}>
+          {/* Telas largas: coluna de avisos recentes à direita */}
+          <div className="2xl:grid 2xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:items-start 2xl:gap-6">
+          <div>
           <FaixaPainel
             rotulo="Sistema Artepinus"
             titulo={
@@ -303,6 +307,45 @@ export default async function SistemaPage() {
             {administra && <CartaoGeral href="/administracao" icone="seguranca" titulo="Administração" texto={textoAdm} />}
           </section>
 
+          </div>
+          <aside aria-label="Avisos recentes" className="hidden rounded-2xl border border-stone-200 bg-white shadow-[0_1px_2px_rgb(16_24_16/0.04)] 2xl:block">
+            <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
+              <h2 className="text-sm font-semibold text-stone-900">Avisos recentes</h2>
+              <Link href="/notificacoes" className="text-xs font-semibold text-marca-700 hover:underline">
+                Ver todos
+              </Link>
+            </div>
+            {avisos.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-stone-500">Nenhum aviso ainda. Quando algo precisar da sua atenção, aparece aqui.</p>
+            ) : (
+              <ul className="divide-y divide-stone-100">
+                {avisos.map((a) => {
+                  const corpo = (
+                    <>
+                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.lida ? "bg-stone-200" : "bg-rose-500"}`} aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className={`block truncate text-sm ${a.lida ? "text-stone-700" : "font-semibold text-stone-900"}`}>{a.titulo}</span>
+                        <span className="line-clamp-2 block text-xs text-stone-500">{a.mensagem}</span>
+                        <span className="mt-0.5 block text-[11px] text-stone-400">{formatarData(a.criadoEm, true)}</span>
+                      </span>
+                    </>
+                  );
+                  return (
+                    <li key={a.id}>
+                      {a.link ? (
+                        <Link href={a.link} className="flex gap-3 px-4 py-3 transition hover:bg-stone-50">
+                          {corpo}
+                        </Link>
+                      ) : (
+                        <div className="flex gap-3 px-4 py-3">{corpo}</div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </aside>
+          </div>
         </main>
       </div>
 
