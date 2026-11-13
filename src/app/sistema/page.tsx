@@ -236,6 +236,7 @@ export default async function SistemaPage() {
           usuarioId={eu.id}
           naoLidas={naoLidas}
           mostrarModulos={false}
+          semMenuLateral
         />
       ) : (
         <TopoSemModulo naoLidas={naoLidas} usuarioId={eu.id} />

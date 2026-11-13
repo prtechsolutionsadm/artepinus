@@ -189,7 +189,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Lançar o inventário",
         itens: [
-          "Abra Inventário de madeira (no Início, em Todas as telas → Gestão; no celular, em Mais) e toque em Inventário do dia.",
+          "Abra Inventário de madeira (no menu à esquerda (no celular, em Mais), grupo Gestão; no celular, em Mais) e toque em Inventário do dia.",
           "Em cada linha, escolha em Madeira em onde está a madeira (Grade, Pacote, a estufa ou Verde), a espessura e as larguras.",
           "Digite as peças em cada comprimento. Use Adicionar linha para cada local e medida.",
           "Toque em Registrar. A ficha volta limpa para o próximo local; no fim, toque em Concluir.",
@@ -226,7 +226,7 @@ export const ROTEIROS: Roteiro[] = [
         itens: [
           "Em Indicadores, escolha o mês e baixe o Relatório PDF (diretoria) ou o Excel.",
           "Acompanhe os pedidos em Pedidos e os romaneios do mês em Romaneios.",
-          "Na TV do barracão, deixe aberto o Painel para TV (Início → Todas as telas → Gestão → Painel para TV → Tela cheia).",
+          "Na TV do barracão, deixe aberto o Painel para TV (Início → menu à esquerda (no celular, Mais) → Gestão → Painel para TV → Tela cheia).",
         ],
       },
     ],

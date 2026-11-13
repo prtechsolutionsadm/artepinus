@@ -5,8 +5,8 @@ import type { Bloco, Captura, Secao } from "./tipos";
 // conta e, para o gerente, usuários e auditoria. Os nomes de botões, cartões e campos são os da tela
 // (src/app/login, recuperar, trocar-senha, sistema, (app)/perfil, menu, administracao, notificacoes, usuarios, auditoria,
 // src/components/Navegacao.tsx, painel/*, inicio/PecasInicio.tsx, Tema.tsx, AtivarPush.tsx, SincronizadorOffline.tsx,
-// BotaoSair.tsx): mudou a tela, mude aqui. No computador não há menu lateral: o topo (logo, Voltar, busca, Módulos,
-// tema, ajuda, avisos e o seu nome) e os cartões das telas iniciais; no celular, o topo, a barra de baixo e Mais.
+// BotaoSair.tsx): mudou a tela, mude aqui. No computador: menu lateral enxuto (telas do módulo) e o topo (Voltar, busca,
+// Módulos, tema, ajuda, avisos e o seu nome); no celular, o topo, a barra de baixo e Mais.
 // Tópicos que só valem para um módulo levam `modulo`; os textos que mudam com a liberação da Manutenção usam ATIVA.
 
 /** A Manutenção já foi liberada a todos (sai de "Em breve"; os perfis dela passam a valer). */
@@ -203,7 +203,7 @@ export const GERAL: Secao[] = [
     topicos: [
       {
         id: "computador",
-        titulo: "No computador: o topo",
+        titulo: "No computador: menu à esquerda e topo",
         palavras: [
           "computador",
           "topo",
@@ -222,12 +222,12 @@ export const GERAL: Secao[] = [
           "onde está o menu",
         ],
         blocos: [
-          texto("No computador não há menu na lateral: as telas de cada módulo ficam em cartões, no Início do módulo (veja o próximo tópico), e o resto fica no topo, sempre igual em todas as telas:"),
+          texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No rodapé dele, o cartão do módulo leva à tela de início, para trocar de módulo. O resto fica no topo, sempre igual em todas as telas:"),
           termos(
-            ["Logo ARTEPINUS", "No canto esquerdo. Volta ao Início do módulo em que você está."],
+            ["Logo ARTEPINUS", "No alto do menu à esquerda. Volta ao Início do módulo em que você está."],
             [
               "← Voltar",
-              "Ao lado do logo. Volta para a tela de cima: do detalhe para a lista (ex.: do ciclo para Estufas) e da lista para o Início do módulo. Usuários e Auditoria voltam ao Painel Administrativo, e o Painel volta à tela de início. Se você veio dessa tela, ela volta como estava, com os mesmos filtros. Não aparece no Início dos módulos nem na tela de início do sistema.",
+              "No canto esquerdo do topo. Volta para a tela de cima: do detalhe para a lista (ex.: do ciclo para Estufas) e da lista para o Início do módulo. Usuários e Auditoria voltam ao Painel Administrativo, e o Painel volta à tela de início. Se você veio dessa tela, ela volta como estava, com os mesmos filtros. Não aparece no Início dos módulos nem na tela de início do sistema.",
             ],
             ["Busca", "No meio do topo: Buscar pacote, lote, carga… na Serraria e Buscar requisição… na Manutenção. A tecla / leva direto a ela, em qualquer tela."],
             [
@@ -237,7 +237,6 @@ export const GERAL: Secao[] = [
             ["Tema, ajuda e avisos", "O botão do tema (sol, lua ou monitor), o botão de ajuda (?), que abre a ajuda da tela em que você está, e o sininho dos avisos, com o número dos não lidos."],
             ["Seu nome", "As suas iniciais e o seu primeiro nome, no canto direito. Toque para abrir um menu com o seu nome completo, o seu perfil, Meu perfil e Sair."],
           ),
-          dica("Procurando o menu que ficava à esquerda? As mesmas telas, nos mesmos grupos (Operação, Gestão e Cadastros), estão em Todas as telas, no fim do Início de cada módulo."),
           imagem({
             arquivo: "geral/menu-do-usuario.webp",
             legenda: "No computador: o topo (logo, busca, Módulos, tema, ajuda, avisos e o seu nome) com o menu do seu nome aberto: Meu perfil e Sair.",
@@ -275,9 +274,8 @@ export const GERAL: Secao[] = [
             ["Resumo", "O cartão branco sobre a faixa, com poucos números do momento. Vermelho é máquina parada ou estufa atrasada. Toque num número para abrir a lista dele."],
             ["O que precisa de atenção", "O que está faltando ou atrasado, com o botão para resolver. Sem nada pendente, aparece Tudo em dia."],
             ["Acesso rápido", "A tarefa principal da sua função num cartão grande (ex.: Apontar serraria ou Nova requisição) e as outras tarefas do dia nos cartões menores ao lado. Um número no cartão mostra quantos esperam por você (em amarelo, quando pede atenção)."],
-            ["Todas as telas", "No fim do Início: um cartão para cada tela do módulo que você pode abrir, com uma linha dizendo para que serve, nos grupos Operação, Gestão e Cadastros. É o antigo menu."],
           ),
-          dica("Não acha uma tela? Role o Início até Todas as telas ou use a busca do topo. No celular, as mesmas telas estão em Mais. Cada Início está explicado em “Início da Serraria” (/ajuda/serraria-inicio) e “Início da Manutenção” (/ajuda/manutencao-inicio)."),
+          dica("Não acha uma tela? Veja o menu à esquerda ou use a busca do topo. No celular, as telas estão em Mais. Cada Início está explicado em “Início da Serraria” (/ajuda/serraria-inicio) e “Início da Manutenção” (/ajuda/manutencao-inicio)."),
         ],
       },
       {
@@ -346,7 +344,7 @@ export const GERAL: Secao[] = [
         modulo: "producao",
         palavras: ["serraria", "barra de baixo", "pacotes", "ler etiqueta", "estufas", "operação", "gestão", "cadastros", "etapas", "menu", "todas as telas"],
         blocos: [
-          texto("No celular, a barra de baixo tem Início, Pacotes, o botão do meio Ler etiqueta, Estufas e Mais. As telas da Serraria ficam em Todas as telas, no fim do Início (no celular, também em Mais), em três grupos:"),
+          texto("No celular, a barra de baixo tem Início, Pacotes, o botão do meio Ler etiqueta, Estufas e Mais. As telas da Serraria ficam no menu à esquerda (no celular, em Mais), em três grupos:"),
           termos(
             ["Operação", "1 Recebimento de toras, 2 Serraria, Paradas de máquina, 3 Estufas, 4 Pacotes e expedição, Romaneios e Ler etiqueta. Os números 1 a 4 são as etapas do processo."],
             ["Gestão", "Pedidos, Disponível para venda, Indicadores, Painel para TV e Inventário de madeira."],
@@ -362,7 +360,7 @@ export const GERAL: Secao[] = [
         palavras: ["manutenção", "barra de baixo", "requisições", "nova requisição", "agenda", "botão +", "operação", "gestão", "cadastros", "menu", "todas as telas"],
         blocos: [
           texto(
-            "No celular, a barra de baixo tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, Nova requisição fica no Acesso rápido do Início e no botão da tela Requisições. As telas da Manutenção ficam em Todas as telas, no fim do Início (no celular, também em Mais):",
+            "No celular, a barra de baixo tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, Nova requisição fica no Acesso rápido do Início e no botão da tela Requisições. As telas da Manutenção ficam no menu à esquerda (no celular, em Mais):",
           ),
           termos(
             ["Operação", "Requisições e Agenda."],
@@ -799,7 +797,7 @@ export const GERAL: Secao[] = [
         palavras: ["novo usuário", "novo usuario", "cadastrar usuário", "criar usuário", "criar login", "funcionário novo", "senha inicial"],
         blocos: [
           passos(
-            "Abra Usuários: no Painel Administrativo (cartão Administração da tela de início) ou, no Início, em Todas as telas → Cadastros.",
+            "Abra Usuários: no Painel Administrativo (cartão Administração da tela de início) ou, no menu à esquerda (no celular, em Mais), grupo Cadastros.",
             "Toque em Novo usuário.",
             "Preencha o Nome e o Login no formato nome.sobrenome, sem acento (ex.: joao.silva).",
             `Escolha o Perfil na Serraria e o Perfil na Manutenção (este vem com ${ATIVA ? "Operador" : "Sem acesso"}). Quem não usa um módulo fica com Sem acesso nele. Para acesso total, escolha Gerente no Perfil na Manutenção.`,
@@ -908,7 +906,7 @@ export const GERAL: Secao[] = [
             "Em Auditoria fica registrado quem fez o quê e quando: entradas e saídas do sistema (inclusive senha errada, bloqueio e recuperação de senha, com o endereço IP), lotes, boletins, paradas, ciclos de estufa, pacotes e romaneios, cargas de toras, inventários, cadastros e usuários e, na Manutenção, requisições, fotos, horas, checklists, equipamentos e planos.",
           ),
           texto(
-            "Para abrir: no Painel Administrativo, toque em Auditoria (tudo) ou em Entradas e acessos (só as entradas, as saídas, as senhas e as mudanças nos usuários). Também fica no Início, em Todas as telas (grupo Cadastros na Serraria; Gestão na Manutenção).",
+            "Para abrir: no Painel Administrativo, toque em Auditoria (tudo) ou em Entradas e acessos (só as entradas, as saídas, as senhas e as mudanças nos usuários). Também fica no menu à esquerda (grupo Cadastros na Serraria; Gestão na Manutenção).",
           ),
           lista(
             "Cada linha mostra quem fez, o que foi feito e a data e a hora. Sistema aparece quando não há usuário (por exemplo, a tentativa de entrar com um login que não existe).",

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { sair } from "@/app/actions/auth";
 import { BotaoAjuda } from "@/components/ajuda/BotaoAjuda";
 import { BotaoSair } from "@/components/BotaoSair";
-import { BarraInferior, TopoApp } from "@/components/Navegacao";
+import { BarraInferior, MenuLateral, TopoApp } from "@/components/Navegacao";
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
@@ -56,12 +56,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const mostrarModulos = Object.keys(menus).length > 1 || podeAdministrar(eu);
 
   // Largura do conteúdo: a mesma do topo (TopoApp), centralizada, sem menu lateral
-  const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
+  const largura = "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8";
   return (
     <div className="flex min-h-dvh flex-col">
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <TemaApp />
       <MedidaRolagem />
+      {/* Computador: menu lateral enxuto (só as telas do módulo); o resto fica no topo */}
+      <MenuLateral menus={menus} salvo={salvo} />
+      <div className="flex min-h-dvh flex-col lg:pl-60">
       <TopoApp
         menus={menus}
         salvo={salvo}
@@ -88,6 +91,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Rodape className={`${largura} py-5 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:text-left`} />
       </div>
 
+      </div>
       <BarraInferior menus={menus} salvo={salvo} />
     </div>
   );

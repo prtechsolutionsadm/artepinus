@@ -103,17 +103,17 @@ export const SERRARIA: Secao[] = [
           ),
           texto("Quem tem o perfil Consulta vê Indicadores como tarefa principal e, ao lado, Pedidos, Estufas (com as atrasadas), Pacotes e Ler etiqueta."),
           dica(
-            "Iniciar um ciclo, o Inventário do dia e Expedir pacotes ficam nas próprias telas: Estufas, Inventário de madeira e Pacotes e expedição (no fim do Início, em Todas as telas; no celular, Estufas e Pacotes estão também na barra de baixo).",
+            "Iniciar um ciclo, o Inventário do dia e Expedir pacotes ficam nas próprias telas: Estufas, Inventário de madeira e Pacotes e expedição (no menu à esquerda; no celular, Estufas e Pacotes estão na barra de baixo e o resto em Mais).",
           ),
         ],
       },
       {
         id: "menu",
-        titulo: "Todas as telas da Serraria",
+        titulo: "As telas da Serraria (menu à esquerda)",
         palavras: ["menu", "todas as telas", "onde fica", "navegar", "cartões", "barra de baixo", "mais", "grupos", "operação", "gestão", "cadastros", "lupa"],
         blocos: [
           texto(
-            "No fim do Início, Todas as telas tem um cartão para cada tela da Serraria que o seu perfil pode abrir, com uma linha dizendo para que serve. Os grupos seguem a ordem do processo. No celular, as mesmas telas ficam em Mais.",
+            "No computador, o menu à esquerda lista cada tela da Serraria que o seu perfil pode abrir. Os grupos seguem a ordem do processo. No celular, as mesmas telas ficam em Mais, em cartões com uma linha dizendo para que serve.",
           ),
           termos(
             ["Operação", "1 Recebimento de toras → 2 Serraria → Paradas de máquina → 3 Estufas → 4 Pacotes e expedição, Romaneios e Ler etiqueta."],
@@ -126,11 +126,10 @@ export const SERRARIA: Secao[] = [
           dica("Mais sobre o topo, a busca e o botão de ajuda em “Navegação” (/ajuda/navegacao)."),
           imagem({
             arquivo: "serraria/inicio-computador.webp",
-            legenda: "No computador, Todas as telas, no fim do Início: os grupos Operação, Gestão e Cadastros em cartões.",
+            legenda: "No computador: o menu à esquerda com os grupos Operação, Gestão e Cadastros.",
             rota: "/producao",
             perfil: "supervisor",
             tela: "computador",
-            acoes: [{ rolarAte: "text=Todas as telas" }],
           }),
         ],
       },
@@ -395,7 +394,7 @@ export const SERRARIA: Secao[] = [
         titulo: "Boletins do mês",
         palavras: ["boletins", "lista", "mês", "mes", "dias", "serrado no mês", "meta acumulada", "tempo parado", "oee do mês", "serraria"],
         blocos: [
-          texto("Em Serraria (no Início, em Todas as telas → Operação), a tela Boletins da serraria mostra um boletim por dia do mês, do mais novo para o mais antigo."),
+          texto("Em Serraria (no menu à esquerda (no celular, em Mais), grupo Operação), a tela Boletins da serraria mostra um boletim por dia do mês, do mais novo para o mais antigo."),
           lista(
             "Para mudar o mês, use as setas ao lado do nome do mês (ou toque no nome para escolher).",
             "No alto, os totais do mês: Serrado no mês, Meta acumulada, Tempo parado e OEE do mês.",
@@ -499,7 +498,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["parou", "parada", "quebrou", "máquina parada", "maquina parada", "cronômetro", "marcar parada", "falha", "mecânica", "elétrica", "operacional"],
         blocos: [
           passos(
-            "Abra Paradas de máquina: no Início, toque em Marcar parada, no Acesso rápido (ou no cartão Paradas de máquina, em Todas as telas).",
+            "Abra Paradas de máquina: no Início, toque em Marcar parada, no Acesso rápido (ou em Paradas de máquina, no menu à esquerda).",
             "Toque no botão vermelho Máquina parou.",
             "Em Máquina, escolha a máquina que parou (a que já está parada aparece como já parada e não pode ser escolhida).",
             "Em Motivo, escolha o motivo, se souber (os da máquina vêm primeiro). Não sabe? Deixe — Outro / não sei —.",
@@ -966,7 +965,7 @@ export const SERRARIA: Secao[] = [
         titulo: "O romaneio",
         palavras: ["romaneio", "ROM-", "pdf", "motorista", "placas", "assinatura", "documento da carga", "romaneios"],
         blocos: [
-          texto("O romaneio é o documento de cada carga expedida. A lista fica em Romaneios (no Início, em Todas as telas → Operação, ou no botão Romaneios da tela de Pacotes), do mais novo para o mais antigo, com a nota fiscal, o motorista, as placas, os clientes, os pacotes e o m³."),
+          texto("O romaneio é o documento de cada carga expedida. A lista fica em Romaneios (no menu à esquerda (no celular, em Mais), grupo Operação, ou no botão Romaneios da tela de Pacotes), do mais novo para o mais antigo, com a nota fiscal, o motorista, as placas, os clientes, os pacotes e o m³."),
           lista(
             "Abra o romaneio para ver o Motorista, as Placas, a Nota fiscal, os Pacotes e a tabela com pacote, pedido, bitola, classe, peças e m³.",
             "Baixar PDF do romaneio gera o documento para o motorista: pedidos, cliente, destino, placas, a lista de pacotes e os campos de assinatura.",
@@ -1144,7 +1143,7 @@ export const SERRARIA: Secao[] = [
         palavras: ["inventário", "inventario", "contagem", "contar", "estoque", "levantamento", "grade", "madeira em", "local"],
         blocos: [
           passos(
-            "Em Inventário de madeira (no Início, em Todas as telas → Gestão; no celular, em Mais), toque em Inventário do dia.",
+            "Em Inventário de madeira (no menu à esquerda (no celular, em Mais), grupo Gestão; no celular, em Mais), toque em Inventário do dia.",
             "Confira a Data.",
             "Em cada linha da ficha, escolha em Madeira em onde a madeira está: Grade, Pacote, uma das estufas ou Verde.",
             "Preencha a ficha como na serraria: espessura, larguras e as peças em cada comprimento. Use Adicionar linha para cada local e medida.",
@@ -1247,7 +1246,7 @@ export const SERRARIA: Secao[] = [
         blocos: [
           passos(
             "Na TV ou no monitor do barracão, abra o sistema e entre com um usuário (de preferência um só para a TV, com o perfil Consulta).",
-            "No Início, em Todas as telas → Gestão, toque em Painel para TV.",
+            "No Início, em menu à esquerda (no celular, Mais) → Gestão, toque em Painel para TV.",
             "Toque em Tela cheia e deixe aberto.",
           ),
           texto("O painel mostra o Serrado hoje contra a meta, as Paradas hoje (com as máquinas paradas agora), as Estufas e o mês. Ele se atualiza sozinho a cada minuto e mantém a tela ligada. Para sair, Voltar ao sistema."),
@@ -1271,7 +1270,7 @@ export const SERRARIA: Secao[] = [
         titulo: "Incluir, editar e desativar",
         palavras: ["cadastrar", "novo", "nova", "incluir", "editar", "alterar", "desativar", "inativo", "excluir cadastro", "apagar cadastro"],
         blocos: [
-          texto("Em Cadastros (no Início, em Todas as telas → Cadastros, ou no Painel Administrativo), cada aba é uma lista: Pedidos, Florestas, Fornecedores, Motoristas, Motivos de parada, Máquinas da linha, Estufas e Configuração."),
+          texto("Em Cadastros (no menu à esquerda (no celular, em Mais), grupo Cadastros, ou no Painel Administrativo), cada aba é uma lista: Pedidos, Florestas, Fornecedores, Motoristas, Motivos de parada, Máquinas da linha, Estufas e Configuração."),
           passos(
             "Para incluir: toque em Novo … (por exemplo, Nova floresta) no alto da aba, preencha e toque em Cadastrar.",
             "Para editar: toque na linha (ícone de lápis), corrija e toque em Salvar.",

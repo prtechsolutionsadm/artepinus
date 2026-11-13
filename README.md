@@ -121,11 +121,11 @@ na liberação). Quem usa os dois entra primeiro na Serraria e troca de módulo 
 - **Relatórios** por período, status, tipo, prioridade e setor, com resumo e gráficos;
   exportação em **PDF** (A4 com logo) e **Excel** (.xlsx formatado, com logo e aba de resumo).
 - Impressão da requisição com logo (para quem ainda precisa do papel).
-- **Visual em painéis** (mesmo padrão do sistema Engemase): no computador, sem menu lateral — topo com logo,
+- **Visual em painéis** (mesmo padrão do sistema Engemase): no computador, menu lateral enxuto com as telas do módulo e topo com
   Voltar, busca (atalho "/"), Módulos, tema, ajuda, avisos e o usuário (Meu perfil e Sair); a tela inicial de
-  cada módulo é um painel (faixa verde, o que precisa de atenção, acesso rápido da função e todas as telas em
-  cartões); tela de início (`/sistema`) e Painel Administrativo (`/administracao`). No celular, topo simples
-  + barra inferior e o "Mais" com os mesmos cartões.
+  cada módulo é um painel (faixa verde compacta, o que precisa de atenção e acesso rápido da função); tela de
+  início (`/sistema`) e Painel Administrativo (`/administracao`). No celular, topo simples + barra inferior e o
+  "Mais" com as telas em cartões.
 - **Notificações** no sininho e por **push** no celular/computador (ativar em *Perfil*):
   - supervisores e manutentores: requisição nova (o gerente recebe só as de prioridade alta/urgente ou
     com máquina parada);

@@ -10,7 +10,7 @@ import { BotaoSair } from "@/components/BotaoSair";
 import { ICONES } from "@/components/icones";
 import { Sininho } from "@/components/Sininho";
 import { BotaoTema } from "@/components/Tema";
-import { COOKIE_MODULO, iniciais, itemAtivo, moduloDaRota, type GrupoNav } from "@/lib/menu";
+import { COOKIE_MODULO, TITULO_CONTA, iniciais, itemAtivo, moduloDaRota, type GrupoNav, type ItemNav } from "@/lib/menu";
 import { MODULOS, type Modulo } from "@/lib/permissoes";
 
 type Usuario = { nome: string; perfilLabel: string };
@@ -112,6 +112,7 @@ export function TopoApp({
   usuarioId,
   naoLidas,
   mostrarModulos,
+  semMenuLateral = false,
 }: {
   menus: Menus;
   salvo: Modulo | null;
@@ -121,6 +122,8 @@ export function TopoApp({
   naoLidas: number;
   /** Botão "Módulos" (/sistema): para quem usa mais de um módulo ou administra usuários/auditoria. */
   mostrarModulos: boolean;
+  /** Telas sem o menu lateral (ex.: /sistema): o logo fica no topo também no computador. */
+  semMenuLateral?: boolean;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -141,9 +144,9 @@ export function TopoApp({
   return (
     <header className="nao-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       {/* Mesma largura e margens do <main> (layout do app) */}
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 sm:px-6 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)_minmax(0,1fr)] lg:gap-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,21rem)_minmax(0,1fr)]">
+      <div className={`mx-auto flex h-14 w-full ${semMenuLateral ? "max-w-6xl" : "max-w-7xl"} items-center gap-2 px-4 sm:px-6 lg:grid lg:h-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)_minmax(0,1fr)] lg:gap-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,21rem)_minmax(0,1fr)]`}>
         <div className="flex min-w-0 items-center gap-4">
-          <Link href={inicio} aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`} className="shrink-0 rounded-md">
+          <Link href={inicio} aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`} className={`shrink-0 rounded-md ${semMenuLateral ? "" : "lg:hidden"}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="" className="h-9 w-auto dark:hidden lg:h-10" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -151,8 +154,7 @@ export function TopoApp({
           </Link>
           {!naInicio && (
             <>
-              <span aria-hidden className="hidden h-6 w-px bg-stone-200 lg:block" />
-              <Link
+                            <Link
                 href={destino}
                 onClick={(e) => {
                   if (anterior.current !== destino || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -195,6 +197,70 @@ export function TopoApp({
   );
 }
 
+
+/**
+ * Menu lateral do computador, enxuto: só as telas do módulo em uso (Início e os grupos do processo).
+ * Perfil, avisos, ajuda, tema e Sair ficam no topo; a troca de módulo, no rodapé.
+ */
+export function MenuLateral({ menus, salvo }: { menus: Menus; salvo: Modulo | null }) {
+  const path = usePathname();
+  const modulo = useModulo(menus, salvo);
+  const inicio = MODULOS[modulo].inicio;
+  const grupos = (menus[modulo] ?? []).filter((g) => g.titulo && g.titulo !== TITULO_CONTA);
+  // Item ativo: o de prefixo mais longo (ex.: /producao/boletins/novo não acende Serraria e Apontar juntos)
+  const ativo = grupos
+    .flatMap((g) => g.itens)
+    .filter((i) => itemAtivo(path, i.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  const outros = Object.keys(menus).length > 1;
+
+  const item = (i: ItemNav, ligado: boolean) => {
+    const Icone = ICONES[i.icone];
+    return (
+      <Link
+        key={i.href}
+        href={i.href}
+        aria-current={ligado ? "page" : undefined}
+        className={`group flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition ${
+          ligado ? "bg-marca-50 text-marca-800" : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+        }`}
+      >
+        <Icone className={`h-[18px] w-[18px] shrink-0 ${ligado ? "text-marca-700" : "text-stone-400 group-hover:text-stone-600"}`} strokeWidth={2} />
+        <span className="min-w-0 flex-1 truncate">{i.label}</span>
+      </Link>
+    );
+  };
+
+  return (
+    <aside className="nao-imprimir fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-stone-200 bg-white lg:flex">
+      <Link href={inicio} className="flex h-16 shrink-0 items-center px-5" aria-label={`Artepinus: início da ${MODULOS[modulo].nome}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="" className="h-10 w-auto dark:hidden" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-branco.svg" alt="" className="hidden h-10 w-auto dark:block" />
+      </Link>
+      <nav aria-label="Menu principal" className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+        <div className="mt-2">{item({ href: inicio, label: "Início", icone: "inicio" }, path === inicio)}</div>
+        {grupos.map((g) => (
+          <div key={g.titulo}>
+            <p className="mb-1 mt-5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-stone-400">{g.titulo}</p>
+            <div className="space-y-0.5">{g.itens.map((i) => item(i, i.href === ativo))}</div>
+          </div>
+        ))}
+      </nav>
+      <Link href="/sistema" className="m-3 flex items-center gap-3 rounded-xl bg-stone-50 px-3 py-2.5 ring-1 ring-stone-200 transition hover:bg-stone-100">
+        <span className="fundo-marca grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white">
+          <LayoutGrid className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block truncate text-sm font-semibold text-stone-900">{MODULOS[modulo].nome}</span>
+          <span className="block truncate text-[11px] text-stone-500">{outros ? "Trocar de módulo" : "Tela de início"}</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-stone-400" />
+      </Link>
+    </aside>
+  );
+}
 
 type Aba = { href: string; label: string; Icone: LucideIcon; destaque?: boolean };
 

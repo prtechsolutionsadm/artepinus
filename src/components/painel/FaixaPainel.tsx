@@ -34,19 +34,18 @@ export function FaixaPainel({
 }) {
   return (
     <>
-      <section className="nao-imprimir sangria fundo-marca relative -mt-5 overflow-hidden rounded-b-[1.75rem] pb-14 pt-7 text-white sm:pb-16 sm:pt-9 lg:-mt-7 lg:rounded-b-[2.5rem] lg:pb-24 lg:pt-10">
+      <section className="nao-imprimir fundo-marca relative overflow-hidden rounded-2xl px-5 py-5 text-white sm:px-6 lg:px-7 lg:py-6">
         {/* Círculos discretos de enfeite, à direita */}
-        <span aria-hidden className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full bg-white/[0.07] sm:right-[6%]" />
-        <span aria-hidden className="pointer-events-none absolute -bottom-16 right-[18%] hidden h-44 w-44 rounded-full bg-white/[0.06] sm:block" />
+        <span aria-hidden className="pointer-events-none absolute -right-12 -top-20 h-48 w-48 rounded-full bg-white/[0.07]" />
         <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
-            {rotulo && <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/75 sm:text-xs">{rotulo}</p>}
-            <h1 className="mt-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-white sm:text-4xl">{titulo}</h1>
-            {subtitulo && <p className="mt-1.5 max-w-2xl text-sm text-white/85 sm:text-base">{subtitulo}</p>}
+            {rotulo && <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75">{rotulo}</p>}
+            <h1 className="mt-0.5 text-2xl font-semibold leading-tight tracking-tight text-white">{titulo}</h1>
+            {subtitulo && <p className="mt-1 max-w-2xl text-sm text-white/85">{subtitulo}</p>}
           </div>
           {direita && <div className="flex shrink-0 flex-wrap items-center gap-2">{direita}</div>}
         </div>
-        {children && <div className="relative mt-5">{children}</div>}
+        {children && <div className="relative mt-4">{children}</div>}
       </section>
       {/* Impressão: só o título, sem a faixa verde */}
       <div className="mb-5 hidden print:block">

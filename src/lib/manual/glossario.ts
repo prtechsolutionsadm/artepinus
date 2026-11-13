@@ -57,7 +57,7 @@ export const GLOSSARIO: Termo[] = [
   {
     termo: "Início do módulo",
     definicao:
-      "A tela inicial da Serraria ou da Manutenção, que o logo do topo sempre abre: a faixa verde com o resumo, O que precisa de atenção, o Acesso rápido e, no fim, Todas as telas.",
+      "A tela inicial da Serraria ou da Manutenção, que o logo do topo sempre abre: a faixa verde com o resumo, O que precisa de atenção, e o Acesso rápido.",
     veja: "/ajuda/navegacao#tela-inicial",
   },
   {
@@ -67,7 +67,7 @@ export const GLOSSARIO: Termo[] = [
   },
   {
     termo: "Todas as telas",
-    definicao: "No fim do Início do módulo, um cartão para cada tela que você pode abrir, nos grupos Operação, Gestão e Cadastros. No computador, faz o papel do antigo menu; no celular, as mesmas telas estão em Mais.",
+    definicao: "No celular, em Mais: um cartão para cada tela do módulo que você pode abrir, nos grupos Operação, Gestão e Cadastros. No computador, as mesmas telas estão no menu à esquerda.",
     veja: "/ajuda/navegacao#tela-inicial",
   },
   {

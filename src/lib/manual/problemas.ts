@@ -293,7 +293,7 @@ const GERAIS: Problema[] = [
     blocos: [
       lista(
         "Cada perfil vê só o que pode usar: o botão que você não pode usar não aparece. Se precisa dele no seu trabalho, peça ao gerente para mudar o seu perfil.",
-        "No computador não há menu na lateral: todas as telas do módulo ficam em cartões no fim do Início (Todas as telas), nos grupos Operação, Gestão e Cadastros. No celular, as telas que não estão na barra de baixo ficam em Mais.",
+        "No computador, todas as telas do módulo estão no menu à esquerda, nos grupos Operação, Gestão e Cadastros. No celular, as telas que não estão na barra de baixo ficam em Mais.",
         "Procura um pacote, um lote, uma carga ou uma requisição? Use a busca do meio do topo (tecla /; no celular, a lupa).",
         "Meu perfil e Sair ficam no seu nome, no canto direito do topo (no celular, em Mais). Usuários, cadastros e auditoria também estão no Painel Administrativo, para quem administra.",
         "Usa a Serraria e a Manutenção? Troque de módulo: no computador, em Módulos (o ícone de quadradinhos no topo); no celular, em Mais → Módulos.",

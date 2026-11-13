@@ -49,7 +49,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "texto",
             texto:
-              "Na Manutenção, a barra de baixo do celular tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, as telas ficam em cartões no Início: o Acesso rápido, com as tarefas do dia da sua função, e, no fim, Todas as telas, com Operação (Requisições e Agenda), Gestão (Indicadores, Relatórios e Auditoria) e Cadastros (Equipamentos, Preventivas, Checklists, Usuários e Setores). No celular, as mesmas telas ficam em Mais. Cada pessoa vê só o que o perfil dela permite.",
+              "Na Manutenção, a barra de baixo do celular tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, o Início tem o Acesso rápido, com as tarefas do dia da sua função, e o menu à esquerda tem todas as telas: Operação (Requisições e Agenda), Gestão (Indicadores, Relatórios e Auditoria) e Cadastros (Equipamentos, Preventivas, Checklists, Usuários e Setores). No celular, as mesmas telas ficam em Mais. Cada pessoa vê só o que o perfil dela permite.",
           },
           { tipo: "dica", texto: "No computador, a busca do meio do topo (atalho: tecla /) procura requisições enquanto você está na Manutenção. No celular, use a lupa do topo." },
           ...se(
@@ -141,7 +141,6 @@ export const MANUTENCAO: Secao[] = [
                 "As 5 primeiras da sua lista do dia. Operador: as que você abriu. Supervisor e manutentor: as pendentes em que você é o responsável. Gerente: as pendentes sem responsável, as mais urgentes primeiro. Ver todas abre a lista com o mesmo filtro.",
               ],
               ["Agendadas nos próximos 7 dias", "O que já tem data marcada para a semana. Ver agenda abre a Agenda."],
-              ["Todas as telas", "No fim: um cartão para cada tela da Manutenção que você pode abrir, nos grupos Operação, Gestão e Cadastros."],
             ],
           },
           {
@@ -422,7 +421,7 @@ export const MANUTENCAO: Secao[] = [
         blocos: [
           {
             tipo: "texto",
-            texto: "Requisições (barra de baixo do celular; no computador, o cartão Requisições do Início, em Todas as telas → Operação) mostra todas as requisições, das mais novas para as mais antigas, 30 por página (Anterior e Próxima no fim).",
+            texto: "Requisições (barra de baixo do celular; no computador, no menu à esquerda) mostra todas as requisições, das mais novas para as mais antigas, 30 por página (Anterior e Próxima no fim).",
           },
           {
             tipo: "passos",
@@ -1008,7 +1007,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Preventivas (no Início, em Todas as telas → Cadastros; ou no Painel Administrativo), toque em Novo plano de preventiva. Pela ficha do equipamento, + Novo plano já abre com a máquina escolhida.",
+              "Em Preventivas (no menu à esquerda (no celular, em Mais), grupo Cadastros; ou no Painel Administrativo), toque em Novo plano de preventiva. Pela ficha do equipamento, + Novo plano já abre com a máquina escolhida.",
               "Escolha o Equipamento e escreva O que será feito (ex.: Troca de óleo e filtros). Em Instruções, detalhes para o manutentor.",
               "Em Repetir a cada, informe o número e escolha dias, semanas ou meses.",
               "Em Próxima execução, a data e a hora da próxima vez.",
@@ -1045,7 +1044,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Checklists (no Início, em Todas as telas → Cadastros), toque em Novo checklist.",
+              "Em Checklists (no menu à esquerda (no celular, em Mais), grupo Cadastros), toque em Novo checklist.",
               "Dê um Nome (ex.: Preventiva mensal – serra circular).",
               "Em Itens (um por linha), escreva um item em cada linha.",
               "Toque em Criar checklist.",
@@ -1083,7 +1082,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Equipamentos (no Início, em Todas as telas → Cadastros; ou no Painel Administrativo), toque em Cadastrar equipamento.",
+              "Em Equipamentos (no menu à esquerda (no celular, em Mais), grupo Cadastros; ou no Painel Administrativo), toque em Cadastrar equipamento.",
               "Preencha o Código / TAG (ex.: LIX-02) e o Nome, e escolha o Setor. Fabricante, Modelo, Nº de série e Observações são opcionais, mas ajudam.",
               "Se a máquina é da linha da serraria, marque Máquina da linha da serraria: ela passa a aparecer no botão Máquina parou e as paradas dela entram no boletim.",
               "Toque em Cadastrar.",
@@ -1175,7 +1174,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "texto",
             texto:
-              "Em Indicadores (no Início, no Acesso rápido do gerente ou em Todas as telas → Gestão), escolha o período (30 dias, 90 dias, 6 meses ou 12 meses; o padrão é 90 dias) e, se quiser, um setor, e toque em Aplicar. Toque nas colunas do gráfico para ver os números, ou em Ver tabela para os valores exatos.",
+              "Em Indicadores (no Início, no Acesso rápido do gerente ou no menu à esquerda, grupo Gestão), escolha o período (30 dias, 90 dias, 6 meses ou 12 meses; o padrão é 90 dias) e, se quiser, um setor, e toque em Aplicar. Toque nas colunas do gráfico para ver os números, ou em Ver tabela para os valores exatos.",
           },
           {
             tipo: "termos",
@@ -1223,7 +1222,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Relatórios (no Início, em Todas as telas → Gestão), escolha o período em De e Até (conta a data de abertura; o padrão é do dia 1º do mês até hoje) e, se quiser, Status, Tipo, Prioridade e Setor.",
+              "Em Relatórios (no menu à esquerda (no celular, em Mais), grupo Gestão), escolha o período em De e Até (conta a data de abertura; o padrão é do dia 1º do mês até hoje) e, se quiser, Status, Tipo, Prioridade e Setor.",
               "Toque em Gerar relatório para ver na tela os totais, os gráficos por status, tipo e setor e a lista das requisições.",
               "Exportar PDF abre a impressão: escolha Salvar como PDF. Exportar Excel baixa a planilha, com as abas Requisições e Resumo.",
             ],
@@ -1257,7 +1256,7 @@ export const MANUTENCAO: Secao[] = [
           {
             tipo: "passos",
             itens: [
-              "Em Setores (no Início, em Todas as telas → Cadastros; ou no Painel Administrativo), escreva o nome em Novo setor e toque em Adicionar.",
+              "Em Setores (no menu à esquerda (no celular, em Mais), grupo Cadastros; ou no Painel Administrativo), escreva o nome em Novo setor e toque em Adicionar.",
               "Para renomear, toque no setor, mude o nome e toque em Salvar.",
             ],
           },

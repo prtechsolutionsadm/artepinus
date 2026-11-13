@@ -332,7 +332,6 @@ export default async function InicioProducaoPage() {
         </SecaoInicio>
       )}
 
-      <TodasAsTelasInicio grupos={menusDoUsuario(eu).producao} />
     </>
   );
 }

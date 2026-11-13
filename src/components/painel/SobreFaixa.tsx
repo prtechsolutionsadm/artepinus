@@ -6,5 +6,5 @@ import type { ReactNode } from "react";
  * (ex.: `<SobreFaixa><div className="cartao shadow-xl">…</div></SobreFaixa>`). No papel não sobe.
  */
 export function SobreFaixa({ children }: { children: ReactNode }) {
-  return <div className="relative z-10 -mt-10 sm:-mt-11 lg:-mt-14 print:mt-0">{children}</div>;
+  return <div className="relative mt-4">{children}</div>;
 }
