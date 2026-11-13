@@ -4,9 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFecharAoClicarFora } from "@/components/useFecharAoClicarFora";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Flame, House, LayoutGrid, Package, Plus, QrCode, Search, type LucideIcon } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Flame, House, LayoutGrid, Package, Plus, QrCode, Search, UserRound, type LucideIcon } from "lucide-react";
 import { BotaoSair } from "@/components/BotaoSair";
-import { SeletorTema } from "@/components/Tema";
 import { ICONES } from "@/components/icones";
 import { COOKIE_MODULO, TITULO_CONTA, iniciais, itemAtivo, moduloDaRota, type GrupoNav, type ItemNav } from "@/lib/menu";
 import { MODULOS, type Modulo } from "@/lib/permissoes";
@@ -77,8 +76,6 @@ function itemDaTela(grupos: GrupoNav[], path: string, inicio: string) {
 export function MenuLateral({
   menus,
   salvo,
-  sair,
-  usuarioId,
 }: {
   menus: Menus;
   salvo: Modulo | null;
@@ -89,8 +86,8 @@ export function MenuLateral({
   const modulo = useModulo(menus, salvo);
   const inicio = MODULOS[modulo].inicio;
   const grupos = menus[modulo] ?? [];
+  // Só as telas do módulo: perfil, sair, avisos, manual e tema ficam no topo (ícones e menu do usuário)
   const processo = grupos.filter((g) => g.titulo && g.titulo !== TITULO_CONTA);
-  const conta = grupos.find((g) => g.titulo === TITULO_CONTA)?.itens ?? [];
   const { href: hrefAtivo } = itemDaTela(grupos, path, inicio);
   const disponiveis = Object.keys(menus) as Modulo[];
 
@@ -142,11 +139,6 @@ export function MenuLateral({
             <div className="space-y-0.5">{g.itens.map((i) => item(i, i.href === hrefAtivo))}</div>
           </div>
         ))}
-        {titulo("Geral")}
-        <div className="space-y-0.5">
-          {conta.map((i) => item(i, itemAtivo(path, i.href)))}
-          <BotaoSair sair={sair} usuarioId={usuarioId} variante="lateral" />
-        </div>
       </nav>
 
       {/* Módulo em uso e troca de módulo */}
@@ -249,24 +241,10 @@ export function TopoComputador({
                   <div className="truncate text-sm font-semibold text-stone-900">{usuario.nome}</div>
                   <div className="truncate text-xs text-stone-500">{usuario.perfilLabel}</div>
                 </div>
-                <Link href="/sistema" className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-stone-50">
-                  <LayoutGrid className="h-4 w-4 text-stone-400" /> Escolher módulo
+                {/* Avisos, manual e tema já são os ícones ao lado; o módulo troca no rodapé do menu lateral */}
+                <Link href="/perfil" className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-stone-50">
+                  <UserRound className="h-4 w-4 text-stone-400" /> Meu perfil
                 </Link>
-                {conta.map((i) => {
-                  const Icone = ICONES[i.icone];
-                  return (
-                    <Link key={i.href} href={i.href} className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-stone-50">
-                      <Icone className="h-4 w-4 text-stone-400" /> {i.label}
-                    </Link>
-                  );
-                })}
-                <div className="my-1 border-t border-stone-100" />
-                <div className="flex items-center gap-3 px-4 py-2">
-                  <span className="text-sm font-medium text-stone-600">Tema</span>
-                  <div className="flex-1">
-                    <SeletorTema />
-                  </div>
-                </div>
                 <div className="my-1 border-t border-stone-100" />
                 <BotaoSair sair={sair} usuarioId={usuarioId} variante="item" />
               </div>
