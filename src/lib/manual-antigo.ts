@@ -1,3 +1,4 @@
+// Manual antigo: só referência de conteúdo enquanto o novo (src/lib/manual/) é escrito; será removido.
 // Conteúdo do manual do usuário (página /ajuda). Texto simples, organizado por tema.
 // `modulo` mostra a seção (ou o tópico) só para quem usa o módulo; `para` / `paraProducao`
 // limitam a quem tem a permissão. Sem esses campos, a seção vale para todos.

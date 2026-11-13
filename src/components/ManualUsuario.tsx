@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CircleAlert, Lightbulb, Printer, Search, X } from "lucide-react";
-import { textoDaSecao, type Bloco, type Secao } from "@/lib/manual";
+import { textoDaSecao, type Bloco, type Secao } from "@/lib/manual-antigo";
 
 const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 

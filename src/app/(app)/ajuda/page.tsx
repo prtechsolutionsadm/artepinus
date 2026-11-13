@@ -5,7 +5,7 @@ import { ManualUsuario } from "@/components/ManualUsuario";
 import { Titulo } from "@/components/ui";
 import { PERFIL, PERFIL_PRODUCAO } from "@/lib/constantes";
 import { EMPRESA } from "@/lib/empresa";
-import { MANUAL } from "@/lib/manual";
+import { MANUAL } from "@/lib/manual-antigo";
 import { pode, podeProducao, temModulo } from "@/lib/permissoes";
 import { exigirUsuario } from "@/lib/session";
 
