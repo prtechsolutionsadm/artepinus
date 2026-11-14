@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { SCRIPT_INSTALAR } from "@/lib/instalar";
 import { RegistrarSW } from "@/components/RegistrarSW";
+import { AberturaApp } from "@/components/AberturaApp";
+import { SCRIPT_ABERTURA } from "@/lib/abertura";
 import { EMPRESA } from "@/lib/empresa";
 import "./globals.css";
 
@@ -37,6 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_INSTALAR }} />
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_ABERTURA }} />
+        <AberturaApp />
         {children}
         <RegistrarSW />
       </body>

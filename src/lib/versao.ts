@@ -21,6 +21,14 @@ export type NotaAtualizacao = {
 
 export const NOTAS: NotaAtualizacao[] = [
   {
+    versao: "2.7.1",
+    data: "2026-11-14",
+    titulo: "Abertura do aplicativo",
+    melhorias: [
+      "Ao abrir o aplicativo instalado no celular ou no computador, aparece uma abertura rápida com a marca da Artepinus enquanto a tela carrega.",
+    ],
+  },
+  {
     versao: "2.7.0",
     data: "2026-11-14",
     titulo: "Início dos módulos em painel",

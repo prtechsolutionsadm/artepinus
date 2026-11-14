@@ -310,3 +310,113 @@ input[type="search"]::-webkit-search-decoration {
 :root:not([data-menu="recolhido"]) .grupo-fechado {
   display: none;
 }
+
+/* Abertura do app instalado (AberturaApp + SCRIPT_ABERTURA): só aparece com <html data-abertura>.
+   ~1,8 s: a marca sobe, o nome aparece, a linha corre e o quadro some sozinho (some mesmo se o
+   script não tirar o atributo). Não aparece na impressão. */
+.abertura-app {
+  display: none;
+}
+@media screen {
+  html[data-abertura] .abertura-app {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    animation: abertura-sair 0.4s ease-in 1.45s forwards;
+  }
+  html[data-abertura] body {
+    overflow: hidden;
+  }
+}
+.abertura-conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.abertura-marca {
+  width: 176px;
+  height: auto;
+  opacity: 0;
+  transform-origin: 50% 100%;
+  animation: abertura-marca 0.7s cubic-bezier(0.2, 0.9, 0.25, 1.15) 0.05s forwards;
+}
+.abertura-nome {
+  margin-top: 18px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  animation: abertura-texto 0.5s ease-out 0.45s forwards;
+}
+.abertura-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: abertura-sub 0.6s ease-out 0.65s forwards;
+}
+.abertura-linha {
+  position: relative;
+  margin-top: 26px;
+  width: 120px;
+  height: 3px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.2);
+}
+.abertura-linha::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: abertura-linha 0.9s ease-in-out 0.55s forwards;
+}
+@keyframes abertura-marca {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes abertura-texto {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes abertura-sub {
+  from {
+    opacity: 0;
+    letter-spacing: 0.1em;
+  }
+  to {
+    opacity: 0.8;
+    letter-spacing: 0.35em;
+  }
+}
+@keyframes abertura-linha {
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes abertura-sair {
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+    visibility: hidden;
+  }
+}
