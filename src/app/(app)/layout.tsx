@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { sair } from "@/app/actions/auth";
@@ -7,6 +8,7 @@ import { BarraInferior, MenuLateral, SCRIPT_MENU, TopoApp } from "@/components/N
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { SincronizadorOffline } from "@/components/SincronizadorOffline";
 import { Rodape } from "@/components/Rodape";
+import { ID_CONTEUDO, RolagemConteudo } from "@/components/RolagemConteudo";
 import { SCRIPT_TEMA, TemaApp } from "@/components/Tema";
 import { rotuloPerfis } from "@/lib/constantes";
 import { db } from "@/lib/db";
@@ -65,7 +67,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <MedidaRolagem />
       {/* Computador: menu lateral enxuto (só as telas do módulo); o resto fica no topo */}
       <MenuLateral menus={menus} salvo={salvo} />
-      <div className="flex min-h-dvh flex-col transition-[padding] duration-200 lg:pl-[var(--largura-menu)]">
+      {/* Computador: quadro do tamanho da janela, com o topo em cima, o rodapé sempre à vista embaixo e só o
+          conteúdo rolando no meio (#conteudo). Celular e impressão: a página rola inteira, como antes. */}
+      <div className="flex min-h-dvh flex-col transition-[padding] duration-200 lg:h-dvh lg:min-h-0 lg:pl-[var(--largura-menu)] print:h-auto">
       <TopoApp
         menus={menus}
         salvo={salvo}
@@ -76,9 +80,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         mostrarModulos={mostrarModulos}
       />
 
-      {/* overflow-x-clip: a FaixaPainel sai do container até as bordas sem criar rolagem lateral
-          (clip, e não hidden, para não quebrar os elementos sticky das páginas) */}
-      <div className="flex-1 overflow-x-clip">
+      {/* overflow-x-clip: nada cria rolagem lateral (no computador vira hidden, junto da rolagem vertical) */}
+      <div id={ID_CONTEUDO} className="relative flex-1 overflow-x-clip lg:min-h-0 lg:overflow-y-auto print:overflow-visible">
+        <Suspense>
+          <RolagemConteudo />
+        </Suspense>
         {/* Avisos da fila offline fora do <main>: a faixa verde das telas iniciais encosta no topo sem cobri-los */}
         <div className={`${largura} nao-imprimir pt-4 empty:hidden`}>
           <SincronizadorOffline usuarioId={eu.id} nome={eu.nome} />
@@ -89,7 +95,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* Créditos (celular e computador); no celular, acima da barra de baixo */}
       <div className="nao-imprimir border-t border-stone-200/70 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
-        <Rodape novidades className="w-full px-4 py-5 sm:px-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:px-8 lg:text-left" />
+        <Rodape novidades className="w-full px-4 py-5 sm:px-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:px-8 lg:py-3 lg:text-left" />
       </div>
 
       </div>

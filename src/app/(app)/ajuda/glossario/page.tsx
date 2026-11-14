@@ -68,7 +68,7 @@ export default async function GlossarioPage({ searchParams }: { searchParams: Pr
         <Vazio>Nenhum termo por aqui ainda.</Vazio>
       ) : (
         <>
-          <nav aria-label="Letras" className="nao-imprimir sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-4 mb-4 flex gap-1 overflow-x-auto border-y border-stone-200 bg-white/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:border lg:top-16">
+          <nav aria-label="Letras" className="nao-imprimir sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-4 mb-4 flex gap-1 overflow-x-auto border-y border-stone-200 bg-white/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:border lg:top-0">
             {[...letras.keys()].map((l) => (
               <a key={l} href={`#letra-${l}`} className="grid h-8 min-w-8 place-items-center rounded-lg text-sm font-semibold text-stone-600 hover:bg-stone-100 hover:text-marca-800">
                 {l}

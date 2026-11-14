@@ -146,7 +146,7 @@ export default async function SecaoManualPage({ params, searchParams }: Props) {
 
         {s.topicos.length > 1 && (
           <aside className="nao-imprimir hidden lg:block">
-            <div className="sticky top-24">
+            <div className="sticky top-6">
               <IndiceTopicos topicos={s.topicos.map((t) => ({ id: t.id, titulo: t.titulo }))} />
             </div>
           </aside>

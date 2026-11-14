@@ -34,6 +34,7 @@ export const NOTAS: NotaAtualizacao[] = [
     melhorias: [
       "Menu lateral enxuto, só com as telas do módulo: cada grupo abre e fecha pela setinha e o menu pode ser recolhido para mostrar só os ícones (o computador lembra as escolhas).",
       "Telas iniciais em cartões, com o que fazer agora primeiro.",
+      "No computador, todas as telas têm o tamanho da janela: o topo e o rodapé ficam sempre à vista e só o conteúdo rola.",
       "Barras de rolagem finas, na cor do sistema.",
       "Paradas de máquina e requisições de manutenção ligadas: o tempo parado entra sozinho no boletim do dia.",
     ],

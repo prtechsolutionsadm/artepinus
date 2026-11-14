@@ -12,6 +12,7 @@ import { FaixaPainel } from "@/components/painel";
 import { hojePorExtenso, saudacao } from "@/components/inicio/PecasInicio";
 import { MedidaRolagem } from "@/components/painel/MedidaRolagem";
 import { Rodape } from "@/components/Rodape";
+import { ID_CONTEUDO } from "@/components/RolagemConteudo";
 import { CartaoInstalar } from "@/components/CartaoInstalar";
 import { VERSAO, versaoRecente } from "@/lib/versao";
 import { Sininho } from "@/components/Sininho";
@@ -203,7 +204,8 @@ export default async function SistemaPage() {
   // Mesma largura do topo e do conteúdo das telas do sistema (layout do app)
   const largura = "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 2xl:max-w-[1440px]";
   return (
-    <div className="flex min-h-dvh flex-col">
+    // Computador: topo e rodapé fixos, só o conteúdo rola (como no layout do app)
+    <div className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-0 print:h-auto">
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <TemaApp />
       <MedidaRolagem />
@@ -222,8 +224,7 @@ export default async function SistemaPage() {
         <TopoSemModulo naoLidas={naoLidas} usuarioId={eu.id} />
       )}
 
-      {/* overflow-x-clip: a FaixaPainel vai até as bordas sem rolagem lateral (como no layout do app) */}
-      <div className="flex-1 overflow-x-clip">
+      <div id={ID_CONTEUDO} className="relative flex-1 overflow-x-clip lg:min-h-0 lg:overflow-y-auto print:overflow-visible">
         <main className={`${largura} pb-8 pt-5 lg:pt-6`}>
           {/* Telas largas: coluna de avisos recentes à direita */}
           <div className="2xl:grid 2xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:items-start 2xl:gap-6">
@@ -369,7 +370,7 @@ export default async function SistemaPage() {
       </div>
 
       <div className="nao-imprimir border-t border-stone-200/70">
-        <Rodape novidades className="w-full px-4 py-5 sm:px-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:px-8 lg:text-left" />
+        <Rodape novidades className="w-full px-4 py-5 sm:px-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:px-8 lg:py-3 lg:text-left" />
       </div>
     </div>
   );

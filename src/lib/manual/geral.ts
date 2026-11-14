@@ -216,7 +216,7 @@ export const GERAL: Secao[] = [
           "onde está o menu",
         ],
         blocos: [
-          texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No alto, as árvores da Artepinus com o nome do módulo em uso. Toque na setinha ao lado do nome de um grupo para fechar ou abrir as telas dele. O botão Recolher menu, no rodapé do menu, deixa só os ícones (o nome aparece ao passar o mouse); toque de novo para abrir. O sistema lembra essas escolhas neste aparelho. O resto fica no topo, sempre igual em todas as telas:"),
+          texto("No computador, o menu à esquerda tem só as telas do módulo em uso: Início e os grupos Operação, Gestão e Cadastros (cada um vê só o que pode usar). No alto, as árvores da Artepinus com o nome do módulo em uso. Toque na setinha ao lado do nome de um grupo para fechar ou abrir as telas dele. O botão Recolher menu, no rodapé do menu, deixa só os ícones (o nome aparece ao passar o mouse); toque de novo para abrir. O sistema lembra essas escolhas neste aparelho. Todas as telas têm o mesmo tamanho, o da janela: o topo e o rodapé (com a versão do sistema) ficam sempre à vista e só o meio rola; ao voltar para uma lista, ela reabre onde você estava. O resto fica no topo, sempre igual em todas as telas:"),
           termos(
             ["Artepinus e o módulo", "No alto do menu à esquerda. Volta à tela de início do sistema (a dos módulos)."],
             [

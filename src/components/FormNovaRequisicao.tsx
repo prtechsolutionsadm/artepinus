@@ -1,5 +1,6 @@
 "use client";
 
+import { rolarParaOTopo } from "@/components/RolagemConteudo";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { CloudOff, Loader2 } from "lucide-react";
@@ -38,7 +39,7 @@ export function FormNovaRequisicao({ setores, equipamentos, equipamentoInicial }
     ref.current?.reset();
     setEquipamentoId(equipamentoInicial ?? "");
     setSalvaOffline(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    rolarParaOTopo();
   };
 
   const enviar = async (e: React.FormEvent<HTMLFormElement>) => {
