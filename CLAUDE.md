@@ -40,3 +40,12 @@ Next.js 16 (App Router) + Prisma 7 (client gerado em `src/generated/prisma`) + P
 - Toda ação que altera dados registra em `Auditoria` via `auditar()` de `src/lib/auditoria.ts`.
 - Nova requisição: `criarRequisicaoCompleta()` em `src/lib/requisicoes.ts` (usada pelo formulário e pela fila offline `/api/requisicoes/offline`).
 - Fotos passam por `processarFoto()` (sharp: 1600px, JPEG, sem EXIF) e são servidas por `/api/anexos/[id]` só para logados.
+
+## Git e publicação (regra da PR Tech)
+
+- A `main` é o único branch de produção. A Vercel publica sozinha a cada push na `main`.
+- Se a sessão trabalhar em outro branch, ao concluir cada entrega faça merge na `main` e push da `main`.
+  Não deixe trabalho parado em outros branches.
+- Nunca publique em produção a partir de outro branch (nada de `vercel --prod` fora da `main`).
+- Não apague nem altere `.claude/hooks/painel.mjs` e os hooks dele em `.claude/settings.json`: eles avisam a
+  Central PR Tech (central.prtechsolutions.com.br) o que cada sessão está fazendo.
