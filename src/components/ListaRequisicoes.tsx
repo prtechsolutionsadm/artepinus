@@ -38,10 +38,19 @@ export const selectItemRequisicao = {
   _count: { select: { anexos: true } },
 } as const;
 
-export function ListaRequisicoes({ itens, vazio = "Nenhuma requisição encontrada." }: { itens: ItemRequisicao[]; vazio?: string }) {
-  if (itens.length === 0) return <Vazio>{vazio}</Vazio>;
+/** `embutida`: dentro de um Painel da tela inicial (sem a borda própria; vazio em uma linha simples). */
+export function ListaRequisicoes({
+  itens,
+  vazio = "Nenhuma requisição encontrada.",
+  embutida,
+}: {
+  itens: ItemRequisicao[];
+  vazio?: string;
+  embutida?: boolean;
+}) {
+  if (itens.length === 0) return embutida ? <p className="px-4 py-4 text-sm text-stone-500 sm:px-5">{vazio}</p> : <Vazio>{vazio}</Vazio>;
   return (
-    <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-xs">
+    <ul className={`divide-y divide-stone-100 ${embutida ? "" : "overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-xs"}`}>
       {itens.map((r) => {
         const pendente = !STATUS_FINAIS.includes(r.status);
         return (

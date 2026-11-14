@@ -6,5 +6,4 @@ export { FaixaPainel, BOTAO_FAIXA } from "@/components/painel/FaixaPainel";
 export { SobreFaixa } from "@/components/painel/SobreFaixa";
 export { GrupoAtalhos } from "@/components/painel/GrupoAtalhos";
 export { CartaoAtalho } from "@/components/painel/CartaoAtalho";
-export { CartaoPrincipal } from "@/components/painel/CartaoPrincipal";
 export { TodasAsTelas } from "@/components/painel/TodasAsTelas";

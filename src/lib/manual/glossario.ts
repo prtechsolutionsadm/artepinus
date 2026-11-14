@@ -57,12 +57,12 @@ export const GLOSSARIO: Termo[] = [
   {
     termo: "Início do módulo",
     definicao:
-      "A tela inicial da Serraria ou da Manutenção, que o logo do topo sempre abre: a faixa verde com o resumo, O que precisa de atenção, e o Acesso rápido.",
+      "A tela inicial da Serraria ou da Manutenção (Início, no alto do menu à esquerda): os botões das tarefas do dia, os números do momento e O que precisa de atenção.",
     veja: "/ajuda/navegacao#tela-inicial",
   },
   {
-    termo: "Acesso rápido",
-    definicao: "Os cartões grandes do Início do módulo com as tarefas do dia da sua função: a tarefa principal (ex.: Apontar serraria ou Nova requisição) e as outras ao lado. Muda com o perfil.",
+    termo: "Tarefas do dia",
+    definicao: "Os botões no alto do Início do módulo com as tarefas da sua função: a principal em verde (ex.: Apontar serraria ou Nova requisição) e as outras ao lado. Muda com o perfil.",
     veja: "/ajuda/navegacao#tela-inicial",
   },
   {

@@ -262,12 +262,12 @@ export const GERAL: Secao[] = [
           "onde fica",
         ],
         blocos: [
-          texto("O Início da Serraria e o da Manutenção seguem a mesma ordem: primeiro o que fazer agora, depois o caminho para todas as telas. Cada pessoa vê só o que o perfil dela permite."),
+          texto("O Início da Serraria e o da Manutenção seguem a mesma ordem: as tarefas do dia, os números do momento e o que precisa de atenção. Cada pessoa vê só o que o perfil dela permite."),
           termos(
-            ["Faixa verde", "No alto: a saudação (Bom dia, Boa tarde ou Boa noite, com o seu nome), o módulo e o seu perfil (ex.: Serraria · Apontador) e a data de hoje."],
-            ["Resumo", "O cartão branco sobre a faixa, com poucos números do momento. Vermelho é máquina parada ou estufa atrasada. Toque num número para abrir a lista dele."],
+            ["Cabeçalho", "No alto: o módulo e o seu perfil (ex.: Serraria · Apontador), a saudação (Bom dia, Boa tarde ou Boa noite, com o seu nome) e a data de hoje."],
+            ["Tarefas do dia", "Os botões junto do cabeçalho: a tarefa principal da sua função em verde (ex.: Apontar serraria ou Nova requisição) e as outras ao lado. Um número no botão mostra quantos esperam por você (em vermelho, quando pede atenção)."],
+            ["Números", "Uma faixa com os números do momento, lado a lado. Vermelho é máquina parada ou estufa atrasada; âmbar, algo faltando. Toque num número para abrir a lista dele."],
             ["O que precisa de atenção", "O que está faltando ou atrasado, com o botão para resolver. Sem nada pendente, aparece Tudo em dia."],
-            ["Acesso rápido", "A tarefa principal da sua função num cartão grande (ex.: Apontar serraria ou Nova requisição) e as outras tarefas do dia nos cartões menores ao lado. Um número no cartão mostra quantos esperam por você (em amarelo, quando pede atenção)."],
           ),
           dica("Não acha uma tela? Veja o menu à esquerda ou use a busca do topo. No celular, as telas estão em Mais. Cada Início está explicado em “Início da Serraria” (/ajuda/serraria-inicio) e “Início da Manutenção” (/ajuda/manutencao-inicio)."),
         ],
@@ -354,7 +354,7 @@ export const GERAL: Secao[] = [
         palavras: ["manutenção", "barra de baixo", "requisições", "nova requisição", "agenda", "botão +", "operação", "gestão", "cadastros", "menu", "todas as telas"],
         blocos: [
           texto(
-            "No celular, a barra de baixo tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, Nova requisição fica no Acesso rápido do Início e no botão da tela Requisições. As telas da Manutenção ficam no menu à esquerda (no celular, em Mais):",
+            "No celular, a barra de baixo tem Início, Requisições, o botão + do meio (Nova requisição), Agenda e Mais. No computador, Nova requisição fica nos botões do alto do Início e no botão da tela Requisições. As telas da Manutenção ficam no menu à esquerda (no celular, em Mais):",
           ),
           termos(
             ["Operação", "Requisições e Agenda."],
@@ -726,7 +726,7 @@ export const GERAL: Secao[] = [
           termos(
             [
               "Seus dados",
-              "O cartão do alto: o seu nome, o login e o seu perfil em cada módulo que você usa (ex.: Serraria: Apontador · Manutenção: Operador; gerente e administrador veem Gerente · acesso total ou Administrador · acesso total). O mesmo perfil aparece na faixa verde da tela de início, no alto de Mais (celular) e no menu do seu nome (computador). Para mudar o nome, o login ou o perfil, fale com o gerente.",
+              "O cartão do alto: o seu nome, o login e o seu perfil em cada módulo que você usa (ex.: Serraria: Apontador · Manutenção: Operador; gerente e administrador veem Gerente · acesso total ou Administrador · acesso total). O mesmo perfil aparece no alto do Início do módulo, no alto de Mais (celular) e no menu do seu nome (computador). Para mudar o nome, o login ou o perfil, fale com o gerente.",
             ],
             ["Notificações neste aparelho", "Ativar, testar ou desligar os avisos neste aparelho. Veja “Receber os avisos no celular ou no computador” (/ajuda/avisos#ativar)."],
             ["Tema", "Claro, Escuro ou Automático. Veja “Tema claro, escuro ou automático” (/ajuda/navegacao#tema)."],

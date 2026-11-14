@@ -45,7 +45,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Registrar a carga",
         itens: [
-          "No Início, toque em Receber toras (Acesso rápido) ou abra Recebimento de toras → Nova carga.",
+          "No Início, toque em Receber toras (botões do alto) ou abra Recebimento de toras → Nova carga.",
           "Confira a Data e escolha a Floresta, o Fornecedor e o Motorista. As placas do caminhão e da julieta aparecem sozinhas.",
           "Toque no Diâmetro da carga: Fina, Média ou Grossa.",
           "Digite o Comprimento médio (m) e o Peso (toneladas) da balança.",
@@ -73,7 +73,7 @@ export const ROTEIROS: Roteiro[] = [
       {
         titulo: "Apontar um lote",
         itens: [
-          "No Início, toque em Apontar serraria (o cartão grande). Confira a Data e escolha o Pedido.",
+          "No Início, toque em Apontar serraria (o botão verde do alto). Confira a Data e escolha o Pedido.",
           "Em cada linha da ficha: escolha a espessura (23, 25, 32 ou 38) e marque as larguras (125, 100, 85, 50 ou Mista).",
           "Digite as peças em cada comprimento (2,50 · 2,10 · 1,65 · 1,30 · 1,00 · 0,70). Enter passa para o próximo.",
           "Outra medida? Toque em Adicionar linha. O botão de repetir (duas folhas) copia a espessura e as larguras na linha de baixo.",
@@ -328,7 +328,7 @@ export const ROTEIROS: Roteiro[] = [
         titulo: "Todo dia: triagem",
         itens: [
           "No Início, veja Máquinas paradas agora e Prioridade alta e urgente.",
-          "Toque em Sem responsável (Acesso rápido do Início) para ver as que ninguém assumiu; para as ainda Abertas, filtre o Status Aberta em Requisições.",
+          "Toque em Sem responsável (botões do alto do Início) para ver as que ninguém assumiu; para as ainda Abertas, filtre o Status Aberta em Requisições.",
           "Em cada uma, no quadro Atualizar requisição, escolha o Responsável e o Status (Em análise, Planejada ou Agendada, com a Data agendada) → Salvar.",
           "Repetida ou sem motivo? Status Cancelada, com o motivo em Observação / motivo.",
         ],

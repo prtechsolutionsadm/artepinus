@@ -1,28 +1,23 @@
 import type { Metadata } from "next";
-import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, Check, CheckCircle2, ClipboardList, OctagonAlert, TriangleAlert } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, CheckCircle2, OctagonAlert, TriangleAlert } from "lucide-react";
 import { liberarMaquina } from "@/app/actions/paradas";
 import { BotaoAcao } from "@/components/producao/BotaoAcao";
 import { ConvitePush } from "@/components/AtivarPush";
 import { ListaRequisicoes, selectItemRequisicao } from "@/components/ListaRequisicoes";
 import {
-  AcessoRapido,
-  ResumoInicio,
-  SecaoInicio,
-  TodasAsTelasInicio,
-  TudoEmDia,
+  CabecalhoModulo,
+  Indicadores,
+  NadaPendente,
+  Painel,
   hojePorExtenso,
   saudacao,
-  type ChipResumo,
+  type AcaoInicio,
+  type Indicador,
 } from "@/components/inicio/PecasInicio";
-import { FaixaPainel } from "@/components/painel/FaixaPainel";
-import type { CartaoAtalho } from "@/components/painel/CartaoAtalho";
-import type { CartaoPrincipal } from "@/components/painel/CartaoPrincipal";
 import { PERFIL, STATUS, STATUS_HEX, STATUS_PENDENTES, formatarDuracao, minutosEntre, numeroRequisicao } from "@/lib/constantes";
 import { CENTRO } from "@/lib/producao";
 import { db } from "@/lib/db";
-import { menusDoUsuario } from "@/lib/menu";
 import { exigirModulo } from "@/lib/session";
 import { PERFIS_RESPONSAVEIS, pode } from "@/lib/permissoes";
 
@@ -30,7 +25,7 @@ export const metadata: Metadata = { title: "Início" };
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
-/** Tela inicial da Manutenção: resumo, o que precisa de atenção, as tarefas do dia da função e todas as telas. */
+/** Tela inicial da Manutenção (painel de números): tarefas do dia em botões, indicadores, o que precisa de atenção e as listas da função. */
 export default async function InicioPage() {
   const eu = await exigirModulo("manutencao");
   const equipe = pode(eu.perfil, "atenderRequisicoes");
@@ -104,138 +99,96 @@ export default async function InicioPage() {
   const pendentes = STATUS_PENDENTES.reduce((t, s) => t + (contagem[s] ?? 0), 0);
   const comPendentes = STATUS_PENDENTES.filter((s) => contagem[s]);
 
-  const chips: ChipResumo[] = [
-    { href: "/requisicoes?status=pendentes", icone: ClipboardList, texto: <><b className="font-semibold tabular-nums">{pendentes}</b> {pendentes === 1 ? "pendente" : "pendentes"}</> },
+  // Tarefas do dia de cada função (operador pede; manutentor/supervisor atendem; gerente distribui)
+  const nova: AcaoInicio = { href: "/requisicoes/nova", texto: "Nova requisição", icone: "nova" };
+  const agenda: AcaoInicio = { href: "/agenda", texto: "Agenda", icone: "agenda", selo: atrasadas || undefined, alerta: atrasadas > 0 };
+  const semDonoAcao: AcaoInicio = { href: "/requisicoes?status=pendentes&responsavel=nenhum", texto: "Sem responsável", icone: "usuarios", selo: semDono || undefined, alerta: true };
+  const acoes: AcaoInicio[] = !equipe
+    ? [{ ...nova, principal: true }, { href: "/requisicoes?minhas=1", texto: "Minhas requisições", icone: "requisicoes", selo: minhasAbertas || undefined }, agenda]
+    : responsavel
+      ? [{ href: "/requisicoes?responsavel=eu&status=pendentes", texto: "Atribuídas a mim", icone: "perfil", principal: true, selo: atribuidas || undefined }, semDonoAcao, agenda, nova]
+      : [
+          { ...semDonoAcao, principal: true },
+          { href: "/requisicoes?status=pendentes", texto: "Pendentes", icone: "requisicoes", selo: pendentes || undefined },
+          agenda,
+          nova,
+          ...(pode(eu.perfil, "relatorios") ? [{ href: "/indicadores", texto: "Indicadores", icone: "indicadores" } as const] : []),
+        ];
+
+  const indicadores: Indicador[] = [
+    { rotulo: "Pendentes", valor: pendentes, detalhe: comPendentes.map((st) => `${contagem[st]} ${STATUS[st].label.toLowerCase()}`).join(", ") || "nenhuma em aberto", href: "/requisicoes?status=pendentes" },
     {
+      rotulo: "Máquinas paradas",
+      valor: paradas.length,
+      detalhe: paradas.length > 0 ? "esperando a manutenção" : "nenhuma parada",
       href: "/requisicoes?status=pendentes&maquina=parada",
-      icone: OctagonAlert,
-      texto: <><b className="font-semibold tabular-nums">{paradas.length}</b> {paradas.length === 1 ? "máquina parada" : "máquinas paradas"}</>,
       tom: paradas.length > 0 ? "perigo" : "normal",
     },
     {
-      href: "/agenda",
-      icone: CalendarClock,
-      texto: <><b className="font-semibold tabular-nums">{atrasadas}</b> {atrasadas === 1 ? "atrasada" : "atrasadas"} na agenda</>,
-      tom: atrasadas > 0 ? "alerta" : "normal",
+      rotulo: "Alta e urgente",
+      valor: urgentes.length,
+      detalhe: urgentes.length > 0 ? "pedem atenção primeiro" : "nenhuma",
+      href: "/requisicoes?status=pendentes&prioridade=ALTA,URGENTE",
+      tom: urgentes.length > 0 ? "alerta" : "normal",
     },
     {
-      href: "/requisicoes?status=CONCLUIDA",
-      icone: CheckCircle2,
-      texto: <><b className="font-semibold tabular-nums">{concluidasMes}</b> {concluidasMes === 1 ? "concluída" : "concluídas"} no mês</>,
+      rotulo: "Atrasadas na agenda",
+      valor: atrasadas,
+      detalhe: atrasadas > 0 ? "com a data vencida" : "agenda em dia",
+      href: "/agenda",
+      tom: atrasadas > 0 ? "alerta" : "normal",
     },
+    { rotulo: "Concluídas no mês", valor: concluidasMes, detalhe: "requisições fechadas", href: "/requisicoes?status=CONCLUIDA" },
   ];
-
-  // Acesso rápido: a tarefa do dia de cada função (operador pede; manutentor/supervisor atendem; gerente distribui)
-  const nova = { href: "/requisicoes/nova", titulo: "Nova requisição", descricao: "Pedir um conserto ou serviço", icone: "nova" } as const;
-  const agenda: ComponentProps<typeof CartaoAtalho> = {
-    href: "/agenda",
-    titulo: "Agenda",
-    descricao: "Serviços marcados, dia a dia",
-    icone: "agenda",
-    selo: atrasadas > 0 ? plural(atrasadas, "vencida", "vencidas") : contagem.AGENDADA || undefined,
-    alerta: atrasadas > 0,
-  };
-  const todasPendentes = {
-    href: "/requisicoes?status=pendentes",
-    titulo: "Todas as pendentes",
-    descricao: "Todas as requisições em aberto",
-    icone: "requisicoes",
-    selo: pendentes || undefined,
-  } as const;
-  const semDonoAtalho = {
-    href: "/requisicoes?status=pendentes&responsavel=nenhum",
-    titulo: "Sem responsável",
-    descricao: "Requisições que ninguém assumiu ainda",
-    icone: "usuarios",
-    selo: semDono || undefined,
-    alerta: true,
-  } as const;
-
-  let principal: ComponentProps<typeof CartaoPrincipal>;
-  let atalhos: ComponentProps<typeof CartaoAtalho>[];
-  if (!equipe) {
-    principal = {
-      href: "/requisicoes/nova",
-      rotulo: "Tarefa principal",
-      titulo: "Nova requisição",
-      descricao: "Máquina com problema? Diga qual é, o que aconteceu e, se puder, mande uma foto.",
-      icone: "nova",
-      acao: "Abrir requisição",
-    };
-    atalhos = [
-      {
-        href: "/requisicoes?minhas=1",
-        titulo: "Minhas requisições",
-        descricao: "O andamento dos pedidos que você abriu",
-        icone: "requisicoes",
-        selo: minhasAbertas > 0 ? plural(minhasAbertas, "pendente", "pendentes") : undefined,
-      },
-      agenda,
-    ];
-  } else if (responsavel) {
-    principal = {
-      href: "/requisicoes?responsavel=eu&status=pendentes",
-      rotulo: "Tarefa principal",
-      titulo: "Atribuídas a mim",
-      descricao:
-        atribuidas > 0
-          ? `${plural(atribuidas, "requisição esperando", "requisições esperando")} por você.`
-          : "Nenhuma requisição com você agora. Veja as que estão sem responsável.",
-      icone: "perfil",
-      acao: "Ver as minhas",
-    };
-    atalhos = [semDonoAtalho, agenda, nova, todasPendentes];
-  } else {
-    principal = {
-      href: "/requisicoes?status=pendentes&responsavel=nenhum",
-      rotulo: "Tarefa principal",
-      titulo: "Sem responsável",
-      descricao:
-        semDono > 0
-          ? `${plural(semDono, "requisição esperando", "requisições esperando")} alguém assumir.`
-          : "Todas as requisições pendentes têm responsável.",
-      icone: "usuarios",
-      acao: "Distribuir",
-    };
-    atalhos = [
-      todasPendentes,
-      agenda,
-      nova,
-      ...(pode(eu.perfil, "relatorios")
-        ? [{ href: "/indicadores", titulo: "Indicadores", descricao: "Números e gráficos da manutenção", icone: "indicadores" } as const]
-        : []),
-    ];
-  }
 
   const nadaUrgente = paradas.length === 0 && atrasadas === 0 && urgentes.length === 0 && liberadas.length === 0;
 
   return (
     <>
-      <FaixaPainel rotulo={`Manutenção · ${PERFIL[eu.perfil]}`} titulo={`${saudacao()}, ${eu.nome.trim().split(/\s+/)[0]}`} subtitulo={hojePorExtenso()} />
+      <CabecalhoModulo
+        titulo={`${saudacao()}, ${eu.nome.trim().split(/\s+/)[0]}`}
+        subtitulo={`Manutenção · ${PERFIL[eu.perfil]}`}
+        data={hojePorExtenso()}
+        acoes={acoes}
+      />
 
-      <ResumoInicio chips={chips} />
+      <Indicadores itens={indicadores} />
+
+      {/* Barra das pendentes por status, logo abaixo dos números */}
+      {pendentes > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-stone-200 sm:w-48">
+            {comPendentes.map((st) => (
+              <div key={st} style={{ width: `${(contagem[st] / pendentes) * 100}%`, background: STATUS_HEX[st] }} title={STATUS[st].label} />
+            ))}
+          </div>
+          {comPendentes.map((st) => (
+            <Link key={st} href={`/requisicoes?status=${st}`} className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-stone-900">
+              <span className="h-2 w-2 rounded-full" style={{ background: STATUS_HEX[st] }} />
+              {STATUS[st].label}
+              <span className="font-semibold tabular-nums text-stone-900">{contagem[st]}</span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Some quando não há convite (o componente não desenha nada) */}
-      <div className="mt-6 empty:hidden [&>div]:mb-0">
+      <div className="mt-5 empty:hidden [&>div]:mb-0">
         <ConvitePush />
       </div>
 
-      <SecaoInicio titulo="O que precisa de atenção">
+      <div className="mt-5 space-y-5">
         {nadaUrgente ? (
-          <TudoEmDia>Tudo em dia: nenhuma máquina parada nem requisição urgente.</TudoEmDia>
+          <Painel titulo="O que precisa de atenção">
+            <NadaPendente>Tudo em dia: nenhuma máquina parada nem requisição urgente.</NadaPendente>
+          </Painel>
         ) : (
-          <div className="space-y-5">
+          <>
             {paradas.length > 0 && (
-              <section className="cartao border-rose-300 p-0 ring-1 ring-rose-200 sm:p-0">
-                <div className="flex items-center justify-between border-b border-rose-100 px-4 py-3">
-                  <h3 className="flex items-center gap-2 font-semibold text-rose-800">
-                    <OctagonAlert className="h-5 w-5" /> Máquinas paradas agora
-                  </h3>
-                  <span className="rounded-full bg-rose-600 px-2 py-0.5 text-xs font-semibold text-white">{paradas.length}</span>
-                </div>
+              <Painel titulo={<span className="text-rose-800">Máquinas paradas agora</span>} icone={<OctagonAlert className="h-4 w-4 text-rose-600" />} contagem={paradas.length} className="border-rose-300 ring-1 ring-rose-200">
                 <ul className="divide-y divide-stone-100">
                   {paradas.map((r) => (
-                    <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                    <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-5">
                       <Link href={`/requisicoes/${r.id}`} className="min-w-0 flex-1 hover:underline">
                         <div className="font-medium">{r.equipamento ? `${r.equipamento.codigo} · ${r.equipamento.nome}` : r.titulo}</div>
                         <div className="text-sm text-stone-500">
@@ -257,7 +210,7 @@ export default async function InicioPage() {
                     </li>
                   ))}
                 </ul>
-              </section>
+              </Painel>
             )}
 
             {atrasadas > 0 && (
@@ -276,90 +229,49 @@ export default async function InicioPage() {
             )}
 
             {(urgentes.length > 0 || liberadas.length > 0) && (
-              <div className={`grid gap-5 ${urgentes.length > 0 && liberadas.length > 0 ? "lg:grid-cols-2" : ""}`}>
+              <div className={`grid items-start gap-5 ${urgentes.length > 0 && liberadas.length > 0 ? "xl:grid-cols-2" : ""}`}>
                 {urgentes.length > 0 && (
-                  <Bloco
+                  <Painel
                     titulo="Prioridade alta e urgente"
                     icone={<TriangleAlert className="h-4 w-4 text-orange-500" />}
-                    href="/requisicoes?status=pendentes&prioridade=ALTA,URGENTE"
+                    link={{ href: "/requisicoes?status=pendentes&prioridade=ALTA,URGENTE", texto: "Ver todas" }}
                   >
-                    <ListaRequisicoes itens={urgentes} />
-                  </Bloco>
+                    <ListaRequisicoes itens={urgentes} embutida />
+                  </Painel>
                 )}
                 {liberadas.length > 0 && (
-                  <Bloco
+                  <Painel
                     titulo="Máquina liberada: conferir e concluir"
                     icone={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-                    href="/requisicoes?status=pendentes&maquina=liberada"
+                    link={{ href: "/requisicoes?status=pendentes&maquina=liberada", texto: "Ver todas" }}
                   >
-                    <ListaRequisicoes itens={liberadas} />
-                  </Bloco>
+                    <ListaRequisicoes itens={liberadas} embutida />
+                  </Painel>
                 )}
               </div>
             )}
-          </div>
+          </>
         )}
-      </SecaoInicio>
 
-      <AcessoRapido principal={principal} atalhos={atalhos} />
-
-      {pendentes > 0 && (
-        <SecaoInicio titulo="Pendentes por status" contagem={pendentes} link={{ href: "/requisicoes?status=pendentes", texto: "Ver todas" }}>
-          <div className="cartao">
-            <div className="flex h-2.5 overflow-hidden rounded-full bg-stone-100">
-              {comPendentes.map((s) => (
-                <div key={s} style={{ width: `${(contagem[s] / pendentes) * 100}%`, background: STATUS_HEX[s] }} title={STATUS[s].label} />
-              ))}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-              {comPendentes.map((s) => (
-                <Link key={s} href={`/requisicoes?status=${s}`} className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-stone-900">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATUS_HEX[s] }} />
-                  {STATUS[s].label}
-                  <span className="font-semibold tabular-nums text-stone-900">{contagem[s]}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </SecaoInicio>
-      )}
-
-      <div className="grid gap-x-6 lg:grid-cols-2">
-        {semResponsavel ? (
-          <SecaoInicio titulo="Sem responsável" link={{ href: "/requisicoes?status=pendentes&responsavel=nenhum", texto: "Ver todas" }}>
-            <ListaRequisicoes itens={minhas} vazio="Todas as requisições pendentes têm responsável." />
-          </SecaoInicio>
-        ) : (
-          <SecaoInicio
-            titulo={equipe ? "Atribuídas a mim" : "Minhas requisições"}
-            link={{ href: equipe ? "/requisicoes?responsavel=eu&status=pendentes" : "/requisicoes?minhas=1", texto: "Ver todas" }}
-          >
-            <ListaRequisicoes itens={minhas} vazio={equipe ? "Nenhuma requisição atribuída a você." : "Você ainda não abriu requisições."} />
-          </SecaoInicio>
-        )}
-        <SecaoInicio titulo="Agendadas nos próximos 7 dias" link={{ href: "/agenda", texto: "Ver agenda" }}>
-          <ListaRequisicoes itens={proximas} vazio="Nada agendado para os próximos dias." />
-        </SecaoInicio>
+        <div className="grid items-start gap-5 xl:grid-cols-2">
+          {semResponsavel ? (
+            <Painel titulo="Sem responsável" link={{ href: "/requisicoes?status=pendentes&responsavel=nenhum", texto: "Ver todas" }}>
+              <ListaRequisicoes itens={minhas} embutida vazio="Todas as requisições pendentes têm responsável." />
+            </Painel>
+          ) : (
+            <Painel
+              titulo={equipe ? "Atribuídas a mim" : "Minhas requisições"}
+              link={{ href: equipe ? "/requisicoes?responsavel=eu&status=pendentes" : "/requisicoes?minhas=1", texto: "Ver todas" }}
+            >
+              <ListaRequisicoes itens={minhas} embutida vazio={equipe ? "Nenhuma requisição atribuída a você." : "Você ainda não abriu requisições."} />
+            </Painel>
+          )}
+          <Painel titulo="Agendadas nos próximos 7 dias" link={{ href: "/agenda", texto: "Ver agenda" }}>
+            <ListaRequisicoes itens={proximas} embutida vazio="Nada agendado para os próximos dias." />
+          </Painel>
+        </div>
       </div>
-
     </>
   );
 }
 
-/** Lista dentro de "O que precisa de atenção": título com ícone e "Ver todas". */
-function Bloco({ titulo, icone, href, children }: { titulo: string; icone?: ReactNode; href: string; children: ReactNode }) {
-  return (
-    <section className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h3 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-stone-800">
-          {icone}
-          {titulo}
-        </h3>
-        <Link href={href} className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-marca-700 hover:underline">
-          Ver todas <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-      {children}
-    </section>
-  );
-}

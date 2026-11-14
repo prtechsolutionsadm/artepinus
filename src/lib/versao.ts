@@ -21,6 +21,16 @@ export type NotaAtualizacao = {
 
 export const NOTAS: NotaAtualizacao[] = [
   {
+    versao: "2.7.0",
+    data: "2026-11-14",
+    titulo: "Início dos módulos em painel",
+    melhorias: [
+      "O Início da Serraria e o da Manutenção deixam os cartões: as tarefas do dia viram botões no alto, ao lado da saudação, com o número das que esperam.",
+      "Os números do momento ficam numa faixa só, lado a lado (na Serraria: serrado hoje e no mês, OEE, máquinas paradas, estufas e pacotes).",
+      "O que precisa de atenção, as estufas (em tabela) e as listas da Manutenção ficam em quadros, um ao lado do outro no computador.",
+    ],
+  },
+  {
     versao: "2.6.0",
     data: "2026-11-14",
     titulo: "Telas do tamanho da janela",
