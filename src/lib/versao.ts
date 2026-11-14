@@ -1,6 +1,7 @@
 // Versão do sistema e notas de atualização (tela /novidades, cartão Novidades da tela de início e rodapé).
 //
-// Cada publicação com mudança que o usuário percebe ganha uma entrada NO TOPO de NOTAS, com a versão
+// TODA publicação com mudança que o usuário percebe sobe a versão e ganha uma entrada NOVA no topo de NOTAS
+// (nunca acrescente itens a uma versão já publicada), com a versão
 // (MAIOR.MENOR.CORREÇÃO), a data ("AAAA-MM-DD") e o que mudou em linguagem simples, de quem usa o
 // sistema (nada de nome de arquivo ou termo técnico). A versão atual é sempre a primeira da lista;
 // o "version" do package.json acompanha (npm run manual:validar confere).
@@ -20,21 +21,59 @@ export type NotaAtualizacao = {
 
 export const NOTAS: NotaAtualizacao[] = [
   {
+    versao: "2.6.0",
+    data: "2026-11-14",
+    titulo: "Telas do tamanho da janela",
+    melhorias: [
+      "No computador, todas as telas têm o tamanho da janela: o topo e o rodapé (com a versão) ficam sempre à vista e só o conteúdo rola.",
+      "Ao voltar para uma lista, ela reabre no ponto em que você estava.",
+    ],
+  },
+  {
+    versao: "2.5.0",
+    data: "2026-11-13",
+    titulo: "App que se atualiza sozinho",
+    novidades: [
+      "O app se atualiza sozinho quando sai uma versão nova, também instalado no celular: não precisa desinstalar. Aparece o aviso Nova versão do sistema, com o botão Atualizar.",
+      "Cartão Instalar o app na tela de início, nos aparelhos que permitem (no iPhone, com o passo a passo do Safari).",
+    ],
+  },
+  {
+    versao: "2.4.1",
+    data: "2026-11-13",
+    titulo: "Cartões dos módulos",
+    melhorias: ["Na tela de início, tocar em qualquer parte do cartão do módulo já abre o módulo."],
+  },
+  {
+    versao: "2.4.0",
+    data: "2026-11-13",
+    titulo: "Menu lateral com grupos",
+    melhorias: [
+      "No alto do menu lateral, Artepinus e o nome do módulo em uso.",
+      "Cada grupo do menu (Operação, Gestão, Cadastros) abre e fecha pela setinha; o computador lembra a escolha.",
+      "Recolher menu fica sozinho no rodapé do menu; o cartão de troca de módulo saiu (use Artepinus, no alto, ou Módulos, no topo).",
+    ],
+  },
+  {
+    versao: "2.3.1",
+    data: "2026-11-13",
+    titulo: "Logo leva à tela de início",
+    melhorias: ["Tocar no logo leva sempre à tela de início do sistema, a dos módulos."],
+  },
+  {
     versao: "2.3.0",
     data: "2026-11-13",
     titulo: "Visual novo e manual do usuário",
     novidades: [
       "Notas de atualização: o cartão Novidades da tela de início e a versão no rodapé mostram o que mudou em cada versão.",
-      "O app se atualiza sozinho quando sai uma versão nova, também instalado no celular: não precisa desinstalar.",
-      "Cartão Instalar o app na tela de início, nos aparelhos que permitem (no iPhone, com o passo a passo do Safari).",
       "Manual do usuário refeito, com o passo a passo de cada tela; o botão ? do topo abre a ajuda da tela em que você está.",
       "Tela de início nova: saudação, resumo do momento, os módulos com o que cada um faz e cartões de Ajuda, Notificações, Novidades e Administração. Em monitores grandes, os avisos recentes ficam numa coluna à direita.",
       "Painel Administrativo: usuários, cadastros, histórico e dados do sistema em um só lugar.",
     ],
     melhorias: [
-      "Menu lateral enxuto, só com as telas do módulo: cada grupo abre e fecha pela setinha e o menu pode ser recolhido para mostrar só os ícones (o computador lembra as escolhas).",
+      "Menu lateral enxuto, só com as telas do módulo, que pode ser recolhido para mostrar só os ícones.",
       "Telas iniciais em cartões, com o que fazer agora primeiro.",
-      "No computador, todas as telas têm o tamanho da janela: o topo e o rodapé ficam sempre à vista e só o conteúdo rola.",
+      "Topo e rodapé ocupam a largura toda da tela.",
       "Barras de rolagem finas, na cor do sistema.",
       "Paradas de máquina e requisições de manutenção ligadas: o tempo parado entra sozinho no boletim do dia.",
     ],
